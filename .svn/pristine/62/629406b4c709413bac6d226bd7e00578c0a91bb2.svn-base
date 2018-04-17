@@ -1,0 +1,110 @@
+package com.dome.sdkserver.bq.login.domain.user;
+
+
+import javax.validation.constraints.NotNull;
+import java.io.Serializable;
+
+public class User implements Serializable {
+    private static final long serialVersionUID = 5350047399015049613L;
+
+    // 用户id
+    private String userId;
+    // 登录名
+    @NotNull(message = "账户名不能为空")
+    private String loginName;
+    @NotNull(message = "账户密码不能为空")
+    private String password;
+    //业务标识
+    private String buId;
+    //手机号国别码,国内sdk无国别码
+    private String countryCode = "86";
+    //身份证姓名
+    private String idCardName;
+    //身份证号
+    private String idCardNo;
+    //验证码
+    private String registerCode;
+    //是否实名,默认不实名
+    private boolean realName = false;
+
+    public User() {
+    }
+
+    public User(String userId, String loginName, String password) {
+        this.userId = userId;
+        this.loginName = loginName;
+        this.password = password;
+    }
+
+    public String getBuId() {
+        return buId;
+    }
+
+    public void setBuId(String buId) {
+        this.buId = buId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getLoginName() {
+        return loginName;
+    }
+
+    public void setLoginName(String loginName) {
+        this.loginName = loginName;
+    }
+
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    public String getIdCardName() {
+        return idCardName;
+    }
+
+    public void setIdCardName(String idCardName) {
+        this.idCardName = idCardName;
+    }
+
+    public String getIdCardNo() {
+        return idCardNo;
+    }
+
+    public void setIdCardNo(String idCardNo) {
+        this.idCardNo = idCardNo;
+    }
+
+    public boolean isRealName() {
+        return realName;
+    }
+
+    public void setRealName(boolean realName) {
+        this.realName = realName;
+    }
+
+    public String getRegisterCode() {
+        return registerCode;
+    }
+
+    public void setRegisterCode(String registerCode) {
+        this.registerCode = registerCode;
+    }
+}

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.JsMapper">
+	<resultMap type="JsOrder" id="orderMap">
+		<id property="id" jdbcType="INTEGER" column="id"/>
+		<result property="channelId" jdbcType="INTEGER" column="channel_id"/>
+		<result property="orderNo" jdbcType="VARCHAR" column="js_no"/>
+		<result property="amount" jdbcType="DECIMAL" column="amount"/>
+		<result property="jsAmount" jdbcType="DECIMAL" column="js_amount"/>
+		<result property="applyDate" jdbcType="TIMESTAMP" column="apply_date"/>
+		<result property="fromDate" jdbcType="TIMESTAMP" column="from_date"/>
+		<result property="toDate" jdbcType="TIMESTAMP" column="to_date"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+		
+		<result property="bankAccount" jdbcType="VARCHAR" column="bank_account"/>
+		<result property="contact" jdbcType="VARCHAR" column="contact"/>
+		<result property="bankName" jdbcType="VARCHAR" column="bank_name"/>
+		<result property="address" jdbcType="VARCHAR" column="address"/>
+		<result property="name" jdbcType="VARCHAR" column="name"/>
+		<result property="channelCode" jdbcType="VARCHAR" column="code"/>
+	</resultMap>
+	
+	<insert id="add">
+		insert into domesdk_channel_jiesuan (js_no, channel_id, amount, js_amount, apply_date, from_date, to_date, status, del_flag, create_time, update_time)
+		values (1,#{js.channelId}, #{js.amount}, #{js.amount}<!-- 插入时财务结算金额等于结算金额的值 -->, #{js.applyDate}, #{js.fromDate}, #{js.toDate}, #{js.status}, 0, now(), now());
+		<selectKey resultType="long" keyProperty="js.id" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+	
+	<update id="updateJsOrderNo">
+		update domesdk_channel_jiesuan set js_no=#{orderNo} where id=#{id} and del_flag=0;
+	</update>
+	<update id="update">
+		update domesdk_channel_jiesuan set update_time=now()
+			<if test="js.status!=null and js.status==1"> <!-- 结算审批 -->
+				,status=#{js.status}, js_date=now()
+			</if>
+			<if test="js.jsAmount!=null and js.jsAmount!=0.0">
+				,js_amount=#{js.jsAmount}
+			</if>
+		where id=#{js.id} and del_flag=0;
+	</update>
+	
+	<select id="select" resultMap="orderMap">
+		select * from domesdk_channel_jiesuan j left join domesdk_second_channel c on j.channel_id=c.id where j.js_no=#{orderNo} and j.del_flag=0 and c.del_flag=0
+		<!-- and c.status=2 -->;
+	</select>
+	
+	<select id="selectNew" resultMap="orderMap">
+		select * from domesdk_channel_jiesuan where channel_id=#{channelId} and del_flag=0 order by id desc limit 1;
+	</select>
+
+	<select id="selectCount" resultType="int">
+		select count(*) from domesdk_channel_jiesuan j, domesdk_second_channel c where c.del_flag=0 and j.del_flag=0 and j.channel_id=c.id
+		 and (c.parent_id is null or c.parent_id=0) <!-- 只有一级渠道才可以申请结算 -->
+		<if test="order.channelId!=null and order.channelId!=0">
+			and j.channel_id=#{order.channelId}
+		</if>
+		<if test="order.name!=null and order.name!=''">
+			and c.name=#{order.name}
+		</if>
+		<if test="order.status!=null and order.status!=0">
+			and j.status=#{order.status}
+		</if>
+		 ;
+	</select>
+
+	<select id="selectList" resultMap="orderMap">
+		select j.*, c.bank_name, c.bank_account, c.contact, c.address, c.code, c.name from domesdk_channel_jiesuan j left join domesdk_second_channel c on j.channel_id=c.id where j.del_flag=0
+		 and c.del_flag=0 and j.channel_id=c.id and (c.parent_id is null or c.parent_id=0)
+		 <if test="order.channelId!=null and order.channelId!=0">
+			and j.channel_id=#{order.channelId}
+		</if>
+		<if test="order.name!=null and order.name!=''">
+			and c.name=#{order.name}
+		</if>
+		<if test="order.status!=null and order.status!=0">
+			and j.status=#{order.status}
+		</if>
+		order by field(j.status, 2, 3, 1), j.update_time desc <!-- 排序顺序：申请中，已驳回， 已结算 -->
+		 limit #{p.start}, #{p.pageSize};
+	</select>
+
+	<select id="selectAmount" resultMap="orderMap">
+		SELECT count(settle_amount) as amount FROM `domesdk_balance_amount` a, domesdk_second_channel c where a.channel_id=c.id and (c.id=#{channelId} or c.parent_id=#{channelId})
+		<if test="beginDate!=null and beginDate!=''">
+			and a.date>=CONCAT(#{beginDate}, ' 00:00:00')
+		</if>
+		<if test="endDate!=null and endDate!=''">
+			and a.date&lt;=CONCAT(#{endDate}, ' 23:59:59')
+		</if>
+		;
+	</select>
+</mapper>

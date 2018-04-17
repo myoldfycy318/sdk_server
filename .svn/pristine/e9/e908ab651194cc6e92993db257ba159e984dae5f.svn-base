@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.sign.SignMapper">
+    <resultMap id="resultMap" type="com.dome.sdkserver.metadata.entity.sign.SignEntity">
+        <result property="id" jdbcType="INTEGER" column="id" />
+        <result property="userId" jdbcType="VARCHAR" column="user_id" />
+        <result property="notifyDate" jdbcType="VARCHAR" column="notify_date" />
+        <result property="notifyTime" jdbcType="VARCHAR" column="notify_time" />
+        <result property="finshTimes" jdbcType="TIMESTAMP" column="finsh_times" />
+    </resultMap>
+
+    <select id="queryByUserId" resultType="java.lang.Integer" parameterType="java.lang.String" >
+        SELECT
+        COUNT(1)
+        FROM
+        sdk_sign${curMonth}
+        WHERE
+        user_id = #{userId,jdbcType=VARCHAR}
+        and notify_date = #{notifyDate,jdbcType=VARCHAR}
+    </select>
+
+    <insert id="insert" parameterType="com.dome.sdkserver.metadata.entity.sign.SignEntity" >
+        insert into sdk_sign${curMonth}
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="id != null" >
+                id,
+            </if>
+            <if test="userId != null" >
+                user_id,
+            </if>
+            <if test="notifyDate != null" >
+                notify_date,
+            </if>
+            <if test="notifyTime != null" >
+                notify_time,
+            </if>
+            <if test="finshTimes != null" >
+                finsh_times,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="id != null" >
+                #{id,jdbcType=INTEGER},
+            </if>
+            <if test="userId != null" >
+                #{userId,jdbcType=VARCHAR},
+            </if>
+            <if test="notifyDate != null" >
+                #{notifyDate,jdbcType=VARCHAR},
+            </if>
+            <if test="notifyTime != null" >
+                #{notifyTime,jdbcType=VARCHAR},
+            </if>
+            <if test="finshTimes != null" >
+                #{finshTimes,jdbcType=TIMESTAMP},
+            </if>
+        </trim>
+        </insert>
+</mapper>

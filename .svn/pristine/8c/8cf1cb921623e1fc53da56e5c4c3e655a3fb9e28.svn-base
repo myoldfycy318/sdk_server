@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.PayOptionsMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions" id="baseResultMap">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="app_code" property="appCode" jdbcType="VARCHAR"/>
+        <result column="pay_way" property="payWay" jdbcType="VARCHAR"/>
+        <result column="channel_code" property="channelCode" jdbcType="VARCHAR"/>
+        <result column="is_support_bq" property="isSupportBq" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions">
+    insert into sdk_payment_options (app_code,pay_way,is_support_bq,create_time,update_time
+        <if test="channelCode != null">
+            ,channel_code
+        </if>
+        )
+    VALUES ( #{appCode}, #{payWay}, #{isSupportBq},now(),now()
+        <if test="channelCode != null">
+            ,#{channelCode}
+        </if>
+        )
+</insert>
+
+    <update id="updateByAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions">
+        update sdk_payment_options
+        <set>
+            <if test="payWay != null and payWay != ''">
+                pay_way = #{payWay},
+            </if>
+            <if test="isSupportBq != null ">
+                is_support_bq = #{isSupportBq},
+            </if>
+            update_time = now()
+        </set>
+        where app_code = #{appCode}
+        <if test="channelCode != null">
+            and channel_code=#{channelCode}
+        </if>
+    </update>
+
+    <delete id="delByAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions">
+    DELETE FROM sdk_payment_options
+    WHERE app_code = #{appCode}
+    <if test="channelCode != null">
+        and channel_code=#{channelCode}
+    </if>
+</delete>
+
+    <select id="isExistAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions"
+            resultType="INTEGER">
+    select count(1) from  sdk_payment_options
+    WHERE app_code = #{appCode}
+    <if test="channelCode != null">
+        and channel_code=#{channelCode}
+    </if>
+</select>
+
+    <select id="queryPayOptions" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayOptions"
+            resultMap="baseResultMap">
+        SELECT id,app_code,pay_way,is_support_bq,create_time,update_time from sdk_payment_options
+        WHERE  app_code = #{appCode}
+        <if test="channelCode != null">
+            and channel_code=#{channelCode}
+        </if>
+    </select>
+
+</mapper>

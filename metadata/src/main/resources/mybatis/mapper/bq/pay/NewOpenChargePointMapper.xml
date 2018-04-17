@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.NewOpenChargePointMapper" >
+  <resultMap id="BaseResultMap" type="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChargePoint" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="app_code" property="appCode" jdbcType="VARCHAR" />
+    <result column="charging_point_code" property="chargePointCode" jdbcType="VARCHAR" />
+    <result column="charging_point_name" property="chargePointName" jdbcType="VARCHAR" />
+    <result column="charging_point_amount" property="chargePointAmount" jdbcType="DECIMAL" />
+    <result column="status" property="status" jdbcType="TINYINT" />
+    <result column="description" property="desc" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, app_code, charging_point_code, charging_point_name, charging_point_amount, status, description
+  </sql>
+
+  <select id="isChargeExist" resultType="int">
+    select count(1) from sdk_new_open_charge_point
+    where app_code = #{appCode,jdbcType=VARCHAR}
+          and charging_point_code = #{chargePointCode,jdbcType=VARCHAR}
+  </select>
+
+  <select id="selectByParam" resultMap="BaseResultMap" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChargePoint" >
+    select 
+    <include refid="Base_Column_List" />
+    from sdk_new_open_charge_point
+    <where>
+      <if test="appCode != null and appCode != ''">
+        and app_code = #{appCode,jdbcType=VARCHAR}
+      </if>
+      <if test="chargePointCode != null and chargePointCode != ''">
+        and charging_point_code = #{chargePointCode,jdbcType=VARCHAR}
+      </if>
+      <if test="status != null">
+        and status = #{status,jdbcType=TINYINT}
+      </if>
+    </where>
+  </select>
+
+  <insert id="insertSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChargePoint" >
+    insert into sdk_new_open_charge_point
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="appCode != null" >
+        app_code,
+      </if>
+      <if test="chargePointCode != null" >
+        charging_point_code,
+      </if>
+      <if test="chargePointName != null" >
+        charging_point_name,
+      </if>
+      <if test="chargePointAmount != null" >
+        charging_point_amount,
+      </if>
+      <if test="status != null" >
+        status,
+      </if>
+      <if test="desc != null" >
+        description,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="appCode != null" >
+        #{appCode,jdbcType=VARCHAR},
+      </if>
+      <if test="chargePointCode != null" >
+        #{chargePointCode,jdbcType=VARCHAR},
+      </if>
+      <if test="chargePointName != null" >
+        #{chargePointName,jdbcType=VARCHAR},
+      </if>
+      <if test="chargePointAmount != null" >
+        #{chargePointAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="status != null" >
+        #{status,jdbcType=TINYINT},
+      </if>
+      <if test="desc != null" >
+        #{desc,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByChargePointCodeSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChargePoint" >
+    update sdk_new_open_charge_point
+    <set >
+      <if test="chargePointName != null" >
+        charging_point_name = #{chargePointName,jdbcType=VARCHAR},
+      </if>
+      <if test="chargePointAmount != null" >
+        charging_point_amount = #{chargePointAmount,jdbcType=DECIMAL},
+      </if>
+      <if test="status != null" >
+        status = #{status,jdbcType=TINYINT},
+      </if>
+      <if test="desc != null" >
+        description = #{desc,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where charging_point_code = #{chargePointCode,jdbcType=VARCHAR} and app_code = #{appCode,jdbcType=VARCHAR}
+  </update>
+
+</mapper>

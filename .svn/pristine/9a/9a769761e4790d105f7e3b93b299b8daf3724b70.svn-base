@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.PublishOrderMapper">
+    <resultMap id="resultMap" type="com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity">
+        <result property="orderNo" jdbcType="VARCHAR" column="orderNo"/>
+        <result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="buyerId" jdbcType="VARCHAR" column="buyer_Id"/>
+        <result property="chargePointCode" jdbcType="VARCHAR" column="charge_point_code"/>
+        <result property="chargePointAmount" jdbcType="DECIMAL" column="charge_point_amount"/>
+        <result property="chargePointName" jdbcType="VARCHAR" column="charge_point_name"/>
+        <result property="payType" jdbcType="INTEGER" column="pay_type"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="finishTime" jdbcType="TIMESTAMP" column="finish_time"/>
+        <result property="orderStatus" jdbcType="INTEGER" column="order_status"/>
+        <result property="tradeNo" jdbcType="VARCHAR" column="tradeNo"/>
+        <result property="gameOrderNo" jdbcType="VARCHAR" column="game_orderNo"/>
+        <result property="payNotifyUrl" jdbcType="VARCHAR" column="pay_notify_url"/>
+        <result property="channelCode" jdbcType="VARCHAR" column="channel_code"/>
+        <result property="payOrigin" jdbcType="VARCHAR" column="pay_origin"/>
+        <result property="extraField" jdbcType="VARCHAR" column="extra_field"/>
+        <result property="buyerAccount" jdbcType="VARCHAR" column="buyer_account"/>
+        <result property="authCode" jdbcType="VARCHAR" column="auth_code"/>
+        <result property="paymentType" jdbcType="VARCHAR" column="payment_type"/>
+        <result property="myCardTradeNo" jdbcType="VARCHAR" column="myCard_tradeNo"/>
+        <result property="currency" jdbcType="VARCHAR" column="currency"/>
+        <result property="tradeType" jdbcType="VARCHAR" column="trade_type"/>
+        <result property="roleId" jdbcType="VARCHAR" column="role_id"/>
+        <result property="zoneId" jdbcType="VARCHAR" column="zone_id"/>
+    </resultMap>
+
+    <resultMap id="resultMap1" type="com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity">
+        <result property="orderNo" jdbcType="VARCHAR" column="orderNo"/>
+        <result property="chargePointAmount" jdbcType="DECIMAL" column="charge_point_amount"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="finishTime" jdbcType="TIMESTAMP" column="finish_time"/>
+        <result property="orderStatus" jdbcType="INTEGER" column="order_status"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="payOrigin" jdbcType="VARCHAR" column="pay_origin"/>
+        <result property="passport" jdbcType="VARCHAR" column="passport"/>
+    </resultMap>
+
+    <resultMap id="resultMapYouPiao" type="com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity">
+        <result property="chargePointAmount" jdbcType="DECIMAL" column="charge_point_amount"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="orderNo" jdbcType="VARCHAR" column="orderNo"/>
+        <result property="orderStatus" jdbcType="INTEGER" column="order_status"/>
+        <result property="payOrigin" jdbcType="VARCHAR" column="pay_origin"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        orderNo,app_code,app_name,buyer_Id,charge_point_code,charge_point_amount,charge_point_name,
+        pay_type,create_time,finish_time,order_status,tradeNo,game_orderNo,pay_notify_url,channel_code,
+        pay_origin,extra_field,buyer_account,auth_code,payment_type,myCard_tradeNo,currency,trade_type,role_id,zone_id
+    </sql>
+
+    <select id="queryByCondition" resultMap="resultMap"
+            parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        sdk_publish_order${order.curMonth}
+        WHERE 1=1
+        <if test=" order.MyCardTradeNo != '' and order.MyCardTradeNo != null ">
+            and myCard_tradeNo = #{order.myCardTradeNo,jdbcType=VARCHAR}
+        </if>
+        <if test="EndDateTime != '' and EndDateTime != null ">
+            <![CDATA[
+            and (date(#{EndDateTime}) >= date(finish_time))
+        ]]>
+        </if>
+        <if test="StartDateTime != '' and StartDateTime != null ">
+            <![CDATA[
+            and (date(finish_time) >= date(#{StartDateTime}))
+        ]]>
+        </if>
+        and pay_origin = #{order.payOrigin,jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryOrderByOrderNo" resultMap="resultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        sdk_publish_order${curMonth}
+        WHERE
+        orderNo = #{orderNo,jdbcType=VARCHAR}
+    </select>
+
+    <select id="queryOrderAmount" resultType="java.lang.Double">
+    SELECT
+    charge_point_amount
+    FROM
+    sdk_publish_order${curMonth}
+    WHERE
+    orderNo = #{orderNo,jdbcType=VARCHAR}
+</select>
+
+    <!--保存订单信息-->
+    <insert id="insert" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity">
+        insert into sdk_publish_order${curMonth}
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="orderNo != null">
+                orderNo,
+            </if>
+            <if test="appCode != null">
+                app_code,
+            </if>
+            <if test="appName != null">
+                app_name,
+            </if>
+            <if test="buyerId != null">
+                buyer_Id,
+            </if>
+            <if test="chargePointCode != null">
+                charge_point_code,
+            </if>
+            <if test="chargePointAmount != null">
+                charge_point_amount,
+            </if>
+            <if test="chargePointName != null">
+                charge_point_name,
+            </if>
+            <if test="payType != null">
+                pay_type,
+            </if>
+            create_time,
+            <if test="finishTime != null">
+                finish_time,
+            </if>
+            <if test="orderStatus != null">
+                order_status,
+            </if>
+            <if test="tradeNo != null">
+                tradeNo,
+            </if>
+            <if test="gameOrderNo != null">
+                game_orderNo,
+            </if>
+            <if test="payNotifyUrl != null">
+                pay_notify_url,
+            </if>
+            <if test="channelCode != null">
+                channel_code,
+            </if>
+            <if test="payOrigin != null">
+                pay_origin,
+            </if>
+            <if test="extraField != null">
+                extra_field,
+            </if>
+            <if test="buyerAccount != null">
+                buyer_account,
+            </if>
+            <if test="authCode != null">
+                auth_code,
+            </if>
+            <if test="paymentType != null">
+                payment_type,
+            </if>
+            <if test="myCardTradeNo != null">
+                myCard_tradeNo,
+            </if>
+            <if test="currency != null">
+                currency,
+            </if>
+            <if test="tradeType != null">
+                trade_type,
+            </if>
+            <if test="roleId != null">
+                role_id,
+            </if>
+            <if test="zoneId != null">
+                zone_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="orderNo != null">
+                #{orderNo,jdbcType=VARCHAR},
+            </if>
+            <if test="appCode != null">
+                #{appCode,jdbcType=VARCHAR},
+            </if>
+            <if test="appName != null">
+                #{appName,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerId != null">
+                #{buyerId,jdbcType=VARCHAR},
+            </if>
+            <if test="chargePointCode != null">
+                #{chargePointCode,jdbcType=VARCHAR},
+            </if>
+            <if test="chargePointAmount != null">
+                #{chargePointAmount,jdbcType=DECIMAL},
+            </if>
+            <if test="chargePointName != null">
+                #{chargePointName,jdbcType=VARCHAR},
+            </if>
+            <if test="payType != null">
+                #{payType,jdbcType=INTEGER},
+            </if>
+            now(),
+            <if test="finishTime != null">
+                #{finishTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="orderStatus != null">
+                #{orderStatus,jdbcType=INTEGER},
+            </if>
+            <if test="tradeNo != null">
+                #{tradeNo,jdbcType=VARCHAR},
+            </if>
+            <if test="gameOrderNo != null">
+                #{gameOrderNo,jdbcType=VARCHAR},
+            </if>
+            <if test="payNotifyUrl != null">
+                #{payNotifyUrl,jdbcType=VARCHAR},
+            </if>
+            <if test="channelCode != null">
+                #{channelCode,jdbcType=VARCHAR},
+            </if>
+            <if test="payOrigin != null">
+                #{payOrigin,jdbcType=VARCHAR},
+            </if>
+            <if test="extraField != null">
+                #{extraField,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerAccount != null">
+                #{buyerAccount,jdbcType=VARCHAR},
+            </if>
+            <if test="authCode != null">
+                #{authCode,jdbcType=VARCHAR},
+            </if>
+            <if test="paymentType != null">
+                #{paymentType,jdbcType=VARCHAR},
+            </if>
+            <if test="myCardTradeNo != null">
+                #{myCardTradeNo,jdbcType=VARCHAR},
+            </if>
+            <if test="currency != null">
+                #{currency,jdbcType=VARCHAR},
+            </if>
+            <if test="tradeType != null">
+                #{tradeType,jdbcType=VARCHAR},
+            </if>
+            <if test="roleId != null">
+                #{roleId,jdbcType=VARCHAR},
+            </if>
+            <if test="zoneId != null">
+                #{zoneId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateById" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity">
+        update sdk_publish_order${curMonth}
+        <set>
+            <if test="orderNo != null">
+                orderNo = #{orderNo,jdbcType=VARCHAR},
+            </if>
+            <if test="appCode != null">
+                app_code = #{appCode,jdbcType=VARCHAR},
+            </if>
+            <if test="appName != null">
+                app_name = #{appName,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerId != null">
+                buyer_Id = #{buyerId,jdbcType=VARCHAR},
+            </if>
+            <if test="chargePointCode != null">
+                charge_point_code = #{chargePointCode,jdbcType=VARCHAR},
+            </if>
+            <if test="chargePointAmount != null">
+                charge_point_amount = #{chargePointAmount,jdbcType=DECIMAL},
+            </if>
+            <if test="chargePointName != null">
+                charge_point_name = #{chargePointName,jdbcType=VARCHAR},
+            </if>
+            <if test="payType != null">
+                pay_type = #{payType,jdbcType=INTEGER},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="finishTime != null">
+                finish_time = #{finishTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="orderStatus != null">
+                order_status = #{orderStatus,jdbcType=INTEGER},
+            </if>
+            <if test="tradeNo != null and tradeNo != ''">
+                tradeNo = #{tradeNo,jdbcType=VARCHAR},
+            </if>
+            <if test="gameOrderNo != null">
+                game_orderNo = #{gameOrderNo,jdbcType=VARCHAR},
+            </if>
+            <if test="payNotifyUrl != null">
+                pay_notify_url = #{payNotifyUrl,jdbcType=VARCHAR},
+            </if>
+            <if test="channelCode != null">
+                channel_code = #{channelCode,jdbcType=VARCHAR},
+            </if>
+            <if test="payOrigin != null">
+                pay_origin = #{payOrigin,jdbcType=VARCHAR},
+            </if>
+            <if test="extraField != null">
+                extra_field = #{extraField,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerAccount != null">
+                buyer_account = #{buyerAccount,jdbcType=VARCHAR},
+            </if>
+            <if test="authCode != null">
+                auth_code = #{authCode,jdbcType=VARCHAR},
+            </if>
+            <if test="paymentType != null">
+                payment_type = #{paymentType,jdbcType=VARCHAR},
+            </if>
+            <if test="myCardTradeNo != null">
+                myCard_tradeNo = #{myCardTradeNo,jdbcType=VARCHAR},
+            </if>
+            <if test="currency != null">
+                currency = #{currency,jdbcType=VARCHAR},
+            </if>
+            <if test="tradeType != null">
+                trade_type = #{tradeType,jdbcType=VARCHAR},
+            </if>
+            <if test="roleId != null">
+                role_id = #{roleId,jdbcType=VARCHAR},
+            </if>
+            <if test="zoneId != null">
+                zone_id = #{zoneId,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where orderNo = #{orderNo,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateOrderById" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity">
+        update sdk_publish_order${curMonth}
+        <set>
+            <if test="finishTime != null">
+                finish_time = #{finishTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="tradeNo != null and tradeNo != ''">
+                tradeNo = #{tradeNo,jdbcType=VARCHAR},
+            </if>
+            <if test="extraField != null  and extraField != ''">
+                extra_field = #{extraField,jdbcType=VARCHAR},
+            </if>
+            <if test="buyerAccount != null and buyerAccount != ''">
+                buyer_account = #{buyerAccount,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where orderNo = #{orderNo,jdbcType=VARCHAR}
+    </update>
+
+    <select id="queryPayRecord" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity"
+            resultMap="resultMap1">
+        select orderNo,charge_point_amount,create_time,finish_time,order_status from
+        (SELECT orderNo,charge_point_amount,create_time,finish_time,order_status FROM domesdk_order${curMonth}
+        WHERE channel_code = #{channelCode,jdbcType=VARCHAR} AND buyer_Id = #{buyerId,jdbcType=VARCHAR}
+        <if test="curMonth >201703">
+            UNION ALL
+            SELECT orderNo,charge_point_amount,create_time,finish_time,order_status FROM sdk_publish_order${curMonth}
+            WHERE channel_code = #{channelCode,jdbcType=VARCHAR} AND buyer_Id = #{buyerId,jdbcType=VARCHAR}
+        </if>
+        ) a
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="queryPayRecordList" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity"
+            resultMap="resultMap1">
+        SELECT orderNo,charge_point_amount,create_time,finish_time,order_status,app_name,pay_origin, passport
+        FROM (
+        <foreach collection="orderMonths" item="curMonth" open="" separator="UNION ALL" close="">
+            SELECT orderNo,charge_point_amount,create_time,finish_time,order_status,app_name,pay_origin ,extra_field2 as
+            passport
+            FROM domesdk_order${curMonth}
+            WHERE channel_code = #{channelCode} AND buyer_Id = #{buyerId}
+            <if test="createTime != '' and createTime != null ">
+                <![CDATA[
+                 and create_time >=  DATE_FORMAT(#{createTime}, '%Y-%m-%d 00:00:00')
+                 and  create_time <= DATE_FORMAT(#{finishTime}, '%Y-%m-%d 23:59:59')
+              ]]>
+            </if>
+            <if test="curMonth >201705">
+                UNION ALL
+                SELECT orderNo,charge_point_amount,create_time,finish_time,order_status,app_name,pay_origin,''extra_field2 FROM sdk_publish_order${curMonth}
+                WHERE channel_code = #{channelCode} AND buyer_Id = #{buyerId}
+                <![CDATA[
+                 and create_time >=  DATE_FORMAT(#{createTime}, '%Y-%m-%d 00:00:00')
+                 and  create_time <= DATE_FORMAT(#{finishTime}, '%Y-%m-%d 23:59:59')
+              ]]>
+            </if>
+        </foreach>
+        ) a
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="queryYouPiaoPayRecord" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity"
+            resultMap="resultMapYouPiao">
+        SELECT charge_point_amount, create_time,orderNo,order_status, pay_origin,app_name
+        FROM (
+        <foreach collection="orderMonths" item="curMonth" open="" separator="UNION ALL" close="">
+            SELECT charge_point_amount,create_time,orderNo,order_status,0 pay_origin,app_name
+            FROM sdk_third_party_order_${curMonth}
+            WHERE platform_code='YOUPIAO' AND buyer_Id = #{buyerId}
+        </foreach>
+        UNION ALL
+        <foreach collection="orderMonths" item="curMonth" open="" separator="UNION ALL" close="">
+            SELECT charge_point_amount, create_time,orderNo,order_status,1 pay_origin,app_name
+            FROM domesdk_order${curMonth}
+            WHERE pay_origin='wap' AND buyer_Id = #{buyerId}
+        </foreach>
+        UNION ALL
+        <foreach collection="orderMonths" item="curMonth" open="" separator="UNION ALL" close="">
+            SELECT a.trans_amount charge_point_amount,a.create_time,a.pay_trans_id orderNo,
+            case when a.STATUS = 30 then 1 else 0 end  order_status,2 pay_origin,b.game_name app_name
+            FROM sdk_qbaopay_trans_${curMonth} a
+            INNER JOIN domesdk_h5_game b ON (a.app_code=b.game_code)
+            WHERE pay_origin='wap' AND pay_user_id = #{buyerId}
+        </foreach>
+        ) a
+        ORDER BY create_time DESC
+
+    </select>
+
+
+</mapper>

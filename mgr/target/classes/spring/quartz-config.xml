@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!-- 同步手游,页游,H5游戏信息至bi -->
+    <bean id="addSnyAppInfoToBiByMq" class="com.dome.sdkserver.job.SnyAppInfoToBiTask"/>
+
+    <bean id="autoAddMq" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="addSnyAppInfoToBiByMq"/>
+        <property name="targetMethod" value="snyAppInfoToBiByTask"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+    <bean id="snyAppInfoToBiCronTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="autoAddMq"/>
+        <property name="cronExpression" value="00 00 00 * * ?"/>
+    </bean>
+
+    <bean id="startQuertz"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="snyAppInfoToBiCronTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+</beans>

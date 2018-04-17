@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.UserCenterMapper">
+
+	<resultMap type="com.dome.sdkserver.bo.PayApp" id="PayAppResultMap">
+		<result property="appName" jdbcType="VARCHAR" column="app_name" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+	</resultMap>
+	
+	<resultMap type="com.dome.sdkserver.bo.MerchantAppInfo" id="AllAppResultMap">
+		<id property="appId" jdbcType="INTEGER" column="app_id" />
+		<result property="merchantInfoId" jdbcType="INTEGER" column="merchant_info_id" />
+		<result property="appName" jdbcType="VARCHAR" column="app_name" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+		<result property="appIcon" jdbcType="VARCHAR" column="app_icon" />
+		<result property="appUrl" jdbcType="VARCHAR" column="app_url" />
+		<result property="appDesc" jdbcType="VARCHAR" column="app_desc" />
+		<result property="runPlatform" jdbcType="CHAR" column="run_platform" />
+<!-- 		<result property="appType" jdbcType="CHAR" column="app_type" /> -->
+		<result property="appKey" jdbcType="VARCHAR" column="app_key" />
+		<result property="outPublicRsakey" jdbcType="VARCHAR" column="out_public_rsakey" />
+		<result property="outPrivateRsakey" jdbcType="VARCHAR" column="out_private_rsakey" />
+		<result property="status" jdbcType="TINYINT" column="status" />
+		<result property="remark" jdbcType="VARCHAR" column="remark" />
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag" />
+		<result property="createIp" jdbcType="VARCHAR" column="create_ip" />
+		<result property="auditorId" jdbcType="INTEGER" column="auditor_id" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+	    app.app_id,
+		app.merchant_info_id,
+		app.app_name,
+		app.app_code,
+		app.app_icon,
+		app.app_url,
+		app.app_desc,
+		app.run_platform,
+<!-- 		app.app_type, -->
+		app.app_key,
+		app.out_public_rsakey,
+		app.out_private_rsakey,
+		app.status,
+		app.remark,
+		app.del_flag,
+		app.create_ip,
+		app.auditor_id,
+		app.create_time,
+		app.update_time
+	  </sql>
+	  
+	  
+	<select id="getAppCountByMerchantId" resultType="java.lang.Integer">
+		SELECT
+			count(1)
+		FROM 
+			domesdk_app_info app
+		JOIN 
+			domesdk_merchant_info mert
+		ON
+			app.merchant_info_id = mert.merchant_info_id
+		WHERE
+			1=1
+		and 
+			mert.merchant_info_id = #{mertchantId, jdbcType=INTEGER}
+	</select>
+	
+	<select id="getAppListByMerchantId" resultMap="AllAppResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+		FROM 
+			domesdk_app_info app
+		JOIN 
+			domesdk_merchant_info mert
+		ON
+			app.merchant_info_id = mert.merchant_info_id
+		WHERE
+			1=1
+		and 
+			mert.merchant_info_id = #{merchantInfoId, jdbcType=INTEGER}
+		<if test="start != null and size != null">
+			limit #{start, jdbcType=INTEGER},#{size, jdbcType=INTEGER}
+		</if>
+	</select>
+	  
+	<!--根据商户ID获取当前商户的支付应用-->
+	<select id="getPayAppByMerchantId" resultMap="PayAppResultMap">
+		SELECT
+			app_name,app_code
+		FROM 
+			domesdk_app_info app
+		WHERE
+			app.merchant_info_id = #{merchantInfoId, jdbcType=INTEGER}
+	</select>
+	
+
+	
+</mapper>

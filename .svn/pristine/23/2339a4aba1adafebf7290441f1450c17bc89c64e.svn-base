@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.PromoteTypeMapper">
+	<resultMap type="PromoteType" id="pcMap">
+		<id property="typeId" jdbcType="INTEGER" column="id"/>
+		<result property="typeName" jdbcType="VARCHAR" column="type_name"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	
+	<insert id="add">
+		insert into domesdk_promotetype (type_name, status, del_flag, create_time, update_time) values 
+		  (#{pt.typeName}, #{pt.status}, 0, now(), now());
+	  <selectKey resultType="long" keyProperty="pt.typeId" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+	
+	<update id="update">
+		update domesdk_promotetype set update_time=now()
+			<if test="pt.typeName!=null and pt.typeName!=''">
+				,type_name=#{pt.typeName}
+			</if>
+			<if test="pt.status!=0">
+				,status=#{pt.status}
+			</if>
+			<if test="pt.delFlag!=0">
+				,del_flag=#{pt.delFlag}
+			</if>
+		where id=#{pt.typeId} and del_flag=0;
+	</update>
+	
+	<select id="select" resultMap="pcMap">
+		select * from domesdk_promotetype where id=#{typeId} and del_flag=0;
+	</select>
+	
+	<select id="selectList" resultMap="pcMap">
+		select * from domesdk_promotetype where del_flag=0
+		<if test="typeName!=null and typeName!=''">
+			and	binary type_name like concat('%', #{typeName}, '%')
+		</if>
+		order by update_time desc
+		<if test="p.start!=null and p.start!=-1">
+		   	limit #{p.start}, #{p.pageSize}
+		</if>;
+	</select>
+	
+	<select id="selectCount" resultType="int">
+		select count(*) from domesdk_promotetype where del_flag=0
+		<if test="typeName!=null and typeName!=''">
+			and	binary type_name like concat('%', #{typeName}, '%')
+		</if>
+		;
+	</select>
+	
+	<select id="selectGameList" resultType="Game">
+		select a.app_id as gameId, a.app_name as gameName, t.type_attr_name as gameType from domesdk_app_info a left join domesdk_app_type_attr t
+		on a.game_attr=t.type_attr_code
+		where a.app_type='10000000' and a.del_flag=0 and a.status=1 and t.del_flag=0<!-- 上架的游戏 -->
+		<if test="gameName!=null and gameName!=''">
+			and	binary a.app_name like concat('%', #{gameName}, '%')
+		</if>
+		limit #{p.start}, #{p.pageSize}
+		;
+	</select>
+	
+	<select id="selectGameCount" resultType="int">
+		select count(*) from domesdk_app_info
+		where app_type='10000000' and del_flag=0 and status=1 <!-- 上架的游戏 -->
+		<if test="gameName!=null and gameName!=''">
+			and	binary app_name like concat('%', #{gameName}, '%')
+		</if>
+		;
+	</select>
+	
+	<insert id="addGame">
+		insert into domesdk_promotetype_game (type_id, game_id, game_code, game_name, create_time, update_time)
+		  values (#{game.typeId}, #{game.gameId}, #{game.gameCode}, #{game.gameName}, now(), now());
+	</insert>
+	
+	<insert id="batchAddGames">
+		insert into domesdk_promotetype_game (type_id, game_id, game_code, game_name, create_time, update_time, del_flag)
+		  values 
+		  <foreach collection="gameList" item="game" separator=",">
+		  	(#{game.typeId}, #{game.gameId}, #{game.gameCode}, #{game.gameName}, now(), now(),#{game.delFlag})
+		  </foreach>
+		  ;
+	</insert>
+	
+	<delete id="deleteGames">
+		delete from domesdk_promotetype_game where id in
+		<foreach collection="ids" open="(" close=")" item="id" separator=",">
+			#{id}
+		</foreach>
+		;
+	</delete>
+	
+	<delete id="deleteGameByTypeid">
+		delete from domesdk_promotetype_game where type_id=#{typeId};
+	</delete>
+	
+	<select id="selectGList" resultType="Game">
+		select g.id, g.type_id as typeId, g.game_id as gameId, a.app_code as gameCode, a.app_name as gameName,
+		a.game_attr as gameType, g.create_time as createTime, g.update_time as updateTime from domesdk_promotetype_game g left join domesdk_app_info a on g.game_id=a.app_id
+		 where type_id=#{typeId} and a.del_flag=0 and a.app_type='10000000' <!-- and g.del_flag=0 暂停分类后查看分类仍显示 -->; 
+	</select>
+	
+	<delete id="deleteChannel">
+		delete from domesdk_channel_promotetype where type_id=#{typeId};
+	</delete>
+	
+	<update id="deleteChannelPkg">
+		update domesdk_channelpkg_download set update_time=now(), del_flag=1
+		where del_flag=0 and type_id=#{typeId} and game_id in
+		<foreach collection="gameIds" open="(" close=")" item="gameId" separator=",">
+			#{gameId}
+		</foreach>
+		;
+	</update>
+	
+	<select id="selectChannelGameCount" resultType="int">
+		select count(*) from domesdk_channel_promotetype cp, domesdk_promotetype_game g
+			where cp.type_id=g.type_id and cp.channel_id=#{channelId} and g.game_id=#{gameId}
+			 and g.del_flag=0;
+	</select>
+	
+	<select id="selectChannelGame" resultType="java.lang.Long">
+		select g.game_id from domesdk_channel_promotetype cp, domesdk_promotetype_game g
+			where cp.type_id=g.type_id and cp.channel_id=#{channelId} and g.del_flag=0;
+	</select>
+	
+	<select id="selectChannel" resultType="java.lang.Long">
+		select channel_id from domesdk_channel_promotetype where type_id=#{typeId};
+	</select>
+	
+	<update id="updateGameStatus">
+	<!-- del_flag作为恢复和暂停标识，启用是0，暂停为1 -->
+		update domesdk_promotetype_game set del_flag=#{status} where type_id=#{typeId} and del_flag!=#{status}; 
+	</update>
+</mapper>

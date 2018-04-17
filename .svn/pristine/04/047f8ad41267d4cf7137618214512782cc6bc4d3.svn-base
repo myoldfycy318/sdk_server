@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.yeyou.YeyouGameMapper">
+	<resultMap type="com.dome.sdkserver.metadata.entity.AbstractGame" id="gameMap">
+		<id property="appId" jdbcType="INTEGER" column="game_id"/>
+		<result property="appCode" jdbcType="VARCHAR" column="game_code"/>
+		<result property="appName" jdbcType="VARCHAR" column="game_name"/>
+		<result property="appDesc" jdbcType="VARCHAR" column="game_desc"/>
+		<result property="appIcon" jdbcType="VARCHAR" column="game_icon"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="userId" jdbcType="INTEGER" column="user_id"/>
+		<result property="merchantInfoId" jdbcType="INTEGER" column="merchant_user_id"/>
+		<result property="payCallBackUrl" jdbcType="VARCHAR" column="pay_callback_url"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	<resultMap type="com.dome.sdkserver.metadata.entity.yeyou.YeyouGame" id="yeyouMap" extends="gameMap">
+	</resultMap>
+	
+	<insert id="insert">
+		insert into domesdk_yeyou_game (game_name, game_icon, game_desc, status, del_flag, create_time, update_time
+		,user_id	
+		)
+		
+		values (#{t.appName}, #{t.appIcon}, #{t.appDesc}, #{t.status}, 0, now(), now()
+			,#{t.userId}
+		);
+		<selectKey resultType="int" keyProperty="t.appId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+	  	</selectKey>
+	</insert>
+	
+	<update id="update">
+		update domesdk_yeyou_game set update_time=now()
+			<if test="t.appName !=null and t.appName!=''">
+				, game_name=#{t.appName}
+			</if>
+			<if test="t.appIcon!=null and t.appIcon!=''">
+				,game_icon=#{t.appIcon}
+			</if>
+			<if test="t.appDesc!=null and t.appDesc!=''">
+				,game_desc=#{t.appDesc}
+			</if>
+			
+			<choose>
+				<when test="t.remark !=null and t.remark!=''">  <!-- 游戏审批驳回 -->
+					,remark=#{t.remark}, status=#{t.status} <!-- 驳回 -->
+				</when>
+				<when test="t.status!=null and t.status!=0">
+					,status=#{t.status} <!-- 驳回编辑操作 -->
+				</when>
+			</choose>
+			
+		where del_flag=0 
+			<if test="t.appCode !=null and t.appCode!=''">
+				and game_code=#{t.appCode}
+			</if>
+			<if test="t.appId!=null and t.appId!=0">
+				and game_id=#{t.appId}
+			</if>
+	</update>
+	
+	<update id="updateStatus">
+		update domesdk_yeyou_game set update_time=now(), status=#{status}, remark=null <!-- 重置驳回理由字段 -->
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<update id="updateCode">
+		update domesdk_yeyou_game set game_code=#{code}
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<update id="delele">
+		update domesdk_yeyou_game set update_time=now(), del_flag=1
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<select id="select" resultMap="yeyouMap">
+		select * from domesdk_yeyou_game g, domesdk_merchant_info m where g.del_flag=0 and m.del_flag=0 and g.user_id=m.merchant_user_id and g.game_code=#{code};
+	</select>
+	
+	<select id="selectByName" resultMap="yeyouMap">
+		select * from domesdk_yeyou_game where del_flag=0 and game_name=#{name};
+	</select>
+	
+	<select id="selectList" resultMap="yeyouMap">
+		select * from domesdk_yeyou_game where del_flag=0 and user_id=#{userId} order by update_time desc;
+	</select>
+	
+	<update id="updatePayCallBackUrl">
+		update domesdk_yeyou_game set pay_callback_url=#{url} where del_flag=0 and game_code=#{code};
+	</update>
+</mapper>

@@ -1,0 +1,64 @@
+package com.dome.sdkserver.metadata.entity;
+
+import java.util.Date;
+
+/**
+ * BI report 日志
+ * Created by ym on 2017/9/16.
+ */
+public class BiReportLogEntity {
+    public Date dataTime;
+    public String userId;
+    public String appCode;
+    public String channelId;
+    public String sysType;
+    private String imsi;
+
+    public Date getDataTime() {
+        return dataTime;
+    }
+
+    public void setDataTime(Date dataTime) {
+        this.dataTime = dataTime;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getAppCode() {
+        return appCode;
+    }
+
+    public void setAppCode(String appCode) {
+        this.appCode = appCode;
+    }
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
+    }
+
+    public String getSysType() {
+        return sysType;
+    }
+
+    public void setSysType(String sysType) {
+        this.sysType = sysType;
+    }
+
+    public String getImsi() {
+        return imsi;
+    }
+
+    public void setImsi(String imsi) {
+        this.imsi = imsi;
+    }
+}

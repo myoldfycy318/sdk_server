@@ -1,0 +1,19 @@
+
+#store yesterday VIP Level
+store.yesterday.viplevel.url=http://storeba.domestore.cn/memberInfo/selectMemberYestDay4SDK
+
+#pub message
+pub.message.url=http://imapi.qbao.com:8090/pubmessages
+pub.message.token=657d9b7faa6a40a4abb5e00b5117ca45
+pub.message.app.token=eb47f579580ee28cd1a337c0c43776c8d575a68a
+pub.message.fromid=3899461
+
+shangsu.person.pay.url=http://payengine.qbao.com/trade/request/pay.html
+
+shangsu.person.pay.query.rmb.url=http://payengine.qbao.com/personalApi/payQueryRmbBalanceRequest.html
+
+shangsu.person.pay.query.bq.url=http://payengine.qbao.com/personalApi/payQueryBqBalanceRequest.html
+shangsu.personal.business=http://payengine.qbao.com/personalApi/payRequest.html
+shangsu.rsa.private.key=MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAJkoyBmBA7SsC4/0nRNMi5cd8ileRjGoq7JYdtL/znI65fQt7tSbrRP2xIcUBdckxe/DmwLeZ+pG9zgc0RYzvcgl6TvnFFWxPn0UOCSUuVCusxxUy0pN3ZvQOTyaSBWTISZS7uriziQ3hr2Up+Jj93PNOnSoBoqAANawrdrrU+NbAgMBAAECgYA+JmBciQ/Z5t6iQd7jj/ItFkfIJatSR2G081T0dj1t+RyLI4CA4dMwALjrH2LnVNLFYpiqZ1m/paB4Mqld2w0tY8ff3FZzXt9G+zw86LflAnsAqcRtd2U+XGOVTe/uEs8AvB5d7ceJ5XQ+7RM/i9P9RcxLh2bQDwUzwqOHfBhpgQJBANIo4oSbwyi6rpq+lqfvVgd7Zfj+suvMc2ErqfwuqONkW9DN4CEfOO4iw4PUbtSSd259fVwWZEQH6622UDfbu+ECQQC6kQyff5BYUdkKB6LcyE6IViiiQLDp3ffOPNwW72V1rlFNouFS6OQxNURFcPgVb0GL1OJQenbYj0qe8CDftma7AkAhjiWcxsICXsxCKOwlJDG4QBuoBgLLY3mIqlAZ09ljdUKztCt1HmcYnrRY+DI5/qjTG3ZIncqkkh8vPUzRnmQBAkAYj8gNp4mlVwEv5Nl4H5bXNCCdW87uux5ItJJ1IodE+vIROoRXmfmQ0OZwDfNbPw5uDlTNK5JB6Ht2eT6atTTJAkEAl1BL51mOfCwhMhYgnX0Jgak2nwTtc8Dxurt8jerRl+7WYTjlK7izh2/v3RRs9FanWf69NjFNMIDOxpK2iNg24Q==
+#0:test,1:online
+sdk.notify.environment=1

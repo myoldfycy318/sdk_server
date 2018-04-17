@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.ChannelConfigMapper">
+	<select id="selectCooperType" resultType="int">
+		<!-- 合作方式 -->
+		SELECT cooper_type FROM `domesdk_channel_coopertype` t where t.channel_id=#{channelId}
+		 and update_time&lt;=concat(#{date}, '23:59:59') order by id desc limit 1;
+	</select>
+	
+	<select id="selectJsConfig" resultType="JieSuanConfig">
+		<!-- 激活单价和分成比例修改会影响当天数据统计-->
+		SELECT divide_percent as dividePercent, activity_unit_price as activityUnitPrice FROM `domesdk_channel_jiesuanconfig` t where t.channel_id=#{channelId}
+		 and update_time&lt;=concat(#{date}, '23:59:59') order by id desc limit 1;
+	</select>
+	
+	<select id="selectDiscountThreshold" resultType="DiscountThreshold">
+		<!-- 扣量比例等是12点前修改，影响昨天的数据统计，12点后配置的从当天的数据统计开始   date为统计计算的日期 -->
+		SELECT discount, active_threshold as activeThreshold, recharge_amount_discount as rechargeAmountDiscount,
+		paying_user_discount as payingUserDiscount, paying_threshold as payingThreshold, paying_user_discount as payingUserDiscount FROM `domesdk_discount_threshold` where channel_code=#{code}
+		 and update_time&lt;=DATE_ADD(CONCAT(#{date},' 12:00:00'),INTERVAL+1 Day) order by id desc limit 1;
+	</select>
+</mapper>

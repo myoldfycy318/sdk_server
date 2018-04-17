@@ -1,0 +1,200 @@
+package com.dome.sdkserver.bq.util;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.SecureRandom;
+
+
+public class AESCoder
+{
+	
+	private static final Logger log = LoggerFactory.getLogger(AESCoder.class);
+
+	public static final String KEY_ALGORITHM = "AES";
+
+	/**
+	 * 
+	 *  函数名称 : decrypt
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param content
+	 *  	@param password
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:24:40	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static byte[] decrypt(byte[] content, String password) {  
+        try {  
+                 KeyGenerator kgen = KeyGenerator.getInstance(KEY_ALGORITHM);
+                 SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+                 secureRandom.setSeed(password.getBytes());
+                 kgen.init(128, secureRandom);  
+                 SecretKey secretKey = kgen.generateKey();
+                 byte[] enCodeFormat = secretKey.getEncoded();  
+                 SecretKeySpec key = new SecretKeySpec(enCodeFormat, KEY_ALGORITHM);              
+                 Cipher cipher = Cipher.getInstance(KEY_ALGORITHM);// 创建密码器   
+                cipher.init(Cipher.DECRYPT_MODE, key);// 初始化   
+                byte[] result = cipher.doFinal(content);  
+                return result; // 加密  
+        } catch (Exception e) 
+        {  
+           log.error("消息解密失败！" + e);
+           return null;
+        } 
+	}  
+
+	/**
+	 * 
+	 *  函数名称 : encrypt
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param content
+	 *  	@param password
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:24:49	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static byte[] encrypt(String content, String password) 
+	{
+        try {             
+                KeyGenerator kgen = KeyGenerator.getInstance(KEY_ALGORITHM);  
+                SecureRandom secureRandom = SecureRandom.getInstance("SHA1PRNG");
+                secureRandom.setSeed(password.getBytes());
+                kgen.init(128, secureRandom);  
+                SecretKey secretKey = kgen.generateKey();  
+                byte[] enCodeFormat = secretKey.getEncoded();  
+                SecretKeySpec key = new SecretKeySpec(enCodeFormat, KEY_ALGORITHM);  
+                Cipher cipher = Cipher.getInstance(KEY_ALGORITHM);// 创建密码器   
+                byte[] byteContent = content.getBytes("utf-8");  
+                cipher.init(Cipher.ENCRYPT_MODE, key);// 初始化   
+                byte[] result = cipher.doFinal(byteContent);  
+                return result; // 加密   
+        } catch (Exception e) 
+        {
+        	log.error("消息加密失败！" + e);
+        	return null;
+        } 
+	}
+	
+	/**
+	 * 
+	 *  函数名称 : parseByte2HexStr
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param buf
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:25:04	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static String parseByte2HexStr(byte buf[])
+	{  
+        StringBuffer sb = new StringBuffer();  
+        for (int i = 0; i < buf.length; i++) {  
+                String hex = Integer.toHexString(buf[i] & 0xFF);  
+                if (hex.length() == 1) {  
+                        hex = '0' + hex;  
+                }  
+                sb.append(hex.toUpperCase());  
+        }  
+        return sb.toString();  
+	}  
+	
+	/**
+	 * 
+	 *  函数名称 : parseHexStr2Byte
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param hexStr
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:19:45	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static byte[] parseHexStr2Byte(String hexStr)
+	{  
+        if (hexStr.length() < 1)  
+                return null;  
+        byte[] result = new byte[hexStr.length()/2];  
+        for (int i = 0;i< hexStr.length()/2; i++) {  
+                int high = Integer.parseInt(hexStr.substring(i*2, i*2+1), 16);  
+                int low = Integer.parseInt(hexStr.substring(i*2+1, i*2+2), 16);  
+                result[i] = (byte) (high * 16 + low);  
+        }  
+        return result;  
+	}  
+	
+	/**
+	 * 
+	 *  函数名称 : getEncryptResult
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param content
+	 *  	@param passKey
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:24:19	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static String getEncryptResult(String content, String passKey)
+	{
+		return parseByte2HexStr(encrypt(content, passKey));
+	}
+	
+	/**
+	 * 
+	 *  函数名称 : getDecryptResult
+	 *  功能描述 :  
+	 *  参数及返回值说明：
+	 *  	@param content
+	 *  	@param passKey
+	 *  	@return
+	 *
+	 *  修改记录：
+	 *  	日期 ：2016年4月25日 下午12:24:26	修改人：  niuzan
+	 *  	描述	：
+	 *
+	 */
+	public static String getDecryptResult(String content, String passKey)
+	{
+		return new String(decrypt(parseHexStr2Byte(content), passKey));
+	}
+
+
+	public static void main(String[] args) throws Exception
+	{
+
+		String content = "test";  
+		String password = "12345678";  
+		//加密   
+		System.out.println("加密前：" + content);  
+		byte[] encryptResult = encrypt(content, password);  
+		String encryptResultStr = parseByte2HexStr(encryptResult);  
+		System.out.println("加密后：" + encryptResultStr);  
+		//解密   
+		byte[] decryptFrom = parseHexStr2Byte(encryptResultStr);  
+		byte[] decryptResult = decrypt(decryptFrom,password);  
+		System.out.println("解密后：" + new String(decryptResult));
+        content = "RE9NRTAwNw|YnFfMDAwMDUwMTIz|1498886306437|efe69a9ea3c358f6379754fad16478f7";
+        String rest = AESCoder.getEncryptResult(content, "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQhIvT60RAT0FJ8tqlV9wN1i8hE37h3IXOxxBwAxkqonFgHw8ucGKT3w8ApGhEgvdRegkHM8/y8MB3l/Q1YOdQMq5DNV5/nHSuYZOTyPE7YlgRj6Xve9KgsRdQT76JIPfCyJd2qCZzsVxsUENZppYPZHAITiOvd8zK9M4cagtkJwIDAQAB");
+        System.out.println(rest);
+    }
+
+}

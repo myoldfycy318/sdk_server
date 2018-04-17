@@ -1,0 +1,41 @@
+package com.dome.sdkserver.bq.constants.redis;
+
+/**
+ * redis常量
+ * @author xuefeihu
+ *
+ */
+public interface RedisConstants {
+	
+	/** redis SDK Server通用前缀 **/
+	public static final String REDIS_KEY_PREFIX = "SdkServer:";
+	/**
+	 * redis hash 应用列表缓存key名
+	 */
+	public static final String HASH_KEY_APP_LIST = "SdkServer:AppList";
+    //冰趣支付宝支付标志
+    String ALI_PAY_PREFIX ="bqSdkserver:pay:ali:";
+    //ali支付锁定
+    String ALI_PAY_LOCK ="bqSdkserver:pay:ali:lock:pc:";
+    //ali wap支付锁定
+    String ALI_PAY_LOCK_WAP ="bqSdkserver:pay:ali:lock:wap:";
+    String QBAO_PAY_LOCK ="bqSdkserver:pay:qbao:lock:";
+    String QBAO_WAP_PAY_LOCK ="bqSdkserver:wap:pay:qbao:lock:";
+    //返劵锁定key
+    String QBAO_FAN_JUAN_LOCK ="bqSdkserver:qbao:fan:juan:lock:";
+    //钱宝混合支付锁定key
+    String QBAO_BLEND_PAY_LOCK ="bqSdkserver:qbao:blend:pay:lock:";
+		 //ali支付锁定
+    String APP_ALI_PAY_LOCK ="bqSdk:pay:ali:lock:app:";
+    //ali即时支付外调用支付锁定key
+    String OTHER_ALI_PAY_DOWN_LOCK ="bqsdk:pay:ali:lock:other:";
+    String OVERSEAS_PAY_LOCK ="bqSdkserver:pay:overseas:lock:";
+    String GOOGLE_API_ACCESS_TOKEN="bqsdk:pay:google:access:token";
+    String OVERSEAS_PAY_NOTIFY_LOCK ="bqsdke:pay:overseas:notify:lock:";
+    String YINLIAN_WAP_PAY_LOCK_WAP ="bqsdk:pay:ly:lock:wap:";
+    String ALI_PASSPORT_PAY_LOCK ="bqSdk:pay:ali:ps:lock:";
+    String OTHER_ORDER_CREATE_LOCK ="bqSdk:order:create:lock:";
+    String WEB_PAY_LOCK ="bqSdk:web:pay:lock:";
+    String WX_JS_PAY_LOCK ="bqSdk:wx:js:pay:lock:";
+    String WX_ORDER_PAY_LOCK ="bqSdk:order:pay:lock:";
+}

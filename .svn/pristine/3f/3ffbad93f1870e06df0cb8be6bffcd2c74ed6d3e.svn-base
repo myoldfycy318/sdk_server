@@ -1,0 +1,143 @@
+package com.dome.sdkserver.service.impl.login;
+
+import com.alibaba.fastjson.JSON;
+import com.dome.sdkserver.bq.util.NotifyExecutor;
+import com.dome.sdkserver.service.login.LoginResultNotifyService;
+import com.dome.sdkserver.util.ApiConnector;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * 登录结果异步通知
+ * 
+ * @author
+ *
+ */
+@Service("loginResultNotifyService")
+public class LoginResultNotifyServiceImpl implements LoginResultNotifyService {
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
+
+	public void startNotify(String userId, String key, String clientId, String notifyUrl) {
+		executeStartNotifyThread(userId, key, clientId, notifyUrl);
+	}
+
+	/**
+	 * 启动异步通知线程
+	 * 
+	 * @param userId
+	 *            用户id
+	 * @param key
+	 *            客户端唯一key
+	 * @param clientId
+	 *            应用app编码
+	 * @param notifyUrl
+	 *            异步回调地址
+	 */
+	private void executeStartNotifyThread(final String userId, final String key, final String clientId,
+			final String notifyUrl) {
+		NotifyExecutor.executePayResultNotify(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					sendAsyncNotifyRequest(userId, key, clientId, notifyUrl);
+				} catch (Exception e) {
+					log.error("登录结果异步通知线程异常! userId=" + userId + ",key=" + key + ",clientId=" + clientId + ",notifyUrl="
+							+ notifyUrl, e);
+				}
+			}
+		});
+	}
+
+	/**
+	 * 发送异步通知请求
+	 * 
+	 * @param userId
+	 *            用户id
+	 * @param key
+	 *            客户端为key
+	 * @param clientId
+	 *            应用app编码
+	 * @param notifyUrl
+	 *            异步回调地址
+	 * @return 通知是否成功
+	 */
+	private boolean sendAsyncNotifyRequest(String userId, String key, String clientId, String notifyUrl) {
+		List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+
+		paramList.add(new BasicNameValuePair("loginNo", key));
+		paramList.add(new BasicNameValuePair("userId", String.valueOf(userId)));
+		paramList.add(new BasicNameValuePair("appCode", clientId));
+
+		boolean isSuccess = true;
+		try {
+			log.info("登录异步通知URL：{},参数：{}", notifyUrl, JSON.toJSONString(paramList));
+			ApiConnector.get(notifyUrl, paramList);
+		} catch (Exception e) {
+			log.error("发送异步通知失败(Exception)!userId=" + userId + ",loginNo=" + key + ",clientId=" + clientId, e);
+			isSuccess = false;
+		}
+
+		log.info("异步通知结果：{}", isSuccess);
+		return isSuccess;
+	}
+
+	/**
+	 * 启动异步注册通知线程
+	 */
+	@Override
+	public void startNotify(String userId, String clientId, String notifyUrl) {
+		executeStartNotifyThread(userId, clientId, notifyUrl);
+	}
+
+	/**
+	 * 注册回调线程
+	 * @param userId
+	 * @param clientId
+	 * @param notifyUrl
+	 */
+	private void executeStartNotifyThread(final String userId, final String clientId, final String notifyUrl) {
+		NotifyExecutor.executePayResultNotify(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					sendAsyncNotifyRequest(userId, clientId, notifyUrl);
+				} catch (Exception e) {
+					log.error("注册结果异步通知线程异常! userId=" + userId + ",clientId=" + clientId + ",notifyUrl=" + notifyUrl,
+							e);
+				}
+			}
+		});
+	}
+
+	/**
+	 * 发送注册回调异步通知
+	 * @param userId
+	 * @param clientId
+	 * @param notifyUrl
+	 * @return
+	 */
+	private boolean sendAsyncNotifyRequest(String userId, String clientId, String notifyUrl) {
+		List<NameValuePair> paramList = new ArrayList<NameValuePair>();
+		paramList.add(new BasicNameValuePair("userId", String.valueOf(userId)));
+		paramList.add(new BasicNameValuePair("appCode", clientId));
+
+		boolean isSuccess = true;
+		try {
+			log.info("注册回调异步通知URL：{},参数：{}", notifyUrl, JSON.toJSONString(paramList));
+			ApiConnector.get(notifyUrl, paramList);
+		} catch (Exception e) {
+			log.error("发送异步通知失败(Exception)!userId=" + userId + ",clientId=" + clientId, e);
+			isSuccess = false;
+		}
+
+		log.info("异步通知结果：{}", isSuccess);
+		return isSuccess;
+	}
+
+}

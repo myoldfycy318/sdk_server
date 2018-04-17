@@ -1,0 +1,862 @@
+package com.dome.sdkserver.controller.pay.mycard;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.bq.enumeration.ErrorCodeEnum;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.GenOrderCode;
+import com.dome.sdkserver.bq.util.HttpsUtil;
+import com.dome.sdkserver.bq.util.MapUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.BqChargePointInfo;
+import com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.chargePoint.ChargePointService;
+import com.dome.sdkserver.service.login.UserLoginService;
+import com.dome.sdkserver.service.pay.mycard.PublishOrderService;
+import com.dome.sdkserver.service.rabbitmq.RabbitMqService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import com.dome.sdkserver.service.web.requestEntity.ZoneEntity;
+import com.dome.sdkserver.util.ApiConnector;
+import com.dome.sdkserver.util.MD5;
+import com.dome.sdkserver.util.PropertiesUtil;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * Created by xuekuan on 2017/2/17.
+ */
+@Controller
+@RequestMapping("mycard")
+public class MyCardPayController extends PayBaseController{
+    @Autowired
+    protected PropertiesUtil payConfig;
+    @Autowired
+    protected PropertiesUtil switchConfig;
+    
+    @Autowired
+    private PublishOrderService publishOrderService;
+    @Autowired
+    private ChargePointService chargePointService;
+    @Autowired
+    private UserLoginService userloginService;
+    @Resource(name = "rabbitMqService")
+    private RabbitMqService rabbitMqService;
+
+    @Value("${buid}")
+    private String bqsdkBuId;//冰趣sdk的ui，uc分配
+
+    /**
+     * MyCard支付
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping("/createOrderInfo")
+    @ResponseBody
+    public SdkOauthResult createOrderInfo(HttpServletRequest request, HttpRequestOrderInfo order) {
+        SdkOauthResult result;
+        try{
+        	//创建订单，签名校验
+        	result = validRecordPayOrderSign(order);
+        	if (!result.isSuccess()) {
+        		log.info("创建订单验签失败：{}",order);
+				return result;
+			}
+        	//获取应用信息
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess())
+                return result;
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            log.info("获取到的应用信息，AppInfoEntity：{}",clientDetails);
+            String appName = clientDetails.getAppName();
+            //根据计费点取对应台币
+            log.info(">>>>>>>>>>>>>>>应用appCode：{}，计费点Code:{}",order.getAppCode(),order.getChargePointCode());
+            String chargeInfo = switchConfig.getString(order.getChargePointCode());
+            if (StringUtils.isBlank(chargeInfo)) {
+            	return SdkOauthResult.failed("配置文件中没有配置该计费对应的台币金额和道具数",order.getChargePointCode());
+            }
+            String amountAndDiamond = new String(chargeInfo.getBytes("ISO-8859-1"), "utf-8");
+            log.info("获取到的应支付台币金额和道具为：{},计费点为：{}",amountAndDiamond,order.getChannelCode());
+            String[] strs = amountAndDiamond.split(",");
+            String amount = null;
+            if (strs.length >0) {
+            	amount = strs[0];
+			}
+            if (StringUtils.isBlank(amount)) {
+            	log.info("在配置文件中没有找到该计费点：{},对应的台币金额",order.getChargePointCode());
+				return SdkOauthResult.failed("在配置文件中没有找到该计费点对应的台币金额",order.getChargePointCode());
+			}
+            String authToken = request.getParameter("authToken");
+            JSONObject response = userloginService.getUserByToken(authToken, order.getAppCode(), bqsdkBuId, null);
+            result = parserUcResponse(response);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            @SuppressWarnings("unchecked")
+			Map<String, Object> user = (Map<String, Object>) result.getData();
+            String buyerId = user.get(BqSdkConstants.domeUserId).toString();
+            order.setAppName(appName);
+            order.setBuyerId(buyerId);
+            order.setChargePointAmount(Double.parseDouble(amount));
+            order.setChargePointName(order.getChargePointCode());
+            order.setChannelCode(request.getParameter("channelCode"));
+            order.setOrderNo(GenOrderCode.next());
+            order.setNotifyUrl(request.getParameter("payNotifyUrl"));
+            order.setTradeType("1");//交易模式，1:Android SDK (手遊適用)2:WEB
+            //获取MyCard授权码
+            result = validateMyCardPaySign(request, order);
+            if(!result.isSuccess()){
+                return result;
+            }
+            String authCode = (String) result.getData();
+            log.info("从mycard获取到的授权码authCode:{}",authCode);
+            order.setAuthCode(authCode);
+            insertOrder(order);
+			//Android
+        	return SdkOauthResult.success(order);
+        }catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+            log.info(">>>>>>>>>>>>>>>>>>订单请求参数:" + JSONObject.toJSONString(order));
+        }
+    }
+    
+    /**
+     * 验证签名
+     *
+     * @return
+     * @throws Exception
+     */
+    private SdkOauthResult validRecordPayOrderSign(HttpRequestOrderInfo order) throws Exception {
+        Map<String, String> map = new HashMap<>();
+        map.put("appCode", order.getAppCode());
+        map.put("chargePointCode", order.getChargePointCode());
+        map.put("channelCode", order.getChannelCode());
+        map.put("gameOrderNo", order.getGameOrderNo());
+        map.put("tradeType", order.getTradeType());
+        String str = MapUtil.createLinkString(map) + "&sdkmd5key=" + payConfig.getString("overseas.pay.md5.key");
+        String md5 = MD5.md5Encode(str);
+        String signCode = order.getSignCode();
+        log.info("参与加密的参数：{}",str);
+        log.info("计算出来的MD5值：{}，传入的MD5值：{}",md5,signCode);
+        return signCode.equals(md5) ? SdkOauthResult.success("创建订单验证签名成功") : SdkOauthResult.failed("创建订单验签失败");
+    }
+    
+    /**
+     * web端支付创建订单
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping("/createOrderInfoWeb")
+    @ResponseBody
+    public SdkOauthResult createOrderInfo2(HttpServletRequest request, HttpRequestOrderInfo order) {
+        SdkOauthResult result;
+        try{
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess())
+                return result;
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            log.info("获取到的应用信息，AppInfoEntity：{}",clientDetails);
+            String appName = clientDetails.getAppName();
+            //根据计费点取对应台币
+            String chargeInfo = switchConfig.getString(order.getChargePointCode());
+            if (StringUtils.isBlank(chargeInfo)) {
+            	return SdkOauthResult.failed("配置文件中没有配置该计费对应的台币金额和道具数",order.getChargePointCode());
+            }
+            String amountAndDiamond = new String(chargeInfo.getBytes("ISO-8859-1"), "utf-8");
+            log.info("获取到的应支付台币金额和道具为：{},计费点为：{}",amountAndDiamond,order.getChannelCode());
+            String[] strs = amountAndDiamond.split(",");
+            String amount = null;
+            if (strs.length >0) {
+            	amount = strs[0];
+			}
+            if (StringUtils.isBlank(amount)) {
+            	log.info("在配置文件中没有找到该计费点：{},对应的台币金额",order.getChargePointCode());
+				return SdkOauthResult.failed("在配置文件中没有找到该计费点对应的台币金额",order.getChargePointCode());
+			}
+            order.setAppName(appName);
+            order.setBuyerId("0000");//pc端购买不存在冰穹用户id
+            order.setChargePointAmount(Double.parseDouble(amount));
+            order.setChargePointName(order.getChargePointCode());
+            order.setChannelCode(request.getParameter("channelCode"));
+            order.setOrderNo(GenOrderCode.next());
+            order.setGameOrderNo(GenOrderCode.genOutOrderNo("bq_"));//pc端购买不传游戏方订单号，后台写死
+            order.setTradeType("2");//交易模式，1:Android SDK (手遊適用)2:WEB
+            order.setChannelCode("CHA000004");
+            
+            //获取MyCard授权码
+            result = validateMyCardPaySign(request, order);
+            if(!result.isSuccess()){
+                return result;
+            }
+            String authCode = (String) result.getData();
+            log.info("从mycard获取到的授权码authCode:{}",authCode);
+            order.setAuthCode(authCode);
+            insertOrder(order);
+			//web
+			String respUrl = payConfig.getString("mycard.pay.url") + "?authCode=" + authCode;
+			log.info("交易模式为web时，返回mycard支付页面：{}",respUrl);
+			return SdkOauthResult.success(respUrl);
+        }catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+            log.info(">>>>>>>>>>>>>>>>>>订单请求参数:" + JSONObject.toJSONString(order));
+        }
+    }
+    
+    /**
+     * 获取计费点列表
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping("/chargePointList")
+    @ResponseBody
+    public SdkOauthResult chargePointList(HttpServletRequest request, HttpRequestOrderInfo order) {
+    	String appCode = order.getAppCode();
+    	if (StringUtils.isBlank(appCode)) {
+    		return SdkOauthResult.failed(ErrorCodeEnum.appCode为空.code,ErrorCodeEnum.appCode为空.name());
+		}
+    	 List<BqChargePointInfo> chargePointList = chargePointService.selectByAppCode(appCode);
+         if (chargePointList == null) {
+             return SdkOauthResult.failed(ErrorCodeEnum.无效的appCode.code, ErrorCodeEnum.无效的appCode.name());
+         }
+         List<BqChargePointInfo> resultList= new ArrayList<>();
+         for (BqChargePointInfo charge : chargePointList) {
+        	//根据计费点取对应台币
+			try {
+				String amountAndDiamond = new String(switchConfig.getString(charge.getChargePointCode()).getBytes("ISO-8859-1"), "utf-8");
+	            if (StringUtils.isBlank(amountAndDiamond)) {
+	            	 return SdkOauthResult.failed("配置文件中没有配置该计费对应的台币金额和道具数",charge.getChargePointCode());
+				}
+	            String[] strs = amountAndDiamond.split(",");
+	            String amount = strs[0];
+	            String diamond = strs[1];
+	            if ("".equals(amount) || "".equals(diamond)) {
+	            	return SdkOauthResult.failed("配置文件中没有配置该计费对应的台币金额和道具数",charge.getChargePointCode());
+	            }
+				charge.setChargePointAmount(Double.parseDouble(amount));
+				charge.setDiamondAmount(diamond);
+	            resultList.add(charge);
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+		}
+         log.info("amount金额改变后的计费点列表：{}",chargePointList);
+		return SdkOauthResult.success(resultList);
+    }
+    
+    @RequestMapping("/zoneList")
+    @ResponseBody
+    public SdkOauthResult zoneList(HttpServletRequest request, ZoneEntity zone) {
+    	List<ZoneEntity> list= new ArrayList<>();
+		try {
+			String zoneId = switchConfig.getString("zoneId");
+			if (StringUtils.isBlank(zoneId)) {
+				return SdkOauthResult.failed("沒有配置區服id");
+			}
+			zone.setZoneId(zoneId);
+			String zoneName = new String(switchConfig.getString("zoneName").getBytes("ISO-8859-1"), "utf-8");
+            log.info("----》区分名：{}",zoneName);
+	    	if (StringUtils.isBlank(zoneName)) {
+	    		return SdkOauthResult.failed("沒有配置區服名稱");
+			}
+	    	zone.setZoneName(zoneName);
+	    	list.add(zone);
+	    	log.info("區服id為：{},區服名稱為：{},list:{}",zoneId,zoneName,list);
+			return SdkOauthResult.success(JSON.toJSON(list));
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return SdkOauthResult.failed("解析區服id和區服名稱失敗");
+		}
+    }
+    
+    @RequestMapping("/selectUserName")
+    @ResponseBody
+    public SdkOauthResult selectUserName(HttpServletRequest request, HttpRequestOrderInfo order) {
+    	String zoneId = order.getZoneId();
+    	String userId = order.getRoleId();
+    	if (StringUtils.isBlank(zoneId) || StringUtils.isBlank(userId)) {
+			return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code,ErrorCodeEnum.有必填参数为空.name());
+		}
+    	List<NameValuePair> pairs = new ArrayList<>();
+    	pairs.add(new BasicNameValuePair("method", "get_user_data"));
+    	pairs.add(new BasicNameValuePair("cid", zoneId));
+    	pairs.add(new BasicNameValuePair("userid", userId));
+    	log.info("請求參數：{}",pairs);
+    	String errorMsg = null;
+    	try {
+    		String result = ApiConnector.post(payConfig.getString("game.role.url"), pairs);
+    		log.info("獲取到的用戶信息：{}",result);
+    		errorMsg = JSONObject.parseObject(result).getString("error");
+    		if (StringUtils.isNotBlank(errorMsg)) {
+    			return SdkOauthResult.failed("根據玩家ID獲取用戶信息失敗,請檢查玩家ID");
+			}
+    		String roleName = JSONObject.parseObject(JSONObject.parseObject(result).getString("data")).getString("RoleName");
+    		return SdkOauthResult.success(roleName);
+		} catch (Exception e) {
+			log.error("請求遊戲方獲取用戶信息接口異常",e);
+			return SdkOauthResult.failed("系統異常，根據玩家ID獲取用戶信息失敗");
+		}
+    }
+
+    /**
+     * 订单信息入库
+     * @param order
+     */
+    private void insertOrder(HttpRequestOrderInfo order) {
+        PublishOrderEntity publishOrderEntity = new PublishOrderEntity();
+        publishOrderEntity.setOrderNo(order.getOrderNo());
+        publishOrderEntity.setAppCode(order.getAppCode());
+        publishOrderEntity.setAppName(order.getAppName());
+        publishOrderEntity.setBuyerId(order.getBuyerId());
+        publishOrderEntity.setChargePointCode(order.getChargePointCode());
+        publishOrderEntity.setChargePointAmount(order.getChargePointAmount());
+        publishOrderEntity.setChargePointName(order.getChargePointName());
+        publishOrderEntity.setPayType(0);//MyCard支付
+        publishOrderEntity.setCreateTime(new Date());
+        publishOrderEntity.setOrderStatus(OrderStatusEnum.orderstatus_no_pay.code);//未支付状态
+        publishOrderEntity.setGameOrderNo(order.getGameOrderNo());
+        publishOrderEntity.setPayNotifyUrl(order.getGameNotifyUrl());
+        publishOrderEntity.setChannelCode(order.getChannelCode());
+        publishOrderEntity.setPayOrigin("MyCard");
+        publishOrderEntity.setExtraField(order.getExtraField());
+//        publishOrderEntity.setBuyerAccount();
+        publishOrderEntity.setAuthCode(order.getAuthCode());
+        publishOrderEntity.setTradeType(order.getTradeType());
+        publishOrderEntity.setRoleId(order.getRoleId());
+        publishOrderEntity.setZoneId(order.getZoneId());
+        publishOrderEntity.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+        publishOrderService.insert(publishOrderEntity);
+    }
+
+    /**
+     * 获取MyCard授权码
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    private SdkOauthResult validateMyCardPaySign(HttpServletRequest request, HttpRequestOrderInfo order) throws UnsupportedEncodingException {
+        try{
+            StringBuilder preHashValue = new StringBuilder();
+            String facServiceId = payConfig.getString("mycard.pay.facServiceId");
+            String facTradeSeq = order.getOrderNo();
+            String tradeType = order.getTradeType();
+            String customerId = order.getBuyerId();
+            String productName = order.getChargePointName();//产品名称,计费点名称
+            Double amount = order.getChargePointAmount();
+            String currency = "TWD";
+            String sandBoxMode = payConfig.getString("mycard.pay.sandBoxMode");//测试环境
+            preHashValue = preHashValue.append(facServiceId).append(facTradeSeq).append(tradeType).append(customerId).append(productName).append(amount.toString()).
+            		append(currency).append(sandBoxMode).append(payConfig.getString("mycard.pay.key"));
+            String encodeHashValue = URLEncoder.encode(preHashValue.toString(),"utf-8");
+            //获取到的hash转化为小写
+            String hash = encrypt(encodeHashValue, "").toLowerCase();
+
+            String  getAuthCodeUrl = payConfig.getString("mycard.pay.getAuthCode.url");
+//            List<NameValuePair> pairs = new ArrayList<>();
+//            pairs.add(new BasicNameValuePair("FacServiceId",facServiceId));
+//            pairs.add(new BasicNameValuePair("FacTradeSeq",facTradeSeq));
+//            pairs.add(new BasicNameValuePair("TradeType",tradeType));
+//            pairs.add(new BasicNameValuePair("CustomerId",customerId));
+//            pairs.add(new BasicNameValuePair("ProductName",productName));
+//            pairs.add(new BasicNameValuePair("Amount",amount.toString()));
+//            pairs.add(new BasicNameValuePair("Currency",currency));
+//            pairs.add(new BasicNameValuePair("SandBoxMode",sandBoxMode));
+//            pairs.add(new BasicNameValuePair("Hash",hash));
+//            log.info("获取MyCard授权码请求参数：{}",pairs);
+//            String resp = ApiConnector.post(getAuthCodeUrl,pairs);
+
+            Map<String, String> params = new HashMap<>();
+            params.put("FacServiceId",facServiceId);
+            params.put("FacTradeSeq",facTradeSeq);
+            params.put("TradeType",tradeType);
+            params.put("CustomerId",customerId);
+            params.put("ProductName",productName);
+            params.put("Amount",amount.toString());
+            params.put("Currency",currency);
+            params.put("SandBoxMode",sandBoxMode);
+            params.put("Hash",hash);
+            log.info("获取MyCard授权码请求参数：{}",params);
+//            String resp = ApiConnector.connectPostHttps(getAuthCodeUrl,params);
+            log.info(">>>>>>>>>>>>>>>>>>>>获取授权码url:{}",getAuthCodeUrl);
+            String resp = HttpsUtil.requestPostJson(getAuthCodeUrl, JSONObject.toJSONString(params), "UTF-8", "UTF-8");
+
+            log.info("获取MyCard响应结果：{}",resp);
+            String returnCode = JSONObject.parseObject(resp).getString("ReturnCode");
+            String returnMsg = JSONObject.parseObject(resp).getString("ReturnMsg");
+            if (!"1".equals(returnCode)) {
+            	return SdkOauthResult.failed(returnMsg);
+			}
+            String authCode = JSONObject.parseObject(resp).getString("AuthCode");
+            return SdkOauthResult.success(authCode);
+        }catch (Exception e){
+            log.error("获取MyCard授权码失败：{}",e);
+            return SdkOauthResult.failed("获取MyCard授权码失败....");
+        }
+    }
+
+    /**
+     * SHA-256算法加密
+     * @param strSrc
+     * @param encName
+     * @return
+     */
+    public String encrypt(String strSrc, String encName) {
+        MessageDigest md = null;
+        String strDes = null;
+
+        byte[] bt = strSrc.getBytes();
+        try {
+            if (encName == null || encName.equals("")) {
+                encName = "SHA-256";
+            }
+            md = MessageDigest.getInstance(encName);
+            md.update(bt);
+            strDes = bytes2Hex(md.digest()); // to HexString
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+        return strDes;
+    }
+
+    public static String bytes2Hex(byte[] bts) {
+        String des = "";
+        String tmp = null;
+        for (int i = 0; i < bts.length; i++) {
+            tmp = (Integer.toHexString(bts[i] & 0xFF));
+            if (tmp.length() == 1) {
+                des += "0";
+            }
+            des += tmp;
+        }
+        return des;
+    }
+    
+    /**
+     * MyCard支付同步通知接口,接收客户端回传，确定交易成功后执行请款
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping(value = "checkPayResult")
+    @ResponseBody
+    public SdkOauthResult checkPayResult(HttpServletRequest request,PublishOrderEntity order) {
+    	boolean isSuccess = false;//请款结果,默认失败
+    	try {
+    		//接收客户端请求，校验签名
+    		SdkOauthResult result = validRecordPayResultSign(order);
+    		if (!result.isSuccess()) {
+				log.info("接收客户端支付通知验签失败");
+				return result;
+			}
+    		
+	        //根据订单号查询订单信息
+	    	order.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+	        order = publishOrderService.queryOrderByOrderNo(order);
+	        if(null == order){
+	            return SdkOauthResult.failed("该订单号不存在");
+	        }
+	        String authCode = order.getAuthCode();
+	        //校验MyCard交易结果
+            Map<String,String> payResp = checkPayResult(order, authCode);
+            String returnCode = payResp.get("returnCode");
+            String payResult = payResp.get("payResult");
+            String returnMsg = payResp.get("returnMsg");
+            //验证支付结果成功之后，执行请款
+            if ("1".equals(returnCode) && "3".equals(payResult)){
+            	try {
+            		isSuccess = executePay(order, authCode);
+            		if (isSuccess && order.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+            			//入库成功并且订单状态为已支付状态，则下发道具
+            			rabbitMqService.mGamePayQueue(order);
+            		}
+            	}catch (Exception e){
+            		log.error("执行请款失败：{}",e);
+            		return SdkOauthResult.failed("执行请款失败");
+            	}
+            }else{
+            	//TODO
+            	log.error("从MyCard获取到的支付结果为失败",returnMsg);
+            	return SdkOauthResult.failed("MyCard返回交易失败");
+            }
+        }catch (Exception e){
+            log.error("校验MyCard交易响应结果失败：{}",e);
+            return SdkOauthResult.failed("校验MyCard交易响应结果失败");
+        }
+        return SdkOauthResult.success();
+    }
+    
+    /**
+     * 验证签名
+     *
+     * @return
+     * @throws Exception
+     */
+    private SdkOauthResult validRecordPayResultSign(PublishOrderEntity order) throws Exception {
+        Map<String, String> map = new HashMap<>();
+        map.put("orderNo", order.getOrderNo());
+        String str = MapUtil.createLinkString(map) + "&sdkmd5key=" + payConfig.getString("overseas.pay.md5.key");
+        return order.getSignCode().equals(MD5.md5Encode(str)) ? SdkOauthResult.success("接收客户端支付通知验签成功") : SdkOauthResult.failed("接收客户端支付通知验签失败");
+    }
+
+    /**
+     * MyCard支付同步通知接口,接收MyCard回传，确定交易成功后执行请款,web端支付回调地址
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "notify/payNotify")
+    @ResponseBody
+    public SdkOauthResult notifyPayNotify(HttpServletRequest request, HttpServletResponse response) {
+    	//web需要解析mycard,post请求参数
+    	String failPage = "/page/wap/mycardpay/success.htm?msg=";
+    	boolean isSuccess = false;//请款结果,默认失败 
+    	try {
+    		//接收并校验mycard的请求参数
+    		SdkOauthResult result = checkParam(request, response, failPage, isSuccess);
+    		String facTradeSeqPram = (String) result.getData();
+	    	
+	    	PublishOrderEntity order = new PublishOrderEntity();
+	        //根据订单号查询订单信息
+	    	order.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+	    	order.setOrderNo(facTradeSeqPram);
+	        order = publishOrderService.queryOrderByOrderNo(order);
+	        if(null == order){
+	            return SdkOauthResult.failed("该订单号不存在");
+	        }
+	        String authCode = order.getAuthCode();
+	        //校验MyCard交易结果
+            Map<String,String> payResp = checkPayResult(order, authCode);
+            String returnCode = payResp.get("returnCode");
+            String payResult = payResp.get("payResult");
+            String returnMsg = payResp.get("returnMsg");
+            //验证支付结果成功之后，执行请款
+            if ("1".equals(returnCode) && "3".equals(payResult)){
+            	try {
+            		isSuccess = executePay(order, authCode);
+            	}catch (Exception e){
+            		log.error("执行请款失败：{}",e);
+            		return SdkOauthResult.failed("执行请款失败");
+            	}
+            }else{
+            	//TODO
+            	log.error("从MyCard获取到的支付结果为失败",returnMsg);
+            	return SdkOauthResult.failed("MyCard返回交易失败");
+            }
+            if (isSuccess && order.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+                if ("D0000287".equals(order.getAppCode())) {  //仅针对龙焰酒馆
+                    //生成游戏方订单号
+                    //根据计费点取对应生成订单参数
+                    String level = switchConfig.getString(order.getChargePointCode() + 0);
+                    if (StringUtils.isBlank(level)) {
+                        return SdkOauthResult.failed("配置文件中没有配置该计费对应的生成订单参数", order.getChargePointCode());
+                    }
+                    String orderNo = level + "_" + System.currentTimeMillis() / 1000;
+                    log.info("拼接之后的订单参数：{}", orderNo);
+                    order.setGameOrderNo(orderNo);
+                }
+                //入库成功并且订单状态为已支付状态，则下发道具
+    			rabbitMqService.mGamePayQueue(order);
+            	String successPage = "/page/wap/mycardpay/success.htm?buyerid=" + order.getBuyerId();
+            	successPage = StringUtils.isBlank(order.getAppCode()) ? successPage : successPage + "&appCode=" + order.getAppCode();
+				response.sendRedirect(successPage + "&isSuccess=" + isSuccess);
+				return SdkOauthResult.success();
+			}else{
+				response.sendRedirect(failPage + "&isSuccess=" + isSuccess);
+			}
+        }catch (Exception e){
+            log.error("校验MyCard交易响应结果失败：{}",e);
+            try {
+				response.sendRedirect(failPage + URLDecoder.decode("系統異常，請稍後重試！","utf-8") + "&isSuccess=" + isSuccess);
+			} catch (Exception e1) {
+				log.error("页游跳转请求异常", e1);
+			}
+            return SdkOauthResult.failed("校验MyCard交易响应结果失败");
+        }
+        return SdkOauthResult.failed();
+    }
+
+    /**
+     * 校验请求参数
+     * @param request
+     * @param response
+     * @param failPage
+     * @param isSuccess
+     * @return
+     * @throws IOException
+     * @throws UnsupportedEncodingException
+     */
+	private SdkOauthResult checkParam(HttpServletRequest request, HttpServletResponse response, String failPage,
+			boolean isSuccess) throws IOException, UnsupportedEncodingException {
+		String returnCodeParam = request.getParameter("ReturnCode");
+		String returnMsgParam = request.getParameter("ReturnMsg");
+		String payResultParam = request.getParameter("PayResult");
+		if (!"1".equals(returnCodeParam) || !"3".equals(payResultParam)) {
+			log.info("支付失败，ReturnCode：{}，PayResult：{}，ReturnMsg:{}",returnCodeParam,payResultParam,URLDecoder.decode(returnMsgParam, "utf-8"));
+			response.sendRedirect(failPage + URLEncoder.encode("支付失敗," + URLDecoder.decode(returnMsgParam, "utf-8"),"utf-8") + "&isSuccess=" + isSuccess);
+			return SdkOauthResult.failed(returnMsgParam);
+		}
+		String facTradeSeqPram = request.getParameter("FacTradeSeq");
+		if (StringUtils.isBlank(facTradeSeqPram)) {
+			log.info("同步通知支付结果订单号为空");
+			response.sendRedirect(failPage + URLEncoder.encode("訂單號為空","utf-8") + "&isSuccess=" + isSuccess);
+			return SdkOauthResult.failed(returnMsgParam);
+		}
+		String paymentTypeParam = request.getParameter("PaymentType");
+		String amountparam = request.getParameter("Amount");
+		String currencyParam = request.getParameter("Currency");
+		String myCardTradeNoParam = request.getParameter("MyCardTradeNo");
+		String myCardTypeParam = request.getParameter("MyCardType");
+		String promoCodeParam = request.getParameter("PromoCode");
+		String hashParam = request.getParameter("Hash");
+		StringBuilder preHashValue = new StringBuilder();
+		preHashValue = preHashValue.append(returnCodeParam).append(payResultParam).append(facTradeSeqPram).append(paymentTypeParam).append(amountparam).
+				append(currencyParam).append(myCardTradeNoParam).append(myCardTypeParam).append(promoCodeParam).append(payConfig.getString("mycard.pay.key"));
+		String encodeHashValue = URLEncoder.encode(preHashValue.toString(),"utf-8");
+		//获取到的hash转化为小写
+		String hash = encrypt(encodeHashValue, "").toLowerCase();
+		if (!hash.equals(hashParam)) {
+			log.info("同步通知支付结果hash值校验失败，计算出的hash:{},传入的hash:{}",hash,hashParam);
+			return SdkOauthResult.failed("传入的参数有误");
+		}
+		log.info("同步通知支付结果订单号：{}",facTradeSeqPram);
+		return SdkOauthResult.success(facTradeSeqPram);
+	}
+
+    /**
+     * 执行请款，更新订单状态
+     * @param order
+     * @param authCode
+     */
+	private boolean executePay(PublishOrderEntity order, String authCode) {
+		String executeCashUrl = payConfig.getString("mycard.pay.executeCash.url");
+//		List<NameValuePair> pairs = new ArrayList<>();
+//		pairs.add(new BasicNameValuePair("AuthCode",authCode));
+//		log.info("执行请款参数：{}",authCode);
+//		String resp = ApiConnector.post(executeCashUrl,pairs);
+
+
+
+        Map<String, String> params = new HashMap<>();
+        params.put("AuthCode",authCode);
+        log.info("获取MyCard授权码请求参数：{}",params);
+//        String resp = ApiConnector.connectPostHttps(executeCashUrl,params);
+        String resp = HttpsUtil.requestPostJson(executeCashUrl, JSONObject.toJSONString(params), "UTF-8", "UTF-8");
+		log.info("执行请款响应结果：{}",resp);
+		//TODO 测试用
+		String payReturnCode = JSONObject.parseObject(resp).getString("ReturnCode");
+		String tradeSeq = JSONObject.parseObject(resp).getString("TradeSeq");//MyCard订单号
+		if ("1".equals(payReturnCode)){
+		    order.setOrderStatus(OrderStatusEnum.orderstatus_pay_sucess.code);
+		    order.setTradeNo(tradeSeq);
+		    order.setFinishTime(new Date());
+		}
+		order.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+		return publishOrderService.updateOrderInfo(order);
+	}
+	
+	private Map<String,String> checkPayResult(PublishOrderEntity order, String authCode){
+        String checkPayResultUrl = payConfig.getString("mycard.pay.checkPayResult.url");
+//        List<NameValuePair> pairs = new ArrayList<>();
+//        pairs.add(new BasicNameValuePair("AuthCode",authCode));
+//        log.info("校验MyCard交易结果参数AuthCode：{}",authCode);
+//        String resp = ApiConnector.post(checkPayResultUrl,pairs);
+
+
+
+        Map<String, String> params = new HashMap<>();
+        params.put("AuthCode",authCode);
+        log.info("获取MyCard授权码请求参数：{}",params);
+//        String resp = ApiConnector.connectPostHttps(checkPayResultUrl,params);
+        String resp = HttpsUtil.requestPostJson(checkPayResultUrl, JSONObject.toJSONString(params), "UTF-8", "UTF-8");
+        String returnCode = JSONObject.parseObject(resp).getString("ReturnCode");
+        String returnMsg = JSONObject.parseObject(resp).getString("ReturnMsg");
+        //测试环境返回的PayResult默认为0，此处为了测试重置一下返回的PayResult
+        String payResult = JSONObject.parseObject(resp).getString("PayResult");
+//        String payResult = "3";
+        String paymentType = JSONObject.parseObject(resp).getString("PaymentType");//付费方式
+        String currency = JSONObject.parseObject(resp).getString("Currency");//币种
+        String myCardTradeNo = JSONObject.parseObject(resp).getString("MyCardTradeNo");//
+        if (StringUtils.isNotBlank(paymentType)) {
+        	order.setPaymentType(paymentType);
+		}
+        if (StringUtils.isNotBlank(currency)) {
+        	order.setCurrency(currency);
+		}
+        if (StringUtils.isNotBlank(myCardTradeNo)) {
+        	order.setMyCardTradeNo(myCardTradeNo);
+		}
+        log.info("校验MyCard交易响应结果：{}",resp);
+        Map<String, String> map = new HashMap<>();
+        map.put("payResult", payResult);
+        map.put("returnCode", returnCode);
+        map.put("returnMsg", returnMsg);
+		return map;
+	}
+
+    /**
+     * 接收异步通知接口，补储流程
+     * @param request
+     * @return
+     * @throws IOException
+     */
+    @RequestMapping(value = "notify/supply")
+    @ResponseBody
+    public SdkOauthResult notifySupply(HttpServletRequest request){
+//    	//解析MyCard请求参数
+    	String data = request.getParameter("DATA");
+    	if (StringUtils.isBlank(data)) {
+    		return SdkOauthResult.failed("没有解析到请求参数");
+		}
+    	String returnCodeParam = JSONObject.parseObject(data).getString("ReturnCode");
+    	String returnMsgParam =JSONObject.parseObject(data).getString("ReturnMsg");
+    	if (!"1".equals(returnCodeParam)) {
+			return SdkOauthResult.failed(returnMsgParam);
+		}
+        //根据订单号查询订单信息
+    	String facServiceId = JSONObject.parseObject(data).getString("FacServiceId");
+    	if (StringUtils.isBlank(facServiceId) || !payConfig.getString("mycard.pay.facServiceId").equals(facServiceId)) {
+    		return SdkOauthResult.failed("厂商服务码为空或者错误");
+		}
+    	String facTradeSeq = JSONObject.parseObject(data).getString("FacTradeSeq");
+    	facTradeSeq = facTradeSeq.substring(1, facTradeSeq.length() - 1);
+    	Integer totalNum = JSONObject.parseObject(data).getInteger("TotalNum");
+    	if (StringUtils.isBlank(facTradeSeq)) {
+			return SdkOauthResult.failed("该订单号为空");
+		}
+    	String[] orders = facTradeSeq.split(",");
+    	Integer num = 0;
+    	Map<String, Object> map = new HashMap<>();
+    	for (String orderNo : orders) {
+    		PublishOrderEntity order = new PublishOrderEntity();
+            order.setOrderNo(orderNo.substring(1, orderNo.length() - 1));
+            order.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+//            PublishOrderEntity publishOrderEntity = publishOrderService.queryOrderByOrderNo(order);
+            order = publishOrderService.queryOrderByOrderNo(order);
+            if(null == order){
+                map.put(orderNo, "此订单号不存在");
+                continue;
+            }
+
+            String authCode = order.getAuthCode();
+            //校验MyCard交易结果
+            try {
+                Map<String,String> payResp = checkPayResult(order, authCode);
+                String returnCode = payResp.get("returnCode");
+                String payResult = payResp.get("payResult");
+                String returnMsg = payResp.get("returnMsg");
+            //验证支付结果成功之后，执行请款
+            if ("1".equals(returnCode) && "3".equals(payResult)){
+                try {
+                	boolean isSuccess = executePay(order, authCode);
+                	if (isSuccess && order.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+                        //生成游戏方订单号（web端）
+                        //根据计费点取对应生成订单参数
+                        if ("2" == order.getTradeType() && order.getAppCode().equals("D0000287")) {
+                            String level = switchConfig.getString(order.getChargePointCode() + 0);
+                            if (StringUtils.isBlank(level)) {
+                                return SdkOauthResult.failed("配置文件中没有配置该计费对应的生成订单参数",order.getChargePointCode());
+                            }
+                            String orderNum = level + "_" + System.currentTimeMillis()/1000;
+                            log.info("拼接之后的订单参数：{},tradeType:{}",orderNum,order.getTradeType());
+                            order.setGameOrderNo(orderNum);
+                        }
+                		//入库成功并且订单状态为已支付状态，则下发道具
+                		rabbitMqService.mGamePayQueue(order);
+                		num++;
+					}
+                }catch (Exception e){
+                    log.error("执行请款失败：{}",e);
+                    return SdkOauthResult.failed("执行请款失败");
+                }
+            }else{
+            	//TODO
+            	log.error("从MyCard获取到的支付结果为失败",returnMsg);
+                return SdkOauthResult.failed("MyCard返回交易失败");
+            }
+            }catch (Exception e){
+            	log.error("校验MyCard交易响应结果失败：{}",e);
+            	return SdkOauthResult.failed("校验MyCard交易响应结果失败");
+            }
+            
+		}
+    	String payResult = "实际交易" + totalNum + "笔订单，交易成功" + num + "笔订单，交易失败" + (orders.length - num) + "笔订单，支付失败的订单" + map;
+    	log.info("实际交易{}笔订单，交易成功{}笔订单，交易失败{}笔订单，支付失败的订单{}",totalNum,num,orders.length - num,map);
+        
+        return SdkOauthResult.success(payResult);
+    }
+
+    /**
+     * 交易结果差异对比
+     * @param MyCardTradeNo
+     * @param StartDateTime
+     * @param EndDateTime
+     * @return
+     */
+    @RequestMapping(value = "pay/difQuery")
+    @ResponseBody
+    public void payDifQuery(@RequestParam(required = false)String MyCardTradeNo,
+                                          @RequestParam(required = false)String StartDateTime,
+                                          @RequestParam(required = false)String EndDateTime,HttpServletResponse response) {
+        log.info("MyCard传入参数：MyCardTradeNo：{},StartDateTime：{},EndDateTime：{}",MyCardTradeNo,StartDateTime,EndDateTime);
+        PublishOrderEntity publishOrderEntity = new PublishOrderEntity();
+        publishOrderEntity.setMyCardTradeNo(MyCardTradeNo);
+        publishOrderEntity.setPayOrigin("MyCard");
+        publishOrderEntity.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+        List<PublishOrderEntity> orders = publishOrderService.queryByCondition(publishOrderEntity,StartDateTime,EndDateTime);
+        if (CollectionUtils.isEmpty(orders)){
+        	return;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        StringBuilder results = new StringBuilder();
+        for (PublishOrderEntity order : orders){
+        	results.append(order.getPaymentType()).append(",").append(order.getTradeNo()).append(",").append(order.getMyCardTradeNo()).append(",").
+        	append(order.getOrderNo()).append(",").append(order.getBuyerId()).append(",").append(order.getChargePointAmount().intValue()).append(",").
+        	append(order.getCurrency()).append(",");
+        	if (null != order.getFinishTime()) {
+        		results.append(sdf.format(order.getFinishTime()).replaceAll(" ", "T")).append("<BR>");
+			}else{
+				results.append(order.getFinishTime()).append("<BR>");
+			}
+        }
+        log.info("共查询得到{}条结果：{},",orders.size(),JSON.toJSONString(results));
+        try {
+			PrintWriter printWriter = response.getWriter();
+			printWriter.write(results.toString());
+			printWriter.flush();
+			printWriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+}

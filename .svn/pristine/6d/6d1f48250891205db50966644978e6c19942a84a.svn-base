@@ -1,0 +1,199 @@
+package com.dome.sdkserver.controller;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.enumeration.AccessTypeEnum;
+import com.dome.sdkserver.bq.enumeration.ErrorCodeEnum;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.IPUtil;
+import com.dome.sdkserver.bq.util.PageDto;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.login.OauthAccessRecordEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.service.game.GameService;
+import com.dome.sdkserver.service.login.OauthAccessRecordService;
+import com.dome.sdkserver.service.redis.RedisService;
+import com.dome.sdkserver.util.RedisUtil;
+import com.dome.sdkserver.web.response.ResponseCode;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.CustomDateEditor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.InitBinder;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.groups.Default;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Set;
+
+public abstract class BaseController {
+	
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    protected final Logger qbaoLoginLogger = LoggerFactory.getLogger("qbaoLogin");
+
+    /** 校验器 **/
+    protected static Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+	
+	@Autowired
+	protected RedisUtil redisUtil;
+
+	@Autowired
+	protected RedisService redisService;
+
+    @Autowired
+    private OauthAccessRecordService oauthAccessRecordService;
+
+    @Resource(name = "gameService")
+    protected GameService gameService;
+	
+	protected String getCurrentUsername() {
+		String username = "";
+		SecurityContext context = SecurityContextHolder.getContext();
+
+		if (context == null) {
+			return username;
+		}
+
+		Authentication authentication = context.getAuthentication();
+		if (authentication != null) {
+			Object principal = authentication.getPrincipal();
+			if (principal instanceof UserDetails) {
+				username = ((UserDetails) principal).getUsername();
+			}
+		}
+		return username;
+		
+	}
+
+    public SdkOauthResult parserUcResponse(JSONObject response) {
+        if (response == null) {
+            return SdkOauthResult.failed(ErrorCodeEnum.请求uc失败.code, ErrorCodeEnum.请求uc失败.name());
+        }
+        int responseCode = response.getIntValue("code");
+        if (responseCode == ResponseCode.SUCESS || responseCode == ResponseCode.SEND_SMS_SUCESS) {
+            return SdkOauthResult.success(response.get("data"));
+        } else if (responseCode == -7 || responseCode == -14 || responseCode == -15 || responseCode == -16 || responseCode == -56) { //需要图形验证码
+            if (response.getJSONObject("data") != null && response.getJSONObject("data").getBoolean("needCaptcha"))
+                return SdkOauthResult.failed(ErrorCodeEnum.图形验证码标识.code, response.getString("message"));
+        }
+        return SdkOauthResult.failed(responseCode, response.getString("message"));
+    }
+
+    /**
+	 * 校验客户端应用信息
+	 * 
+	 * @param appCode
+	 *            应用编码
+	 * @return
+	 */
+	protected SdkOauthResult checkClient(String appCode) {
+		if (StringUtils.isBlank(appCode)) {
+			return SdkOauthResult.failed(ErrorCodeEnum.appCode为空.code, ErrorCodeEnum.appCode为空.name());
+		}
+		AppInfoEntity clientDetails = gameService.getAppInfo(appCode);
+		if (clientDetails == null) {
+			return SdkOauthResult.failed(ErrorCodeEnum.无效的appCode.code, ErrorCodeEnum.无效的appCode.name());
+		}
+
+		return SdkOauthResult.success(clientDetails);
+	}
+	
+	public OauthAccessRecordEntity createAccessRecordEntity(HttpServletRequest request,int requestUrlType,String userId,String userName,String loginType){
+		OauthAccessRecordEntity accessRecordEntity = new OauthAccessRecordEntity();
+		int _accessType = 0;
+		try {
+			String accessType = request.getParameter("accessType");
+			_accessType = StringUtils.isBlank(accessType) ? AccessTypeEnum.WAP.f : Integer.parseInt(accessType);
+		} catch (Exception e) {
+		}
+		accessRecordEntity.setAccessType(_accessType);
+		accessRecordEntity.setClientId(request.getParameter("appCode"));
+		accessRecordEntity.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+		accessRecordEntity.setRequestUrlType(requestUrlType);
+		if(!StringUtils.isEmpty(userId)){
+			accessRecordEntity.setUserId(userId);
+		}
+		if(!StringUtils.isEmpty(userName)){
+			accessRecordEntity.setUserName(userName);
+		}
+		accessRecordEntity.setOsVersion(request.getParameter("osVersion"));
+		accessRecordEntity.setMobileType(request.getParameter("mobileType"));
+		accessRecordEntity.setAccessIp(IPUtil.getIpAddr(request));
+		accessRecordEntity.setLoginType(loginType);
+		accessRecordEntity.setLoginChannelCode(request.getParameter("channelCode"));
+        oauthAccessRecordService.addOauthAccessRecord(accessRecordEntity);
+		return accessRecordEntity;
+	}
+
+    /**
+     * 数据校验
+     * @param obj
+     * @return
+     */
+    protected <T> String dataValid(T obj) {
+        Set<ConstraintViolation<T>> set = validator.validate(obj, Default.class);
+        StringBuilder errorMsg = new StringBuilder();
+        if ((null != set) && (0 != set.size())) {
+            for (ConstraintViolation<T> violation : set) {
+                errorMsg.append("," + violation.getMessage());
+            }
+        }
+        String customerMsg = this.customerValid(obj); // 自定义校验器
+        if (org.apache.commons.lang.StringUtils.isNotEmpty(customerMsg)) {
+            errorMsg.append("," + customerMsg);
+        }
+        if (org.apache.commons.lang.StringUtils.isNotEmpty(errorMsg.toString())) {
+            return errorMsg.substring(1);
+        }
+        return null;
+    }
+
+    /**
+     * 自定义校验
+     * @return
+     */
+    protected <T> String customerValid(T obj) {
+        return null;
+    }
+
+    @InitBinder
+    protected void initBinder(WebDataBinder binder) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        dateFormat.setLenient(true);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+    }
+
+    /**
+     * 封装请求参数
+     *
+     * @param request
+     * @param pageDto
+     */
+    protected void encapsulatePageParams(HttpServletRequest request, PageDto pageDto) {
+        String isPage = request.getParameter("isPage");
+        if (StringUtils.isNotBlank(isPage) && "true".equals(isPage)) {
+            String pageNo = request.getParameter("pageNo");
+            String pageSize = request.getParameter("pageSize");
+            pageDto.setIsPage(true);
+            if (!StringUtils.isBlank(pageNo)) {
+                pageDto.setPageNo(Integer.valueOf(pageNo));
+            }
+            if (!StringUtils.isBlank(pageSize)) {
+                pageDto.setPageSize(Integer.valueOf(pageSize));
+            }
+        }
+    }
+
+}

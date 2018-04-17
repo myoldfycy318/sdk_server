@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.PaySwitchMapper">
+
+    <resultMap type="com.dome.sdkserver.bo.PaySwitch" id="ResultMap">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="app_code" jdbcType="VARCHAR" property="appCode"/>
+        <result column="pay_way" jdbcType="VARCHAR" property="payWay"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="del_flag" jdbcType="INTEGER" property="delFlag"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+
+        <result column="merchant_code" jdbcType="VARCHAR" property="merchantCode"/>
+        <result column="merchant_full_name" jdbcType="VARCHAR" property="merchantFullName"/>
+
+        <result column="app_name" jdbcType="VARCHAR" property="appName"/>
+    </resultMap>
+
+
+
+
+
+    <!--手游,页游,H5-->
+    <sql id="BaseGameInfo">
+            SELECT t.merchant_code, t.merchant_full_name,t.app_code,t.app_name
+            FROM (
+                SELECT m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.`status`, a.remark, a.update_time
+                   FROM domesdk_merchant_info m, domesdk_app_info a WHERE m.merchant_info_id=a.merchant_info_id AND a.del_flag=0 AND m.del_flag=0
+
+                UNION
+
+                SELECT  m.merchant_code, m.merchant_full_name,  g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                FROM domesdk_merchant_info m, domesdk_yeyou_game g WHERE m.del_flag=0 AND g.del_flag=0
+                AND m.merchant_user_id=g.user_id
+
+                UNION
+                SELECT m.merchant_code, m.merchant_full_name,
+                g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                  FROM domesdk_merchant_info m,
+                (SELECT a.game_id, a.game_code, a.game_name, a.`status`, a.remark, a.update_time, a.game_desc, a.game_icon, a.game_url
+                , a.game_copyright_flag, a.compare_software_url, k.login_key, k.pay_key, k.app_key, a.user_id, a.developers FROM domesdk_h5_game a LEFT JOIN domesdk_h5_key k ON a.game_id=k.game_id WHERE (k.del_flag=0 OR k.del_flag IS NULL) AND a.del_flag=0
+                ) g
+                WHERE m.del_flag=0 AND m.merchant_user_id=g.user_id
+                )t
+            ORDER BY t.update_time DESC
+    </sql>
+
+    <!--不需要对状态过滤条件-->
+    <!--查询数据-->
+    <select id="query" resultMap="ResultMap">
+             SELECT info.merchant_code,
+                    info.merchant_full_name,
+                    info.app_code,
+                    info.app_name,
+                    p.pay_way,
+                    p.status
+            FROM 	domesdk_pay_switch p
+            RIGHT JOIN (
+                        SELECT t.merchant_code, t.merchant_full_name,t.app_code,t.app_name
+                        FROM (
+                                SELECT m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.`status`, a.remark, a.update_time
+                                FROM domesdk_merchant_info m, domesdk_app_info a WHERE m.merchant_info_id=a.merchant_info_id AND a.del_flag=0 AND m.del_flag=0
+
+                                UNION
+
+                                SELECT  m.merchant_code, m.merchant_full_name,  g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                                FROM domesdk_merchant_info m, domesdk_yeyou_game g WHERE m.del_flag=0 AND g.del_flag=0
+                                AND m.merchant_user_id=g.user_id
+
+                                UNION
+                                SELECT m.merchant_code, m.merchant_full_name,
+                                g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                                FROM domesdk_merchant_info m,
+                                (SELECT a.game_id, a.game_code, a.game_name, a.`status`, a.remark, a.update_time, a.game_desc, a.game_icon, a.game_url
+                                , a.game_copyright_flag, a.compare_software_url, k.login_key, k.pay_key, k.app_key, a.user_id, a.developers FROM domesdk_h5_game a LEFT JOIN domesdk_h5_key k ON a.game_id=k.game_id WHERE (k.del_flag=0 OR k.del_flag IS NULL) AND a.del_flag=0 
+                                ) g
+                                WHERE m.del_flag=0 AND m.merchant_user_id=g.user_id
+                        )t
+                        <where>
+                            <if test="ps.merchantFullName != null and ps.merchantFullName != ''">
+                                AND t.merchant_full_name LIKE (CONCAT('%',#{ps.merchantFullName},'%'))
+                            </if>
+                            <if test="ps.appName != null and ps.appName != ''">
+                                AND t.app_name LIKE (CONCAT('%',#{ps.appName},'%'))
+                            </if>
+                        </where>
+                        ORDER BY t.update_time DESC
+                  ) info
+            ON p.app_code=info.app_code
+            WHERE 	p.del_flag=0
+            LIMIT #{begin},#{pageSize}
+    </select>
+
+    <!--查询到业务数量-->
+    <select id="count" resultType="int">
+        SELECT count(info.app_code)
+        FROM 	domesdk_pay_switch p
+        RIGHT JOIN (
+                        SELECT t.merchant_code, t.merchant_full_name,t.app_code,t.app_name
+                        FROM (
+                            SELECT m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.`status`, a.remark, a.update_time
+                            FROM domesdk_merchant_info m, domesdk_app_info a WHERE m.merchant_info_id=a.merchant_info_id AND a.del_flag=0 AND m.del_flag=0
+
+                            UNION
+
+                            SELECT  m.merchant_code, m.merchant_full_name,  g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                            FROM domesdk_merchant_info m, domesdk_yeyou_game g WHERE m.del_flag=0 AND g.del_flag=0
+                            AND m.merchant_user_id=g.user_id 
+
+                            UNION
+                            SELECT m.merchant_code, m.merchant_full_name,
+                            g.game_code AS app_code, g.game_name AS app_name, g.`status`, g.remark, g.update_time
+                            FROM domesdk_merchant_info m,
+                            (SELECT a.game_id, a.game_code, a.game_name, a.`status`, a.remark, a.update_time, a.game_desc, a.game_icon, a.game_url
+                            , a.game_copyright_flag, a.compare_software_url, k.login_key, k.pay_key, k.app_key, a.user_id, a.developers FROM domesdk_h5_game a LEFT JOIN domesdk_h5_key k ON a.game_id=k.game_id WHERE (k.del_flag=0 OR k.del_flag IS NULL) AND a.del_flag=0 
+                            ) g
+                        WHERE m.del_flag=0 AND m.merchant_user_id=g.user_id
+                        )t
+                        <where>
+                            <if test="ps.merchantFullName != null and ps.merchantFullName != ''">
+                                AND t.merchant_full_name LIKE (CONCAT('%',#{ps.merchantFullName},'%'))
+                            </if>
+                            <if test="ps.appName != null and ps.appName != ''">
+                                AND t.app_name LIKE (CONCAT('%',#{ps.appName},'%'))
+                            </if>
+                        </where>
+                        ORDER BY t.update_time DESC
+        ) info
+        ON p.app_code=info.app_code
+        WHERE 	p.del_flag=0
+    </select>
+
+
+    <select id="queryByAppCode" resultMap="ResultMap">
+        SELECT * FROM domesdk_pay_switch WHERE app_code=#{appCode}
+    </select>
+
+
+
+    <!--可以被添加到支付开关表中的appCode-->
+    <select id="queryCanAddAppCode" resultType="string">
+        SELECT info.app_code
+        FROM (
+        <include refid="BaseGameInfo"/>
+            ) info
+        WHERE info.app_code NOT IN (SELECT app_code FROM domesdk_pay_switch WHERE del_flag=0)
+    </select>
+
+    <!--更新-->
+    <update id="modify">
+        UPDATE domesdk_pay_switch
+        SET  pay_way=#{ps.payWay},
+             update_time=NOW()
+             <if test="ps.status != null">
+                ,status=#{ps.status}
+             </if>
+        WHERE del_flag=0 AND app_code=#{ps.appCode}
+    </update>
+
+    <!--添加-->
+    <insert id="insert">
+        INSERT INTO domesdk_pay_switch (app_code,create_time) VALUES(#{ps.appCode},NOW());
+    </insert>
+
+
+
+</mapper>

@@ -1,0 +1,32 @@
+package com.dome.sdkserver.bq.constants;
+
+/**
+ * ChannelEnum
+ *
+ * @author Zhang ShanMin
+ * @date 2017/10/17
+ * @time 10:19
+ */
+public enum ChannelEnum {
+
+    QBAO("CHA000001"),//宝玩渠道码
+    DOME("CHA000002"),//冰趣渠道码
+    PUBLISH("CHA000003"),//发行渠道码
+    OVERSEAS("CHA000004"),//海外渠道码
+    WEBGAME("CHA000005"),//页游渠道码
+    YOUPIAO("CHA000006"),//有票渠道码
+    OGP("CHA000007"),//ogp渠道码
+    ;
+
+    private ChannelEnum(String code) {
+        this.code = code;
+    }
+
+    private String code;
+
+    public String getCode() {
+        return code;
+    }
+}
+
+

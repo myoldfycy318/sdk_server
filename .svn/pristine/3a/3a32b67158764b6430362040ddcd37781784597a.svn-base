@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+	  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.award.StoreAwardConfMapper">
+
+	<!-- 游戏活动奖励规则 -->
+
+	<resultMap type="com.dome.sdkserver.metadata.entity.bq.award.StoreAwardConfEntity" id="baseResultMap">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="merchant_code" property="merchantCode" jdbcType="VARCHAR" />
+		<result column="activity_name" property="activityName" jdbcType="VARCHAR" />
+		<result column="store_app_id" property="storeAppId" jdbcType="VARCHAR" />
+		<result column="app_code" property="appCode" jdbcType="VARCHAR" />
+		<result column="app_name" property="appName" jdbcType="VARCHAR" />
+		<result column="account_amount" property="accountAmount" jdbcType="DECIMAL" />
+		<result column="bq_award" property="bqAward" jdbcType="DECIMAL" />
+		<result column="start_date" property="startDate" jdbcType="CHAR" />
+		<result column="start_time" property="startTime" jdbcType="CHAR" />
+		<result column="end_date" property="endDate" jdbcType="CHAR" />
+		<result column="end_time" property="endTime" jdbcType="CHAR" />
+		<result column="publish" property="publish" jdbcType="INTEGER" />
+		<result column="store_conf_id" property="storeConfId" jdbcType="VARCHAR" />
+		<result column="re_grant" property="reGrant" jdbcType="INTEGER" />
+		<result column="type" property="type" jdbcType="INTEGER" />
+		<result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+		<result column="update_time" property="updateTime" jdbcType="TIMESTAMP" />
+		
+		<result column="id_member" property="idMember" jdbcType="INTEGER" />
+		<result column="member_level_id" property="memberLevelId" jdbcType="INTEGER" />
+		<result column="member_level" property="memberLevel" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<!-- 插入规则 -->
+	<insert id="insert" parameterType="com.dome.sdkserver.metadata.entity.bq.award.StoreAwardConfEntity">
+		insert into sdk_store_award_conf
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				id,
+			</if>
+			<if test="merchantCode != null">
+				merchant_code,
+			</if>
+			<if test="activityName != null">
+				activity_name,
+			</if>
+			<if test="storeAppId != null">
+				store_app_id,
+			</if>
+			<if test="appCode != null">
+				app_code,
+			</if>
+			<if test="appName != null">
+				app_name,
+			</if>
+			<if test="accountAmount != null">
+				account_amount,
+			</if>
+			<if test="bqAward != null">
+				bq_award,
+			</if>
+			<if test="startDate != null">
+				start_date,
+			</if>
+			<if test="startTime != null">
+				start_time,
+			</if>
+			<if test="endDate != null">
+				end_date,
+			</if>
+			<if test="endTime != null">
+				end_time,
+			</if>
+			<if test="publish != null">
+				publish,
+			</if>
+			<if test="storeConfId != null">
+				store_conf_id,
+			</if>
+			<if test="reGrant != null">
+				re_grant,
+			</if>
+			<if test="type != null">
+				type,
+			</if>
+				create_time,
+				update_time,
+			<if test="idMember != null">
+				id_member,
+			</if>
+			<if test="memberLevelId != null">
+				member_level_id,
+			</if>
+			<if test="memberLevel != null">
+				member_level,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id,jdbcType=INTEGER},
+			</if>
+			<if test="merchantCode != null">
+				#{merchantCode,jdbcType=VARCHAR},
+			</if>
+			<if test="activityName != null">
+				#{activityName,jdbcType=VARCHAR},
+			</if>
+			<if test="storeAppId != null">
+				#{storeAppId,jdbcType=VARCHAR},
+			</if>
+			<if test="appCode != null">
+				#{appCode,jdbcType=VARCHAR},
+			</if>
+			<if test="appName != null">
+				#{appName,jdbcType=INTEGER},
+			</if>
+			<if test="accountAmount != null">
+				#{accountAmount,jdbcType=DECIMAL},
+			</if>
+			<if test="bqAward != null">
+				#{bqAward,jdbcType=DECIMAL},
+			</if>
+			<if test="startDate != null">
+				#{startDate,jdbcType=CHAR},
+			</if>
+			<if test="startTime != null">
+				#{startTime,jdbcType=CHAR},
+			</if>
+			<if test="endDate != null">
+				#{endDate,jdbcType=CHAR},
+			</if>
+			<if test="endTime != null">
+				#{endTime,jdbcType=CHAR},
+			</if>
+			<if test="publish != null">
+				#{publish,jdbcType=INTEGER},
+			</if>
+			<if test="storeConfId != null">
+				#{storeConfId,jdbcType=VARCHAR},
+			</if>
+			<if test="reGrant != null">
+				#{reGrant,jdbcType=INTEGER},
+			</if>
+			<if test="type != null">
+				#{type,jdbcType=INTEGER},
+			</if>
+				NOW(),
+				NOW(),
+			<if test="idMember != null">
+				#{idMember,jdbcType=INTEGER},
+			</if>
+			<if test="memberLevelId != null">
+				#{memberLevelId,jdbcType=INTEGER},
+			</if>
+			<if test="memberLevel != null">
+				#{memberLevel,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+
+	<!-- 更新规则 -->
+	<update id="updateById" parameterType="com.dome.sdkserver.metadata.entity.bq.award.StoreAwardConfEntity">
+		update sdk_store_award_conf
+		<set>
+			<if test="merchantCode != null">
+				merchant_code = #{merchantCode,jdbcType=VARCHAR},
+			</if>
+			<if test="activityName != null">
+				activity_name = #{activityName,jdbcType=VARCHAR},
+			</if>
+			<if test="storeAppId != null">
+				store_app_id = #{storeAppId,jdbcType=VARCHAR},
+			</if>
+			<if test="appCode != null">
+				app_code = #{appCode,jdbcType=VARCHAR},
+			</if>
+			<if test="appName != null">
+				app_name = #{appName,jdbcType=VARCHAR},
+			</if>
+			<if test="accountAmount != null">
+				account_amount = #{accountAmount,jdbcType=DECIMAL},
+			</if>
+			<if test="bqAward != null">
+				bq_award = #{bqAward,jdbcType=DECIMAL},
+			</if>
+			<if test="startDate != null">
+				start_date = #{startDate,jdbcType=CHAR},
+			</if>
+			<if test="startTime != null">
+				start_time = #{startTime,jdbcType=CHAR},
+			</if>
+			<if test="endDate != null">
+				end_date = #{endDate,jdbcType=CHAR},
+			</if>
+			<if test="endTime != null">
+				end_time = #{endTime,jdbcType=CHAR},
+			</if>
+			<if test="publish != null">
+				publish = #{publish,jdbcType=INTEGER},
+			</if>
+			<if test="storeConfId != null">
+				store_conf_id = #{storeConfId,jdbcType=VARCHAR},
+			</if>
+			<if test="reGrant != null">
+				re_grant = #{reGrant,jdbcType=INTEGER},
+			</if>
+			<if test="type != null">
+				type = #{type,jdbcType=INTEGER},
+			</if>
+			<if test="idMember != null">
+				id_member = #{idMember,jdbcType=INTEGER},
+			</if>
+			<if test="memberLevelId != null">
+				member_level_id = #{memberLevelId,jdbcType=INTEGER},
+			</if>
+			<if test="memberLevel != null">
+				member_level = #{memberLevel,jdbcType=VARCHAR},
+			</if>
+		</set>
+		where id = #{id,jdbcType=INTEGER}
+	</update>
+
+	<!-- 上下架 -->
+	<update id="publish">
+		UPDATE sdk_store_award_conf
+		SET publish = #{isPublish,jdbcType=INTEGER}
+		WHERE
+			store_conf_id = #{storeConfId,jdbcType=VARCHAR}
+		AND type = #{type,jdbcType=INTEGER}
+	</update>
+
+	<!-- 查询配置 -->
+	<select id="queryConf" resultMap="baseResultMap" >
+        SELECT
+        c.id,
+        c.merchant_code,
+        c.activity_name,
+        c.store_app_id,
+        c.app_code,
+        c.app_name,
+        t.consumption account_amount,
+        t.award  bq_award,
+        c.start_date,
+        c.start_time,
+        c.end_date,
+        c.end_time,
+        c.publish,
+        c.re_grant,
+        c.type,
+        c.store_conf_id,
+        c.id_member,
+        c.member_level_id,
+        c.member_level
+    FROM
+        sdk_store_award_conf c,	domesdk_coupon_pay_config t
+    WHERE
+         c.store_conf_id = t.coupon_id
+		and c.start_date &lt;= #{date,jdbcType=CHAR}
+		and c.end_date &gt;= #{date,jdbcType=CHAR}
+		and  t.pay_type = #{payType}
+        and  c.publish = 1
+        and  c.app_code = #{appCode}
+	</select>
+	
+	<!-- 根据应用市场配置ID获取配置 -->
+	<select id="queryConfByStoreConfId" resultMap="baseResultMap" >
+		SELECT
+			sdk_store_award_conf.id,
+			sdk_store_award_conf.merchant_code,
+			sdk_store_award_conf.activity_name,
+			sdk_store_award_conf.store_app_id,
+			sdk_store_award_conf.app_code,
+			sdk_store_award_conf.app_name,
+			sdk_store_award_conf.account_amount,
+			sdk_store_award_conf.bq_award,
+			sdk_store_award_conf.start_date,
+			sdk_store_award_conf.start_time,
+			sdk_store_award_conf.end_date,
+			sdk_store_award_conf.end_time,
+			sdk_store_award_conf.publish,
+			sdk_store_award_conf.re_grant,
+			sdk_store_award_conf.type,
+			sdk_store_award_conf.store_conf_id,
+			sdk_store_award_conf.id_member,
+			sdk_store_award_conf.member_level_id,
+			sdk_store_award_conf.member_level
+		FROM
+			sdk_store_award_conf
+		WHERE
+			sdk_store_award_conf.store_conf_id = #{storeConfId,jdbcType=VARCHAR}
+		AND sdk_store_award_conf.type = #{type,jdbcType=INTEGER}
+	</select>
+	
+	<!-- 删除配置 -->
+	<delete id="deleteByStoreConfId" >
+	    DELETE FROM sdk_store_award_conf
+	 		WHERE store_conf_id = #{storeConfId,jdbcType=VARCHAR}
+	    AND type = #{type,jdbcType=INTEGER}
+	</delete>
+
+    <insert id="insertCouponPayConfig" parameterType="com.dome.sdkserver.metadata.entity.bq.award.CouponPayConfig">
+        insert into domesdk_coupon_pay_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="payType != null">
+                pay_type,
+            </if>
+            <if test="consumption != null">
+                consumption,
+            </if>
+            <if test="award != null">
+                award,
+            </if>
+            <if test="couponId != null">
+                coupon_id,
+            </if>
+            create_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="payType != null">
+                #{payType},
+            </if>
+            <if test="consumption != null">
+                #{consumption},
+            </if>
+            <if test="award != null">
+                #{award},
+            </if>
+            <if test="couponId != null">
+                #{couponId},
+            </if>
+            now()
+        </trim>
+    </insert>
+
+    <delete id="delCouponPayConfig">
+        DELETE FROM domesdk_coupon_pay_config  WHERE coupon_id = #{storeConfId}
+    </delete>
+
+</mapper>

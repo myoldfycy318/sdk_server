@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.ChannelPkgMapper">
+	<resultMap type="AppPkg" id="pkgMap">
+		<id property="pid" jdbcType="INTEGER" column="id"/>
+		<result property="channelId" jdbcType="INTEGER" column="channel_id"/>
+		<result property="channelCode" jdbcType="VARCHAR" column="code"/>
+		<result property="name" jdbcType="VARCHAR" column="name"/>
+		<result property="appId" jdbcType="INTEGER" column="app_id"/>
+		<result property="appName" jdbcType="VARCHAR" column="app_name"/>
+		<result property="downloadUrl" jdbcType="VARCHAR" column="download_url"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	
+	<select id="selectGameCount" resultType="int">
+		select count(distinct g.game_id) from domesdk_channel_promotetype p, domesdk_promotetype_game g, domesdk_app_info a where p.type_id=g.type_id 
+		and g.game_id=a.app_id and a.app_type='10000000' and a.del_flag=0 and g.del_flag=0
+		and a.`status`=1 <!-- 应用必须上架 -->
+		<if test="gameName !=null and gameName!=''">
+			and binary a.app_name like concat('%', #{gameName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and p.channel_id=#{channelId}
+		</if>
+		;
+	</select>
+	<select id="selectGameList" resultType="com.dome.sdkserver.metadata.entity.channel.Game">
+		select t.*, d.id, d.status, d.download_url as downloadUrl, d.update_time as updateTime, d.create_time as createTime
+		 from (select distinct  p.channel_id as channelId, a.app_id as gameId, a.app_code as gameCode, a.app_name as gameName
+		  from domesdk_channel_promotetype p, domesdk_promotetype_game g, domesdk_app_info a
+		  where p.type_id=g.type_id 
+		and g.game_id=a.app_id and a.app_type='10000000' and a.del_flag=0 and g.del_flag=0
+		and a.`status`=1 <!-- 应用必须上架 -->
+		<if test="gameName !=null and gameName!=''">
+			and binary a.app_name like concat('%', #{gameName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and p.channel_id=#{channelId}
+		</if>
+		<if test="p.start!=-1">
+			limit #{p.start}, #{p.pageSize}
+		</if>
+		) t left join (select * from domesdk_channelpkg_download where del_flag=0) d on t.channelId=d.channel_id and t.gameId=d.game_id
+		
+		;
+	</select>
+	
+	<select id="selectDlGameCount" resultType="int">
+		select count(*) from domesdk_channelpkg_download d, domesdk_app_info a where a.app_type='10000000' and d.game_id=a.app_id 
+		 and a.del_flag=0   and a.status=1 and d.del_flag=0
+			and d.status=1 <!-- 打包已完成的 -->
+			and exists (select 1 from domesdk_promotetype_game g, domesdk_channel_promotetype t where g.del_flag=0 <!-- 分类暂停的不展示，g.del_flag=0表示启用 -->and d.game_id=g.game_id
+			and d.channel_id=t.channel_id and g.type_id=t.type_id )
+		<if test="gameName !=null and gameName!=''">
+			and binary a.app_name like concat('%', #{gameName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and d.channel_id=#{channelId}
+		</if>
+		;
+	</select>
+	<!-- 保证 domesdk_channelpkg_download 渠道下的游戏只有一条记录，除了del_flag=0的-->
+	<select id="selectDlGameList" resultType="com.dome.sdkserver.metadata.entity.channel.Game">
+		select d.type_id as typeId, a.app_id as gameId, a.app_code as gameCode, a.app_name as gameName, d.download_url as downloadUrl 
+		from domesdk_channelpkg_download d, domesdk_app_info a where a.app_type='10000000' and
+		 a.del_flag=0 and a.status=1 <!-- and a.has_shelf=1 and a.`status`!=0 --> and d.del_flag=0 and d.game_id=a.app_id
+			and d.status=1 <!-- 打包已完成的 -->
+			and exists (select 1 from domesdk_promotetype_game g, domesdk_channel_promotetype t where g.del_flag=0 <!-- 分类暂停的不展示，g.del_flag=0表示启用 -->and d.game_id=g.game_id
+			and d.channel_id=t.channel_id and g.type_id=t.type_id )
+		<if test="gameName !=null and gameName!=''">
+			and binary a.app_name like concat('%', #{gameName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and d.channel_id=#{channelId}
+		</if>
+		
+		limit #{p.start}, #{p.pageSize}
+		;
+	</select>
+	<insert id="addAppPkg">
+		insert into domesdk_channel_apppkg (channel_id, app_id, app_name, status, del_flag, create_time, update_time) values 
+		  (#{p.channelId}, #{p.appId}, #{p.appName}, #{p.status}, 0, now(), now());
+	  <selectKey resultType="long" keyProperty="p.pid" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+	
+	<select id="selectAppPkg" resultMap="pkgMap">
+		select * from domesdk_channel_apppkg where del_flag=0 and channel_id=#{channelId}
+			and app_id=#{appId};
+	</select>
+	
+	<select id="selectAppPkgByPid" resultMap="pkgMap">
+		select p.*, c.code, c.name from domesdk_channel_apppkg p, domesdk_second_channel c
+		 where p.channel_id=c.id and c.del_flag=0 and p.del_flag=0 and p.id=#{pid};
+	</select>
+	
+	<select id="selectAppPkgCount" resultType="int">
+		select count(*) from domesdk_second_channel c, domesdk_channel_apppkg p where p.del_flag=0 and c.del_flag=0 and c.id=p.channel_id
+		and c.status=2
+		<if test="channelName !=null and channelName!=''">
+			and binary c.name like concat('%', #{channelName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and p.channel_id=#{channelId}
+		</if>
+		;
+	</select>
+	
+	<select id="selectAppPkgList" resultMap="pkgMap">
+		select p.*, c.code, c.name from domesdk_second_channel c, domesdk_channel_apppkg p where p.del_flag=0 and c.del_flag=0 and c.id=p.channel_id
+		and c.status=2
+		<if test="channelName !=null and channelName!=''">
+			and binary c.name like concat('%', #{channelName}, '%')
+		</if>
+		<if test="channelId!=null and channelId!=0">
+			and p.channel_id=#{channelId}
+		</if>
+		order by field(p.status, 2, 4, 3, 6, 5, 1), p.update_time desc limit #{p.start}, #{p.pageSize};
+	</select>
+	
+	<update id="updateAppPkg">
+		update domesdk_channel_apppkg set update_time=now()
+			<choose> <!-- 已打包(1),未打包(2), 正在打包(3), 打包失败(4), 驳回(5), 包有更新(6); -->
+				<when test="p.status !=null and p.status ==5">
+					, remark=#{p.remark}
+				</when>
+				<when test="p.status !=null and p.status ==1">
+					, download_url=#{p.downloadUrl}
+				</when>
+				<when test="p.status !=null and p.status ==2">
+					, remark=null
+				</when>
+			</choose>
+			<if test="p.status !=null and p.status !=0">
+				, status=#{p.status}
+			</if>
+		where del_flag=0 and id=#{p.pid};
+	</update>
+	
+	<select id="selectApp" resultType="com.dome.sdkserver.bo.MerchantAppInfo">
+		select t.app_id as appId, t.app_code as appCode, t.app_name as appName, t.update_time as updateTime from domesdk_app_info t
+			where t.app_type='10000000' and t.`status`=1 and t.del_flag=0 and app_id=#{appId};
+	</select>
+	
+	<select id="selectPkg" resultType="com.dome.sdkserver.bo.pkgmanage.Pkg">
+		select t.app_code appCode, t.jiagu_path as jiaguPath, t.jiagu_time jiaguTime from domesdk_pkg t where t.app_code=#{appCode} and t.jiagu_status=1 and t.upload_status=1
+			order by id desc limit 1;
+	</select>
+	
+	<update id="updateGamePkgStatus">
+		update domesdk_channelpkg_download set update_time=now(), status=#{status}
+			where <!-- id=#{id} --> channel_id=#{channelId} and game_id=#{gameId} and del_flag=0;
+		
+	</update>
+	
+	<insert id="addBqApp">
+		insert into domesdk_bq_app(app_id, app_code, app_name, version, download_url, del_flag, create_time, update_time)
+			values (#{a.appId} ,#{a.appCode}, #{a.appName} ,#{a.version}, #{a.downloadUrl}, 0, now(), now());
+		<selectKey resultType="long" keyProperty="a.id" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+	<update id="deleteBqApp">
+		update domesdk_bq_app set del_flag=1 where id=#{id} and del_flag=0;
+	</update>
+	<select id="selectBqApp" resultType="BqApp">
+		select id, app_id as appId, app_code as appCode, app_name as appName, version, download_url as downloadUrl, create_time createTime,
+		 update_time as updateTime from domesdk_bq_app
+		where app_id=#{appId} and del_flag=0;
+	</select>
+
+	<select id="selectGamePkg" resultType="Game">
+		select id, channel_id as channelId, game_id as gameId, status, create_time createTime, update_time as updateTime from domesdk_channelpkg_download where channel_id=#{channelId} and game_id=#{gameId} and del_flag=0
+		order by field(status, 3, 6, 2,4,5,1)
+		limit 1;
+	</select>
+	
+	<insert id="addGamePkg">
+		insert into domesdk_channelpkg_download (channel_id, game_id, type_id, status, del_flag, create_time, update_time)
+			values (#{g.channelId}, #{g.gameId}, #{g.typeId}, #{g.status}, 0, now(), now());
+		<selectKey resultType="long" keyProperty="g.id" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+	
+	<update id="updateGamePkg">
+		update domesdk_channelpkg_download set update_time=now(), status=#{g.status}
+			<if test="g.downloadUrl!=null and g.downloadUrl!=''">
+				,download_url=#{g.downloadUrl}
+			</if>
+			
+			where del_flag=0 and channel_id=#{g.channelId} and game_id=#{g.gameId}<!-- and id=#{g.id} -->;
+		
+	</update>
+	
+	<select id="selectChannelTypeId" resultType="java.lang.Long">
+		select type_id from domesdk_channel_promotetype where channel_id=#{channelId};
+	</select>
+	
+	<update id="deleteGamePkg">
+		update domesdk_channelpkg_download set del_flag=1 where del_flag=0 and id=#{id};
+	</update>
+</mapper>

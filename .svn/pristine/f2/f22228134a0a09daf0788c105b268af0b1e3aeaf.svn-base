@@ -1,0 +1,179 @@
+package com.dome.sdkserver.controller.pay.ali;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.utils.alipay.AliPayUtil;
+import com.dome.sdkserver.bq.constants.PayConstant.PAY_REQ_ORIGIN;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.util.MapUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.service.pay.PayService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import com.dome.sdkserver.util.RSACoder;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * AliPayController
+ *
+ * @author Zhang ShanMin
+ * @date 2016/12/17
+ * @time 11:14
+ */
+@Controller
+@RequestMapping("/pay")
+public class AliPayController extends PayBaseController {
+
+    @Resource(name = "aliPayService")
+    private PayService payService;
+
+    /**
+     * 外部调用sdk支付宝即时到帐支付
+     */
+    @RequestMapping(value = "aliPayDown", method = RequestMethod.POST)
+    @ResponseBody
+    public SdkOauthResult aliPayDown(HttpRequestOrderInfo orderReqInfo) {
+        SdkOauthResult result;
+        String redisKey = "";
+        try {
+            //验证请求参数
+            result = validateReqParams(orderReqInfo);
+            if (!result.isSuccess())
+                return result;
+            //验证签名
+            result = validateSign(orderReqInfo);
+            if (!result.isSuccess())
+                return result;
+            int lockTime = domainConfig.getInt("other.ali.pay.down.lock.time", "30");//秒
+            redisKey = RedisConstants.OTHER_ALI_PAY_DOWN_LOCK + orderReqInfo.getPayOrigin() + ":" + orderReqInfo.getBuyerId() + ":" + orderReqInfo.getReqIp();
+            //支付锁定
+            if (redisUtil.tryLock(redisKey, lockTime, "lock"))
+                return SdkOauthResult.failed("支付中，请稍后");
+            result = payService.createOrder(orderReqInfo);
+            if (!result.isSuccess())
+                return result;
+            //返回支付宝响应报文
+            return SdkOauthResult.success(getAliPayDownResp(orderReqInfo, result));
+        } catch (Exception e) {
+            log.error("外部调用sdk支付宝即时到帐支付异常", e);
+            return SdkOauthResult.failed("系统异常，请稍后再试");
+        } finally {
+            if (StringUtils.isNotBlank(redisKey)) {
+                redisUtil.del(redisKey);
+            }
+            log.info("外部调用sdk支付宝即时到请求参数:" + JSONObject.toJSONString(orderReqInfo));
+        }
+    }
+
+    /**
+     * 获取支付宝即时支付响应报文
+     *
+     * @param orderReqInfo
+     * @param result
+     * @return
+     * @throws Exception
+     */
+    private Map<String, Object> getAliPayDownResp(HttpRequestOrderInfo orderReqInfo, SdkOauthResult result) throws Exception {
+        Map<String, Object> resultMap = new HashMap<String, Object>(3);
+        resultMap.put("payUrl", AliPayUtil.AliGateWay.PAYDOWN.getGateWap());
+        resultMap.put("sdkOrderNo", orderReqInfo.getOrderNo());
+        if (orderReqInfo.getResFormat() == 0) { //响应格式  0:返回kv,1:返回支付宝form表单
+            resultMap.put("payInfo", result.getData());
+        } else {
+            resultMap.put("form", getAliWapPayInfo((Object[]) result.getData()));
+        }
+        return resultMap;
+    }
+
+    /**
+     * 拼接唤起支付wap支付页面
+     *
+     * @param payInfo
+     * @return
+     * @throws Exception
+     */
+    private String getAliWapPayInfo(Object[] payInfo) throws Exception {
+
+        String ALIPAY_GATEWAY_NEW = "https://mapi.alipay.com/gateway.do?";
+        StringBuffer sbHtml = new StringBuffer();
+
+        sbHtml.append("<form id=\"alipaysubmit\" name=\"alipaysubmit\" action=\"" + ALIPAY_GATEWAY_NEW
+                + "_input_charset=utf-8" + "\"method=\"" + "get"
+                + "\">");
+
+        Object name = null;
+        Object value = null;
+        for (Object obj : (Object[]) payInfo) {
+            for (Field field : obj.getClass().getDeclaredFields()) {
+                field.setAccessible(true);
+                if (field.getName().equals("name")) {
+                    name = field.get(obj);
+                }
+                if (field.getName().equals("value")) {
+                    value = field.get(obj);
+                }
+            }
+            sbHtml.append("<input type=\"hidden\" name=\"" + name + "\" value=\"" + value + "\"/>");
+        }
+        //submit按钮控件请不要含有name属性
+        sbHtml.append("<input type=\"submit\" value=\"" + "确认" + "\" style=\"display:none;\"></form>");
+        sbHtml.append("<script>document.forms['alipaysubmit'].submit();</script>");
+        return sbHtml.toString();
+    }
+
+
+    /**
+     * 验证签名
+     *
+     * @param orderReqInfo
+     * @return
+     */
+    private SdkOauthResult validateSign(HttpRequestOrderInfo orderReqInfo) throws Exception {
+        Map<String, String> signMap = new HashMap<String, String>();
+        signMap.put("outOrderNo", orderReqInfo.getOutOrderNo());
+        signMap.put("buyerId", orderReqInfo.getBuyerId());
+        signMap.put("totalFee", String.valueOf(orderReqInfo.getTotalFee()));
+        signMap.put("notifyUrl", orderReqInfo.getNotifyUrl());
+        signMap.put("payOrigin", orderReqInfo.getPayOrigin());
+        String signParam = MapUtil.createLinkString(signMap);
+        PAY_REQ_ORIGIN payReqOrigin = PAY_REQ_ORIGIN.getPayReqOrigin(orderReqInfo.getPayOrigin());
+        String rsaSignKey = domainConfig.getString(payReqOrigin.getRsaKey());
+        return RSACoder.verify(signParam.getBytes(), rsaSignKey, orderReqInfo.getSignCode()) ? SdkOauthResult.success() : SdkOauthResult.failed("外部调用sdk即时支付签名错误");
+    }
+
+    /**
+     * 验证请求参数
+     *
+     * @param orderReqInfo
+     * @return
+     */
+    private SdkOauthResult validateReqParams(HttpRequestOrderInfo orderReqInfo) {
+        if (StringUtils.isBlank(orderReqInfo.getBuyerId()) || "null".equalsIgnoreCase(orderReqInfo.getBuyerId()) ||
+                StringUtils.isBlank(orderReqInfo.getOutOrderNo()) || StringUtils.isBlank(orderReqInfo.getNotifyUrl()) ||
+                StringUtils.isBlank(orderReqInfo.getSignCode()) || StringUtils.isBlank(orderReqInfo.getPayOrigin())
+                || StringUtils.isBlank(orderReqInfo.getSubject()) || StringUtils.isBlank(orderReqInfo.getBody()) ||
+                StringUtils.isBlank(orderReqInfo.getReqIp()))
+            return SdkOauthResult.failed("必填参数不能为空");
+        if (orderReqInfo.getTotalFee() == 0)
+            return SdkOauthResult.failed("支付金额不能为空");
+        if (null == PAY_REQ_ORIGIN.getPayReqOrigin(orderReqInfo.getPayOrigin()))
+            return SdkOauthResult.failed("没有该支付来源");
+        orderReqInfo.setPayType(1);//设置默认的支付类型为支付宝支付
+        try {
+            orderReqInfo.setSubject(new String(Base64.decodeBase64(orderReqInfo.getSubject()), "utf-8"));
+            orderReqInfo.setBody(new String(Base64.decodeBase64(orderReqInfo.getBody()), "utf-8"));
+        } catch (Exception e) {
+            SdkOauthResult.failed("必填参数数据解析错误");
+        }
+        return SdkOauthResult.success();
+    }
+}

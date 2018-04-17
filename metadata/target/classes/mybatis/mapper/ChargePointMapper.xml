@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.ChargePointMapper">
+	<resultMap type="com.dome.sdkserver.bo.ChargePointInfo" id="resultMap">
+		<id property="chargePointId" jdbcType="INTEGER" column="charging_point_id" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+		<result property="chargePointCode" jdbcType="VARCHAR" column="charging_point_code" />
+		<result property="chargePointName" jdbcType="VARCHAR" column="charging_point_name" />
+		<result property="chargePointAmount" jdbcType="DECIMAL" column="charging_point_amount" />
+		<result property="delFlag" jdbcType="INTEGER" column="del_flag" />
+		<result property="status" jdbcType="INTEGER" column="status" />
+		<result property="remark" jdbcType="VARCHAR" column="remark" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+		
+		<result property="desc" jdbcType="VARCHAR" column="description" />
+		<result property="path" jdbcType="VARCHAR" column="path" />
+	</resultMap>
+	
+	<!-- 添加手游计费点信息 -->
+	<insert id="addChargePointInfo">
+		INSERT INTO 
+			domesdk_charging_point(
+				app_code
+				<if test="entity.chargePointCode!=null">
+					,charging_point_code
+				</if>
+				,charging_point_name,
+				charging_point_amount,
+				status, del_flag,
+				create_time,
+				update_time
+				<if test="entity.remark!=null">
+					,remark
+				</if>
+				<if test="entity.desc!=null">
+					,description
+				</if>
+				<if test="entity.path!=null">
+					,path
+				</if>
+			) 
+		VALUES(
+			#{entity.appCode}
+			<if test="entity.chargePointCode!=null">
+				,#{entity.chargePointCode}
+			</if>
+			,#{entity.chargePointName},
+			#{entity.chargePointAmount},
+			#{entity.status}, 0,
+			NOW(),
+			NOW()
+			<if test="entity.remark!=null">
+					,#{entity.remark}
+			</if>
+			<if test="entity.desc!=null">
+				,#{entity.desc}
+			</if>
+			<if test="entity.path!=null">
+				,#{entity.path}
+			</if>
+		)
+		<selectKey resultType="int" keyProperty="entity.chargePointId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		 </selectKey>
+	</insert>
+	
+	<!-- 根据查询条件查找-->
+	<select id="getChargePontInfosByCondition" resultMap="resultMap">
+		SELECT 
+			charging_point_id,
+			app_code,
+			charging_point_code,
+			charging_point_name,
+			charging_point_amount,
+			del_flag,
+			status,
+			remark,
+			create_time,
+			update_time
+			,description, path
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		    del_flag = 0
+	    	 <!-- 变更后已失效的不展示 -->
+	    	 and status != 70
+		<if test="entity.appCode != null and entity.appCode != '' ">
+			and app_code = #{entity.appCode}
+		</if>
+		<if test="entity.chargePointName != null and entity.chargePointName != '' ">
+			and charging_point_name like concat('%',#{entity.chargePointName},'%')
+		</if>
+		<if test="entity.amountStart != null and entity.amountStart != ''">
+			and charging_point_amount &gt;= #{entity.amountStart}
+		</if>
+		<if test="entity.amountEnd != null and entity.amountEnd != ''">
+			and charging_point_amount &lt;= #{entity.amountEnd}
+		</if>
+		<if test="entity.status != null and entity.status != ''">
+			and status = #{entity.status}
+		</if>
+		<if test="entity.startTime != null and entity.startTime != ''">
+			and create_time &gt;= concat(DATE_FORMAT(#{entity.startTime}, '%Y-%m-%d'),' 00:00:00')
+		</if>
+		<if test="entity.endTime != null and entity.endTime != ''">
+			and create_time &lt;= concat(DATE_FORMAT(#{entity.endTime}, '%Y-%m-%d'),' 23:59:59')
+		</if>	
+		 order by update_time desc
+		 <if test="entity.start != null and entity.size != null">
+			 limit #{entity.start},#{entity.size}
+		 </if>
+	</select>
+	
+	<!--  根据查询条件得到总数 -->
+	<select id="getChargePontCountByCondition" resultType="java.lang.Integer">
+		SELECT 
+			count(1)
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		    del_flag = 0
+		 	 <!-- 变更后已失效的不展示 -->
+	    	 and status != 70
+	    
+		<if test="entity.appCode != null and entity.appCode != '' ">
+			and app_code = #{entity.appCode}
+		</if>
+		<if test="entity.chargePointName != null and entity.chargePointName != '' ">
+			and charging_point_name like concat('%',#{entity.chargePointName},'%')
+		</if>
+		<if test="entity.amountStart != null and entity.amountStart != ''">
+			and charging_point_amount &gt;= #{entity.amountStart}
+		</if>
+		<if test="entity.amountEnd != null and entity.amountEnd != ''">
+			and charging_point_amount &lt;= #{entity.amountEnd}
+		</if>
+		<if test="entity.status != null and entity.status != ''">
+			and status = #{entity.status}
+		</if>
+		<if test="entity.startTime != null and entity.startTime != ''">
+			and create_time &gt;= concat(DATE_FORMAT(#{entity.startTime}, '%Y-%m-%d'),' 00:00:00')
+		</if>
+		<if test="entity.endTime != null and entity.endTime != ''">
+			and create_time &lt;= concat(DATE_FORMAT(#{entity.endTime}, '%Y-%m-%d'),' 23:59:59')
+		</if>	
+	</select>
+	
+	<select id="getChargePointInfoById" resultMap="resultMap">	
+		SELECT 
+			charging_point_id,
+			app_code,
+			charging_point_code,
+			charging_point_name,
+			charging_point_amount,
+			del_flag,
+			status,
+			remark,
+			create_time,
+			update_time
+			,description ,path
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		   charging_point_id = #{chargePointId}
+	</select>
+	
+	<update id="updateChargePointInfo">
+		UPDATE
+			domesdk_charging_point		
+		SET update_time=now()
+			<if test="entity.status!=null">
+				,STATUS=#{entity.status}
+			</if>
+			 
+			<if test="entity.chargePointName != null and entity.chargePointName != '' ">
+				,charging_point_name=#{entity.chargePointName}	
+			</if>
+			<if test="entity.chargePointAmount != null and entity.chargePointAmount != '' ">	
+				,charging_point_amount=#{entity.chargePointAmount}
+			</if>
+			
+			<if test="entity.remark != null and entity.remark != '' ">
+				,remark=#{entity.remark}
+			</if>
+			<if test="entity.delFlag != null and entity.delFlag != '' ">
+				,del_flag=#{entity.delFlag}
+			</if>
+			<if test="entity.desc!=null">
+				,description=#{entity.desc}
+			</if>
+			<if test="entity.path!=null">
+				,path=#{entity.path}
+			</if>
+		WHERE 
+			 status!=70 and del_flag=0
+			<if test="entity.chargePointCode!=null">
+				and charging_point_code = #{entity.chargePointCode}
+			</if>
+			<if test="entity.appCode!=null">
+				and app_code=#{entity.appCode}
+			</if>
+			<if test="entity.chargePointId!=null">
+				and charging_point_id=#{entity.chargePointId}
+			</if>
+	</update>
+	
+	<update id="doBatchPass">
+		UPDATE
+			domesdk_charging_point		
+		SET
+			 STATUS=#{status}
+		WHERE del_flag=0 and app_code=#{appCode} and status!=70 and
+			charging_point_code
+		IN
+		<foreach collection="codes" item="code" open="(" close=")" separator=",">
+			#{code}
+		</foreach>
+	</update>
+	
+	<select id="getChargePointInfoByCode" resultMap="resultMap"> <!-- 已生效的计费点 -->
+		select * from domesdk_charging_point where del_flag=0 and status!=70 and charging_point_code = #{chargePointCode};
+	</select>
+	
+	<update id="updateChargePointCode">
+		update domesdk_charging_point set charging_point_code = #{code} where charging_point_id=#{id};
+	</update>
+	
+	<select id="getRencentPreviousChargePoint"> <!-- 已失效的 -->
+		select * from domesdk_charging_point where charging_point_code = #{chargePointCode} and del_flag=0 and app_code=#{appCode}
+		and status=70 order by charging_point_id desc limit 0, 1;
+	</select>
+	
+	<select id="getWaitAuditCharges"  resultMap="resultMap"> <!-- 已失效的 -->
+		select * from domesdk_charging_point where del_flag=0 and app_code=#{appCode}
+		and status in (10, 30);
+	</select>
+	
+	<select id="getAppListByCondition" resultType="com.dome.sdkserver.bo.MerchantAppInfo">
+		<!-- , app.out_public_rsakey outPublicRsakey, app.out_private_rsakey outPrivateRsakey, app.test_out_public_rsakey testPublicRsakey, app.test_out_private_rsakey testPrivateRsakey -->
+		select t.merchant_code as merchantCode, t.merchant_full_name as merchantFullName, t.app_code as appCode, t.app_name as appName, t.update_time as updateTime, t.status from (
+			SELECT
+			m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.update_time, a.status  
+			FROM domesdk_app_info a, domesdk_merchant_info m where a.del_flag = 0 and m.del_flag=0 and a.merchant_info_id = m.merchant_info_id
+			and exists (select 1 from domesdk_charging_point c where a.app_code=c.app_code and c.del_flag=0 and c.status=10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and a.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and a.app_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.status != null and entity.status != 0">
+				and a.status = #{entity.status, jdbcType=TINYINT}
+			</if>
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and a.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR},' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and a.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR},' 23:59:59')
+				]]>
+			</if>
+			UNION
+			select m.merchant_code as merchantCode, m.merchant_full_name as merchantFullName, g.game_code as appCode, g.game_name as appName, g.update_time as updateTime,
+						g.status 
+			from domesdk_yeyou_game g, domesdk_merchant_info m where g.del_flag=0 and m.del_flag=0 and g.user_id=m.merchant_user_id
+			and EXISTS (select 1 from domesdk_yeyou_chargepoint c where c.del_flag=0 and c.status=10 and g.game_code=c.game_code)
+				<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+					and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+				</if>
+				<if test="entity.appCode != null and entity.appCode != ''">
+					and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+				</if>
+				<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+					and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+				</if>
+				<if test="entity.status != null and entity.status != 0">
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</if>
+				<if test="entity.merchantCode != null and entity.merchantCode != ''">
+					and m.merchant_code = #{entity.merchantCode}
+				</if>
+				<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+					<![CDATA[
+						and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR},' 00:00:00')
+					]]>
+				</if>
+				<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+					<![CDATA[
+						and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR},' 23:59:59')
+					]]>
+				</if>
+		) t
+		
+		order by t.update_time desc
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<select id="getAppInfoCountByCondition" resultType="java.lang.Integer">
+		select count(*) from (
+			SELECT
+			m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.update_time, a.status  
+			FROM domesdk_app_info a, domesdk_merchant_info m where a.del_flag = 0 and m.del_flag=0 and a.merchant_info_id = m.merchant_info_id
+			and exists (select 1 from domesdk_charging_point c where a.app_code=c.app_code and c.del_flag=0 and c.status=10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and a.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and a.app_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.status != null and entity.status != 0">
+				and a.status = #{entity.status, jdbcType=TINYINT}
+			</if>
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and a.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR},' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and a.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR},' 23:59:59')
+				]]>
+			</if>
+			UNION
+			select m.merchant_code as merchantCode, m.merchant_full_name as merchantFullName, g.game_code as appCode, g.game_name as appName, g.update_time as updateTime,
+						g.status 
+			from domesdk_yeyou_game g, domesdk_merchant_info m where g.del_flag=0 and m.del_flag=0 and g.user_id=m.merchant_user_id
+			and EXISTS (select 1 from domesdk_yeyou_chargepoint c where c.del_flag=0 and c.status=10 and g.game_code=c.game_code)
+				<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+					and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+				</if>
+				<if test="entity.appCode != null and entity.appCode != ''">
+					and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+				</if>
+				<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+					and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+				</if>
+				<if test="entity.status != null and entity.status != 0">
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</if>
+				<if test="entity.merchantCode != null and entity.merchantCode != ''">
+					and m.merchant_code = #{entity.merchantCode}
+				</if>
+				<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+					<![CDATA[
+						and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR},' 00:00:00')
+					]]>
+				</if>
+				<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+					<![CDATA[
+						and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR},' 23:59:59')
+					]]>
+				</if>
+		) t
+		
+	</select>
+	
+	<select id="selectChargeCountByCpCode" resultType="int">
+		select count(*) from domesdk_charging_point where charging_point_code=#{chargePointCode} and del_flag=0;
+	</select>
+	
+	<delete id="deleteCharge">
+		delete from domesdk_charging_point where charging_point_code=#{chargeCode};
+	</delete>
+	
+	<select id="selectCharge" resultMap="resultMap">
+		Select * from domesdk_charging_point where app_code=#{appCode} and charging_point_name=#{chargeName}
+			and del_flag=0 and status !=70;
+	</select>
+	
+	<update id="updateStatus">
+		update domesdk_charging_point set status=#{status}, update_time=now()
+			where del_flag=0 and charging_point_id=#{id};
+	</update>
+
+
+	<select id="selectPassChargePoint" resultMap="resultMap">
+		Select * from domesdk_charging_point where app_code=#{appCode}
+			and del_flag=0 and status=20;
+	</select>
+</mapper>

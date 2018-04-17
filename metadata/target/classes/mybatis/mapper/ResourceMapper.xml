@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.ResourceMapper">
+	<resultMap type="com.dome.sdkserver.bo.ResourceInfo" id="ResultMap">
+		<id property="resourceId" jdbcType="INTEGER" column="resource_id"/>
+		<result property="resourceTitle" jdbcType="VARCHAR" column="resource_title"/>
+		<result property="resourceType" jdbcType="CHAR" column="resource_type"/>
+		<result property="resourceColumn" jdbcType="CHAR" column="resource_column"/>
+		<result property="resourceUrl" jdbcType="VARCHAR" column="resource_url"/>
+		<result property="fileSize" jdbcType="VARCHAR" column="file_size"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	<sql id="Base_Column_List">
+		resource_id,
+		resource_title,
+		resource_type,
+		resource_column,
+		resource_url,
+		file_size,
+		status,
+		del_flag,
+		create_time,
+		update_time
+	</sql>
+	
+	<insert id="addResourceInfo" parameterType="com.dome.sdkserver.bo.ResourceInfo">
+		INSERT INTO 
+			domesdk_resource(
+				resource_title,
+				resource_type,
+				resource_column,
+				resource_url,
+				file_size,
+				status,
+				del_flag,
+				create_time,
+				update_time)
+		VALUES(
+			#{entity.resourceTitle},
+			#{entity.resourceType},
+			#{entity.resourceColumn},
+			#{entity.resourceUrl},
+			#{entity.fileSize},
+			#{entity.status},
+			#{entity.delFlag},
+			#{entity.createTime},
+			#{entity.updateTime}		
+		)
+
+	</insert>
+
+	<select id="getResourceInfoListByCondition" resultMap="ResultMap">
+		SELECT 
+			<include refid="Base_Column_List"/>
+		FROM 
+			domesdk_resource
+		WHERE
+			1=1
+		and
+			del_flag = 0
+		<if test="entity.resourceTitle != null and entity.resourceTitle != ''">
+			and resource_title like concat('%',#{entity.resourceTitle, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.resourceType != null and entity.resourceType != ''">
+			and resource_type = #{entity.resourceType, jdbcType=CHAR}
+		</if>
+		<if test="entity.resourceColumn != null and entity.resourceColumn != ''">
+			and resource_column = #{entity.resourceColumn, jdbcType=CHAR}
+		</if>
+		<if test="entity.status != null and entity.status != ''">
+			and status = #{entity.status, jdbcType=TINYINT}
+		</if>
+		<if test="entity.updateStartTime != null and entity.updateStartTime != ''">
+			<![CDATA[
+				and update_time >= concat(DATE_FORMAT(#{entity.updateStartTime, jdbcType=VARCHAR}, '%Y-%m-%d'),' 00:00:00')
+			]]>
+		</if>
+		<if test="entity.updateEndTime != null and entity.updateEndTime != ''">
+			<![CDATA[
+				and update_time <= concat(DATE_FORMAT(#{entity.updateEndTime, jdbcType=VARCHAR}, '%Y-%m-%d'),' 23:59:59')
+			]]>
+		</if>		
+		order by resource_id desc
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<select id="getResourceInfoCountByCondition" resultType="java.lang.Integer">
+		SELECT 
+			count(1)
+		FROM 
+			domesdk_resource
+		WHERE
+			1=1
+		and
+			del_flag = 0
+		<if test="entity.resourceTitle != null and entity.resourceTitle != ''">
+			and resource_title like concat('%',#{entity.resourceTitle, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.resourceType != null and entity.resourceType != ''">
+			and resource_type = #{entity.resourceType, jdbcType=CHAR}
+		</if>
+		<if test="entity.resourceColumn != null and entity.resourceColumn != ''">
+			and resource_column = #{entity.resourceColumn, jdbcType=CHAR}
+		</if>
+		<if test="entity.status != null and entity.status != ''">
+			and status = #{entity.status, jdbcType=TINYINT}
+		</if>
+		<if test="entity.updateStartTime != null and entity.updateStartTime != ''">
+			<![CDATA[
+				and update_time >= concat(DATE_FORMAT(#{entity.updateStartTime, jdbcType=VARCHAR}, '%Y-%m-%d'),' 00:00:00')
+			]]>
+		</if>
+		<if test="entity.updateEndTime != null and entity.updateEndTime != ''">
+			<![CDATA[
+				and update_time <= concat(DATE_FORMAT(#{entity.updateEndTime, jdbcType=VARCHAR}, '%Y-%m-%d'),' 23:59:59')
+			]]>
+		</if>
+	</select>
+	
+	<update id="editResourceInfoById">
+		update 
+			domesdk_resource
+		set 
+			resource_id = resource_id
+			<if test="entity.resourceTitle != null and entity.resourceTitle != ''">
+				, resource_title = #{entity.resourceTitle, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.resourceType != null">
+				, resource_type = #{entity.resourceType, jdbcType=CHAR}
+			</if>
+			<if test="entity.resourceColumn != null">
+				, resource_column = #{entity.resourceColumn, jdbcType=CHAR}
+			</if>
+			<if test="entity.resourceUrl != null">
+				, resource_url = #{entity.resourceUrl, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.status != null">
+				, status = #{entity.status, jdbcType=TINYINT}
+			</if>
+			<if test="entity.delFlag != null">
+				, del_flag = #{entity.delFlag, jdbcType=TINYINT}
+			</if>
+			<if test="entity.fileSize != null">
+				, file_size = #{entity.fileSize, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.createTime != null and entity.createTime != ''">
+				,create_time = #{entity.createTime, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.updateTime != null and entity.updateTime != ''">
+				,update_time = #{entity.updateTime, jdbcType=VARCHAR}
+			</if>
+
+		where
+			resource_id = #{entity.resourceId, jdbcType=INTEGER}
+	</update>
+	
+	<select id="getResourceInfoListById" resultMap="ResultMap">
+		SELECT 
+			<include refid="Base_Column_List"/>
+		FROM 
+			domesdk_resource
+		WHERE
+			1=1
+		and
+			del_flag = 0
+		and
+			resource_id = #{resourceId, jdbcType=INTEGER}
+	</select>	
+	
+	
+</mapper>

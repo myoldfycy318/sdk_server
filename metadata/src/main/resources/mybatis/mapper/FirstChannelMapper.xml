@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.FirstChannelMapper">
+	
+	<insert id="add">
+		insert into domesdk_first_channel (code, company_name, company_url, zone_code, telephone, company_intro, create_time, update_time
+			<if test="ch.icpRecord !=null">
+				,icp_record
+			</if>
+			<if test="ch.vatNo !=null">
+				,vat_no
+			</if>
+			<if test="ch.vatPicUrl !=null">
+				,vat_pic_url
+			</if>
+			<if test="ch.licenceNum !=null">
+				,licence_num
+			</if>
+			<if test="ch.licenceImageUrl!=null">
+				,licence_image_url
+			</if>
+			<if test="ch.legalName !=null">
+				,legal_name
+			</if>
+			<if test="ch.legalImageUrl !=null">
+				,legal_image_url
+			</if>
+			<if test="ch.taxRegistNo !=null">
+				,tax_regist_no
+			</if>
+			<if test="ch.taxRegistUrl !=null">
+				,tax_regist_url
+			</if>
+			<if test="ch.networkCultureNo !=null">
+				,network_culture_no
+			</if>
+			<if test="ch.networkCultureUrl!=null">
+				,network_culture_url
+			</if>
+			<if test="ch.registAmount !=0.0">
+				,regist_amount
+			</if>
+			<if test="ch.companyType !=0">
+				,company_type
+			</if>
+			<if test="ch.isListed !=0">
+				,is_listed
+			</if>
+		) values (#{ch.channelCode}, #{ch.companyName}, #{ch.companyUrl}, #{ch.zoneCode}, #{ch.telephone}, #{ch.companyIntro}, now(), now()
+			<if test="ch.icpRecord !=null">
+				,#{ch.icpRecord}
+			</if>
+			<if test="ch.vatNo !=null">
+				,#{ch.vatNo}
+			</if>
+			<if test="ch.vatPicUrl !=null">
+				,#{ch.vatPicUrl}
+			</if>
+			<if test="ch.licenceNum !=null">
+				,#{ch.licenceNum}
+			</if>
+			<if test="ch.licenceImageUrl!=null">
+				,#{ch.licenceImageUrl}
+			</if>
+			<if test="ch.legalName !=null">
+				,#{ch.legalName}
+			</if>
+			<if test="ch.legalImageUrl !=null">
+				,#{ch.legalImageUrl}
+			</if>
+			<if test="ch.taxRegistNo !=null">
+				,#{ch.taxRegistNo}
+			</if>
+			<if test="ch.taxRegistUrl !=null">
+				,#{ch.taxRegistUrl}
+			</if>
+			<if test="ch.networkCultureNo !=null">
+				,#{ch.networkCultureNo}
+			</if>
+			<if test="ch.networkCultureUrl!=null">
+				,#{ch.networkCultureUrl}
+			</if>
+			<if test="ch.registAmount !=0.0">
+				,#{ch.registAmount}
+			</if>
+			<if test="ch.companyType !=0">
+				,#{ch.companyType}
+			</if>
+			<if test="ch.isListed !=0">
+				,#{ch.isListed}
+			</if>
+		);
+		<selectKey resultType="long" keyProperty="ch.id" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		 </selectKey>
+	</insert>
+	
+	<update id="update">
+	  update domesdk_first_channel set update_time=now()
+	  		<if test="ch.companyName !=null">
+				,company_name=#{ch.companyName}
+			</if>
+			<if test="ch.companyUrl !=null">
+				,company_url=#{ch.companyUrl}
+			</if>
+			<if test="ch.zoneCode !=null">
+				,zone_code=#{ch.zoneCode}
+			</if>
+			<if test="ch.telephone !=null">
+				,telephone=#{ch.telephone}
+			</if>
+			<if test="ch.companyIntro!=null">
+				,company_intro=#{ch.companyIntro}
+			</if>
+	  		<if test="ch.icpRecord !=null">
+				,icp_record=#{ch.icpRecord}
+			</if>
+			<if test="ch.vatNo !=null">
+				,vat_no=#{ch.vatNo}
+			</if>
+			<if test="ch.vatPicUrl !=null">
+				,vat_pic_url=#{ch.vatPicUrl}
+			</if>
+			<if test="ch.licenceNum !=null">
+				,licence_num=#{ch.licenceNum}
+			</if>
+			<if test="ch.licenceImageUrl!=null">
+				,licence_image_url=#{ch.licenceImageUrl}
+			</if>
+			<if test="ch.legalName !=null">
+				,legal_name=#{ch.legalName}
+			</if>
+			<if test="ch.legalImageUrl !=null">
+				,legal_image_url=#{ch.legalImageUrl}
+			</if>
+			<if test="ch.taxRegistNo !=null">
+				,tax_regist_no=#{ch.taxRegistNo}
+			</if>
+			<if test="ch.taxRegistUrl !=null">
+				,tax_regist_url=#{ch.taxRegistUrl}
+			</if>
+			<if test="ch.networkCultureNo !=null">
+				,network_culture_no=#{ch.networkCultureNo}
+			</if>
+			<if test="ch.networkCultureUrl!=null">
+				,network_culture_url=#{ch.networkCultureUrl}
+			</if>
+			<if test="ch.registAmount !=0.0">
+				,regist_amount=#{ch.registAmount}
+			</if>
+			<if test="ch.companyType !=0">
+				,company_type=#{ch.companyType}
+			</if>
+			<if test="ch.isListed !=0">
+				,is_listed=#{ch.isListed}
+			</if>
+		where code=#{ch.channelCode};
+	</update>
+
+	<update id="updateChannelCode">
+		update domesdk_first_channel set code=#{channelCode} where id=#{id};
+	</update>
+	
+	<select id="selectFirstChannelCount" resultType="int">
+		select count(*) from domesdk_first_channel where del_flag=0;
+	</select>
+</mapper>

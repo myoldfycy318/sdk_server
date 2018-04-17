@@ -1,0 +1,106 @@
+package com.dome.sdkserver.service.impl.pay;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.service.BqSdkConstants;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+public class AlipayConfig {
+
+	@Value("${pay.ali.pid}")
+	private String partner;
+	
+	@Value("${pay.ali.notifyUrl}")
+	private String notifyUrl;
+	
+	@Value("${pay.ali.sellerid}")
+	private String sellerId;
+	
+	@Value("${pay.ali.notify.sign.type}")
+	private String sinType;
+	
+	@Value("${pay.ali.notify.input.charset}")
+	private String charset;
+	
+	@Value("${pay.ali.notify.publicKey}")
+	private String aliPayPublicKey;
+	
+	@Value("${pay.ali.notify.seller.privateKey}")
+	private String sellerPrivateKey;
+	
+	@Value("${async.private.key}")
+	private String asyncPrivateKey;
+	
+	@Value("${async.notice.maxTryTimes}")
+	private String asyncNoticeMaxTryTimes;
+	
+	@Value("${async.notice.thread.sleep}")
+	private String asyncNoticeThreadSleep;
+
+    @Value("${pay.ali.pc.sync.notifyUrl}")
+    private String pcSyncNotifyUrl;
+
+    @Value("${pay.ali.wap.sync.notifyUrl}")
+    private String wapSyncNotifyUrl;
+
+
+	
+	public String getPayConfigInfo() {
+		Map<String, String> data = new HashMap<String, String>();
+		data.put(BqSdkConstants.aliPayPartner, partner);
+		data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+		data.put(BqSdkConstants.aliPaySellerId, sellerId);
+		return JSONObject.toJSONString(data);
+	}
+
+	public JSONObject getNotifyConfigInfo(){
+		Map<String, Object> data = new HashMap<String, Object>();
+		data.put(BqSdkConstants.aliPayPartner, partner);
+		data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+		data.put(BqSdkConstants.aliPaySellerId, sellerId);
+		data.put(BqSdkConstants.aliPaySinType, sinType);
+		data.put(BqSdkConstants.aliPayCharset, charset);
+		data.put(BqSdkConstants.aliPayPublicKey, aliPayPublicKey);
+		data.put(BqSdkConstants.sellerPrivateKey, sellerPrivateKey);
+		data.put(BqSdkConstants.asyncPrivateKey, asyncPrivateKey);
+		data.put(BqSdkConstants.asyncNoticeMaxTryTimes, asyncNoticeMaxTryTimes);
+		data.put(BqSdkConstants.asyncNoticeThreadSleep, asyncNoticeThreadSleep);
+		data.put(BqSdkConstants.PC_SYNC_NOTIFY_URL, pcSyncNotifyUrl);
+		data.put(BqSdkConstants.WAP_SYNC_NOTIFY_URL, wapSyncNotifyUrl);
+		return new JSONObject(data);
+	}
+	
+	public Map<String, String> getConfigInfo(){
+		Map<String, String> data = new HashMap<String, String>();
+		data.put(BqSdkConstants.aliPayPartner, partner);
+		data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+		data.put(BqSdkConstants.aliPaySellerId, sellerId);
+		data.put(BqSdkConstants.aliPaySinType, sinType);
+		data.put(BqSdkConstants.aliPayCharset, charset);
+		data.put(BqSdkConstants.aliPayPublicKey, aliPayPublicKey);
+		data.put(BqSdkConstants.sellerPrivateKey, sellerPrivateKey);
+		data.put(BqSdkConstants.asyncPrivateKey, asyncPrivateKey);
+        data.put(BqSdkConstants.PC_SYNC_NOTIFY_URL, pcSyncNotifyUrl);
+        data.put(BqSdkConstants.WAP_SYNC_NOTIFY_URL, wapSyncNotifyUrl);
+		return data;
+	}
+	
+	public static void main(String[] args) {
+//		Map<String, String> data = new HashMap<String, String>();
+//		data.put("partner", partner);
+//		data.put("notifyUrl", notifyUrl);
+//		data.put("sellerId", sellerId);
+//		
+//		String password = "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBALkvklj7i10OxJRlamTf6mNDPmPK7gx55V4aETXZYbR1baMVF6/vpJxWdA+5nkSKMl9vHu+UFB";
+//		String encryptStr = new String(Base64.encode(AESCoder.encrypt(JSONObject.toJSONString(data), password)));
+//		System.out.println(encryptStr);
+//		
+//		System.out.println(new String(AESCoder.decrypt(Base64.decode2(encryptStr), password)));
+//		
+//		System.out.println(System.currentTimeMillis());
+	}
+}

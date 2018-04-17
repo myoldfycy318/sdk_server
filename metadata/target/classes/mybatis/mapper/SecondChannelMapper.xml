@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.SecondChannelMapper">
+	<resultMap type="Channel" id="channelMap">
+		<id property="id" jdbcType="INTEGER" column="id"/>
+		<result property="channelCode" jdbcType="VARCHAR" column="code"/>
+		<result property="name" jdbcType="VARCHAR" column="name"/>
+		<result property="cooperType" jdbcType="TINYINT" column="cooper_type"/>
+		<result property="contact" jdbcType="VARCHAR" column="contact"/>
+		<result property="email" jdbcType="VARCHAR" column="email"/>
+		<result property="qq" jdbcType="VARCHAR" column="qq"/>
+		<result property="mobilePhone" jdbcType="VARCHAR" column="mobile_phone"/>
+		<result property="address" jdbcType="VARCHAR" column="address"/>
+		<result property="bankName" jdbcType="VARCHAR" column="bank_name"/>
+		<result property="bankAccount" jdbcType="VARCHAR" column="bank_account"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+		<result property="parentId" jdbcType="INTEGER" column="parent_id"/>
+		<result property="userId" jdbcType="INTEGER" column="user_id"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	<resultMap type="FirstChannel" id="firstChannelMap" extends="channelMap">
+		<result property="companyName" jdbcType="VARCHAR" column="company_name"/>
+		<result property="companyUrl" jdbcType="VARCHAR" column="company_url"/>
+		<result property="zoneCode" jdbcType="VARCHAR" column="zone_code"/>
+		<result property="telephone" jdbcType="VARCHAR" column="telephone"/>
+		<result property="icpRecord" jdbcType="VARCHAR" column="icp_record"/>
+		<result property="vatNo" jdbcType="VARCHAR" column="vat_no"/>
+		<result property="vatPicUrl" jdbcType="VARCHAR" column="vat_pic_url"/>
+		<result property="licenceNum" jdbcType="VARCHAR" column="licence_num"/>
+		<result property="licenceImageUrl" jdbcType="VARCHAR" column="licence_image_url"/>
+		<result property="legalName" jdbcType="VARCHAR" column="legal_name"/>
+		<result property="legalImageUrl" jdbcType="VARCHAR" column="legal_image_url"/>
+		<result property="taxRegistNo" jdbcType="VARCHAR" column="tax_regist_no"/>
+		<result property="taxRegistUrl" jdbcType="VARCHAR" column="tax_regist_url"/>
+		<result property="networkCultureNo" jdbcType="VARCHAR" column="network_culture_no"/>
+		<result property="networkCultureUrl" jdbcType="VARCHAR" column="network_culture_url"/>
+		<result property="registAmount" jdbcType="DECIMAL" column="regist_amount"/>
+		<result property="companyType" jdbcType="TINYINT" column="company_type"/>
+		<result property="isListed" jdbcType="TINYINT" column="is_listed"/>
+		<result property="companyIntro" jdbcType="VARCHAR" column="company_intro"/>
+		
+	</resultMap>
+	<sql id="fieldList">
+		s.id, s.code, s.name, s.cooper_type, s.contact, s.qq, s.mobile_phone, s.email, s.bank_name, s.bank_account, s.user_id, s.address, s.status, s.create_time, s.update_time, s.parent_id, s.remark,
+			f.company_name, f.company_url, f.zone_code, f.telephone, f.icp_record, f.vat_no, f.vat_pic_url, f.licence_num ,f.licence_image_url, f.legal_name, f.legal_image_url, f.tax_regist_no, f.tax_regist_url,
+			f.network_culture_no, f.network_culture_url, f.regist_amount, f.company_type, f.is_listed, f.company_intro
+	</sql>
+	<insert id="add">
+		insert into domesdk_second_channel (name, cooper_type, contact, qq, mobile_phone, email, user_id, register_ip, address,
+		   status, del_flag, create_time, update_time
+				<if test="ch.bankName !=null">
+					,bank_name
+				</if>
+				<if test="ch.bankAccount !=null">
+					,bank_account
+				</if>
+				<!-- 一级渠道插入时编码会带上
+				<if test="ch.channelCode !=null">
+					,code
+				</if> -->
+				<if test="ch.parentId !=0">
+					,parent_id
+				</if>
+<!-- 				<if test="ch.id !=0">
+					,id
+				</if> -->
+		   ) values (#{ch.name}, #{ch.cooperType}, #{ch.contact}, #{ch.qq}, #{ch.mobilePhone}, #{ch.email}, #{ch.userId}, #{ch.registerIp}, #{ch.address}, 
+		   #{ch.status}, 0, now(), now()
+		   		<if test="ch.bankName !=null">
+					,#{ch.bankName}
+				</if>
+				<if test="ch.bankAccount !=null">
+					,#{ch.bankAccount}
+				</if>
+				<!-- 一级渠道插入时编码会带上
+				<if test="ch.channelCode !=null">
+					,#{ch.channelCode}
+				</if> -->
+				<if test="ch.parentId !=0">
+					,#{ch.parentId}
+				</if>
+				<!-- <if test="ch.id !=0">
+					,#{id}
+				</if> -->
+		   );
+		   <selectKey resultType="long" keyProperty="ch.id" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		  </selectKey>
+	</insert>
+	
+	<update id="update">
+	   update domesdk_second_channel set update_time=now()
+	   			<if test="ch.bankName !=null">
+					,bank_name=#{ch.bankName}
+				</if>
+				<if test="ch.bankAccount !=null">
+					,bank_account=#{ch.bankAccount}
+				</if>
+				<!-- 一级渠道插入时编码会带上
+				<if test="ch.channelCode !=null">
+					,code=#{ch.channelCode}
+				</if> -->
+				<if test="ch.name !=null">
+					,name=#{ch.name}
+				</if>
+				<if test="ch.cooperType !=null and ch.cooperType!=0">
+					,cooper_type=#{ch.cooperType}
+				</if>
+				<if test="ch.contact !=null">
+					,contact=#{ch.contact}
+				</if>
+				<if test="ch.qq !=null">
+					,qq=#{ch.qq}
+				</if>
+				<if test="ch.mobilePhone !=null">
+					,mobile_phone=#{ch.mobilePhone}
+				</if>
+				<if test="ch.email !=null">
+					,email=#{ch.email}
+				</if>
+				<if test="ch.address !=null">
+					,address=#{ch.address}
+				</if>
+				<if test="ch.status!=null and ch.status ==3"> <!-- 渠道驳回 -->
+					,remark=#{ch.remark}
+				</if>
+				<if test="ch.status!=null and ch.status !=0"> <!-- 渠道重新提交 -->
+					,status=#{ch.status}
+				</if>
+				<if test='ch.remark!=null and ch.remark =="clear"'> <!-- 重新提交时重置驳回理由 -->
+					,remark=null
+				</if>
+		where del_flag=0
+		<choose>
+			<when test="ch.channelCode!=null">
+			   and code=#{ch.channelCode}
+			</when>
+			<when test="ch.id !=0">
+				and id=#{ch.id}
+			</when>
+			<otherwise>and 1=2</otherwise><!-- 不允许不加条件的更新 -->
+		</choose>;
+	</update>
+	
+	<update id="updateStatus">
+		update domesdk_second_channel set update_time=now(), status=#{status}
+		where del_flag=0 and id=#{id};
+
+	</update>
+	
+		
+	<update id="updateChannelCode">
+		update domesdk_second_channel set code=#{channelCode} where id=#{id} and del_flag=0;
+	</update>
+	
+	<select id="select" resultMap="firstChannelMap">
+		select <include refid="fieldList" /> ,s.remark
+		  from domesdk_second_channel s left join domesdk_first_channel f on s.`code`=f.`code` where s.del_flag=0 
+		  <if test="userId!=0">
+		   	and s.user_id=#{userId}
+		  </if>
+		  <if test="id!=0">
+		   	and s.id=#{id}
+		  </if>
+	</select>
+	
+	<select id="selectSecondChannelCount" resultType="int">
+		select count(*) from domesdk_second_channel where del_flag=0 and parent_id=#{parentId}
+			and status!=4 <!-- 渠道暂停的不展示 -->;
+	</select>
+	
+	<select id="selectCount" resultType="int">
+		select count(*)
+		  from domesdk_second_channel s where s.del_flag=0 
+		  and status!=4
+		  <if test="parentId!=0">
+		   	and (s.parent_id=#{parentId} or s.id=#{parentId})
+		  </if>
+		  <if test="ch.name!=null and ch.name!=''">
+		  	and binary s.name like concat('%', #{ch.name}, '%')
+		  </if>
+		  <if test="ch.beginDate!=null and ch.beginDate!=''">
+		   	and s.create_time>=concat(#{ch.beginDate}, ' 00:00:00')
+		  </if>
+		  <if test="ch.endDate!=null and ch.endDate!=''">
+		   	and s.create_time&lt;=concat(#{ch.endDate}, ' 23:59:59')
+		  </if>
+		  ;
+	</select>
+	<select id="selectList" resultMap="firstChannelMap">
+		select <include refid="fieldList" />
+		  from domesdk_second_channel s left join domesdk_first_channel f on s.`code`=f.`code` where s.del_flag=0 
+		  and status!=4 <!-- 渠道暂停的不展示 -->
+		  <if test="parentId!=0">
+		   	and (s.parent_id=#{parentId} or s.id=#{parentId})
+		  </if>
+		  <if test="ch.name!=null and ch.name!=''">
+		  	and binary s.name like concat('%', #{ch.name}, '%')
+		  </if>
+		  <if test="ch.beginDate!=null and ch.beginDate!=''">
+		   	and s.create_time>=concat(#{ch.beginDate}, ' 00:00:00')
+		  </if>
+		  <if test="ch.endDate!=null and ch.endDate!=''">
+		   	and s.create_time&lt;=concat(#{ch.endDate}, ' 23:59:59')
+		  </if>
+		  <if test="p.start!=null and p.start!=-1">
+		   	limit #{p.start}, #{p.pageSize}
+		  </if>;
+	</select>
+	<!-- 后台查询渠道列表，获取记录总数 -->
+	<select id="selectChannelsCount" resultType="int">
+		select count(*) from domesdk_second_channel s  where s.del_flag=0 
+		  <if test="ch.name!=null and ch.name!=''">
+		   	and binary s.name like concat('%',#{ch.name},'%')
+		  </if>
+		  <if test="ch.contact!=null and ch.contact!=''">
+		   	and s.contact=#{ch.contact}
+		  </if>
+		  <if test="ch.mobilePhone!=null and ch.mobilePhone!=''">
+		   	and s.mobile_phone=#{ch.mobilePhone}
+		  </if>
+		  <choose>
+		  	<when test="ch.statusVal!=0">
+		  		and s.status=#{ch.statusVal}
+		  	</when>
+		  	<when test='ch.pageType=="1"'> <!-- 渠道审批页面若没有传status或status= 情况，只显示待审核的-->
+		  		and s.status=1
+		  	</when>
+		  </choose>
+		  <if test="ch.beginDate!=null and ch.beginDate!=''">
+		   	and s.update_time>=concat(#{ch.beginDate}, ' 00:00:00')
+		  </if>
+		  <if test="ch.endDate!=null and ch.endDate!=''">
+		   	and s.update_time&lt;=concat(#{ch.endDate}, ' 23:59:59')
+		  </if>;
+	</select>
+	<select id="selectAuditList" resultMap="firstChannelMap">
+		select <include refid="fieldList" />
+		  from domesdk_second_channel s left join domesdk_first_channel f on s.`code`=f.`code` where s.del_flag=0 
+		  <if test="ch.name!=null and ch.name!=''">
+		   	and binary s.name like concat('%',#{ch.name},'%')
+		  </if>
+		  <if test="ch.contact!=null and ch.contact!=''">
+		   	and s.contact=#{ch.contact}
+		  </if>
+		  <if test="ch.mobilePhone!=null and ch.mobilePhone!=''">
+		   	and s.mobile_phone=#{ch.mobilePhone}
+		  </if>
+		  <choose>
+		  	<when test="ch.statusVal!=0">
+		  		and s.status=#{ch.statusVal}
+		  	</when>
+		  	<when test='ch.pageType=="1"'> <!-- 渠道审批页面若没有传status或status= 情况，只显示待审核的-->
+		  		and s.status=1
+		  	</when>
+		  </choose>
+		  <if test="ch.beginDate!=null and ch.beginDate!=''">
+		   	and s.update_time>=concat(#{ch.beginDate}, ' 00:00:00')
+		  </if>
+		  <if test="ch.endDate!=null and ch.endDate!=''">
+		   	and s.update_time&lt;=concat(#{ch.endDate}, ' 23:59:59')
+		  </if>  <!-- 待审核、已驳回、渠道暂停、商用 -->
+		  order by field(s.status, 1, 3, 4, 2), update_time desc limit #{p.start}, #{p.pageSize};
+	</select>
+	
+	<!-- 渠道关联的推广分类 -->
+	<select id="selectChannelTypeList" resultType="ChannelType">
+		select t.id, t.channel_id as channelId, t.type_id as typeId, p.type_name as typeName from domesdk_channel_promotetype t 
+		left join (select * from domesdk_promotetype where del_flag=0 and status=1<!-- 暂停的不展示 -->) p on t.type_id=p.id where  
+			t.channel_id=#{channelId};
+	</select>
+	
+	<delete id="deleteAddChannelType">
+		delete from domesdk_channel_promotetype where id in
+		<foreach collection="ids" item="id" separator="," open="(" close=")">
+			#{id}
+		</foreach>
+	</delete>
+	
+	<insert id="batchAddChannelType">
+		insert into domesdk_channel_promotetype (channel_id, type_id, create_time, update_time)
+			values 
+			<foreach collection="typeIds" item="id" separator=",">
+				(#{channelId}, #{id}, now(), now())
+			</foreach>
+	</insert>
+	
+	<select id="selectByName" resultMap="channelMap">
+		SELECT * FROM domesdk_second_channel t where t.`name`=#{name} and del_flag=0;
+	</select>
+	
+	<select id="selectByCode" resultMap="firstChannelMap">
+		SELECT <include refid="fieldList" /> from domesdk_second_channel s left join domesdk_first_channel f on s.`code`=f.`code` where s.del_flag=0 
+		and s.code=#{code};
+	</select>
+	
+	<insert id="addCooperType">
+		insert into domesdk_channel_coopertype (channel_id, cooper_type, del_flag, create_time, update_time)
+		 values (#{channelId}, #{cooperType}, 0, now(), now());
+	</insert>
+	
+	<select id="selectCooperType" resultMap="channelMap">
+		select id, channel_id, cooper_type from domesdk_channel_coopertype where channel_id=#{channelId} and del_flag=0;
+	</select>
+	
+	<update id="deleteCooperType">
+		update domesdk_channel_coopertype set del_flag=1 where id=#{id} and del_flag=0;
+	</update>
+	
+	<update id="updateSecondUserId">
+		update domesdk_second_channel set user_id=#{userId} where id=#{id};
+	</update>
+	
+	<update id="deleteSecondChannel">
+		update domesdk_second_channel set update_time=now(), del_flag=1 where id=#{id} and del_flag=0;
+	</update>
+	
+	<select id="checkEmailUse" resultType="int">
+		select count(*) from domesdk_second_channel where email=#{email} and del_flag=0
+		<if test="id!=0">
+			and id!=#{id};
+		</if>
+	</select>
+</mapper>

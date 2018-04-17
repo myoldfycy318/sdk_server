@@ -1,0 +1,63 @@
+package com.dome.sdkserver.metadata.entity.bq.webgame;
+
+/**
+ * Created by heyajun on 2017/8/1.
+ */
+public class WebGameLoginEntity {
+    //开放平台应用id
+    private String appCode;
+
+    //冰穹userId
+    private String userId;
+
+    //区服Id
+//    private String zoneId;
+    private String areaServerNumber;
+
+    //区服名称(透传字段)
+//    private String zoneName;
+    private String areaServerName;
+
+    //游戏名称(透传字段)
+    private String gameName;
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getAppCode() {
+        return appCode;
+    }
+
+    public void setAppCode(String appCode) {
+        this.appCode = appCode;
+    }
+
+    public String getGameName() {
+        return gameName;
+    }
+
+    public void setGameName(String gameName) {
+        this.gameName = gameName;
+    }
+
+    public String getAreaServerNumber() {
+        return areaServerNumber;
+    }
+
+    public void setAreaServerNumber(String areaServerNumber) {
+        this.areaServerNumber = areaServerNumber;
+    }
+
+    public String getAreaServerName() {
+        return areaServerName;
+    }
+
+    public void setAreaServerName(String areaServerName) {
+        this.areaServerName = areaServerName;
+    }
+}

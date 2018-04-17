@@ -1,0 +1,211 @@
+package com.dome.sdkserver.service.impl.order;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.PayUtil;
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.OrderMapper;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import com.dome.sdkserver.util.RedisUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service("orderService")
+public class OrderServiceImpl implements OrderService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderServiceImpl.class);
+
+    @Autowired
+    private OrderMapper orderMapper;
+    @Autowired
+    private RedisUtil redisUtil;
+
+
+    @Override
+    public boolean createOrder(OrderEntity orderEntity) {
+        return orderMapper.insertOrder(orderEntity);
+    }
+
+    @Override
+    public void createAndSaveOrder(HttpRequestOrderInfo order) {
+        orderMapper.insertOrder(createOrderEntity(order));
+    }
+
+    @Override
+    public boolean updateOrder(OrderEntity orderEntity, String curMonth) {
+        boolean result = orderMapper.updateOrder(orderEntity, curMonth);
+        if (result && orderEntity.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("isPay", "true");
+            map.put("name", orderEntity.getAppName());
+            map.put("price", orderEntity.getChargePointAmount());
+            redisUtil.setex(RedisConstants.ALI_PAY_PREFIX + orderEntity.getOrderNo(), 30 * 60, JSONObject.toJSONString(map));
+        }
+        return result;
+    }
+
+    private OrderEntity createOrderEntity(HttpRequestOrderInfo order) {
+
+//		order.setAppCode("app001");
+//		order.setAppName("刀塔传奇");
+//		order.setBuyerId("buyeroo1");
+
+        OrderEntity entity = new OrderEntity();
+        entity.setOrderNo(order.getOrderNo());
+        entity.setAppCode(order.getAppCode());
+        entity.setAppName(order.getAppName());
+        entity.setBuyerId(order.getBuyerId());
+        entity.setBwUserId(order.getBwUserId());
+        entity.setPayType(order.getPayType());
+        entity.setChannelCode(order.getChannelCode());
+        entity.setChargePointCode(order.getChargePointCode());
+        entity.setChargePointName(order.getChargePointName());
+        entity.setChargePointAmount(order.getChargePointAmount());
+        entity.setGameOrderNo(order.getGameOrderNo());
+        entity.setPayNotifyUrl(order.getGameNotifyUrl());
+        entity.setOrderStatus(OrderStatusEnum.orderstatus_no_pay.code);
+        entity.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+        entity.setPayOrigin(order.getPayOrigin());
+        entity.setExtraField(order.getExtraField());
+        //页游添加拓展字段，用于标识页游区服id
+        if (order.getPayOrigin().equals("pc") && StringUtils.isNotBlank(order.getExtraField())) {
+            entity.setExtraField2(JSONObject.parseObject(order.getExtraField()).getString("zoneId"));
+        }
+        //passport充值账户
+        if (order.getPayOrigin().equalsIgnoreCase("rc") && StringUtils.isNotBlank(order.getPassport())) {
+            entity.setExtraField2(order.getPassport());
+        }
+        if (order.getCreateTime() != null) {
+            entity.setCreateTime(order.getCreateTime());
+        }
+        return entity;
+    }
+
+    @Override
+    public double queryOrderAmount(String orderNo, String curMonth) {
+        return orderMapper.queryOrderAmount(orderNo, curMonth);
+    }
+
+    @Override
+    public OrderEntity queryOrderByOrderNo(String orderNo, String curMonth) {
+        OrderEntity order = orderMapper.queryOrderByOrderNo(orderNo, curMonth);
+        if (order == null) {
+            curMonth = DateUtils.getPreviousMonthFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT);
+            order = orderMapper.queryOrderByOrderNo(orderNo, curMonth);
+        }
+        return order;
+    }
+
+    @Override
+    public void createTable() {
+        String tableSuffix = DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT);
+        orderMapper.createTable(tableSuffix);
+    }
+
+    /**
+     * 判断订单是否已支付
+     *
+     * @param orderNo
+     * @return true:已付|false:未支付
+     */
+    @Override
+    public JSONObject isOrderPaid(String orderNo) {
+        String val = redisUtil.get(RedisConstants.ALI_PAY_PREFIX + orderNo);
+        JSONObject jsonObject = null;
+        Map<String, Object> map = null;
+        if (StringUtils.isNotBlank(val) && (jsonObject = JSONObject.parseObject(val)) != null)
+            return jsonObject;
+        String curMonth = PayUtil.getPayMonth(orderNo);
+        OrderEntity order = orderMapper.queryOrderByOrderNo(orderNo, curMonth);
+        if (order == null) {
+            curMonth = DateUtils.getPreviousMonthFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT);
+            order = orderMapper.queryOrderByOrderNo(orderNo, curMonth);
+        }
+        map = new HashMap<>();
+        if (order == null) {
+            map.put("isPay", "false");
+            return new JSONObject(map);
+        }
+        if (order.getOrderStatus() != OrderStatusEnum.orderstatus_pay_sucess.code) {
+            map.put("isPay", "false");
+            redisUtil.setex(RedisConstants.ALI_PAY_PREFIX + order.getOrderNo(), 15 * 60, JSONObject.toJSONString(map));
+            return new JSONObject(map);
+        } else {
+            map.put("isPay", "true");
+            map.put("name", order.getAppName());
+            map.put("price", order.getChargePointAmount());
+            redisUtil.setex(RedisConstants.ALI_PAY_PREFIX + order.getOrderNo(), 30 * 60, JSONObject.toJSONString(map));
+            return new JSONObject(map);
+        }
+    }
+
+    /**
+     * 更新订单信息
+     *
+     * @param orderEntity
+     * @param curMonth
+     * @return
+     */
+    @Override
+    public boolean updateOrderInfo(OrderEntity orderEntity, String curMonth) {
+        boolean result = true;
+        result = orderMapper.updateOrderInfo(orderEntity, curMonth);
+        if (!result) {
+            result = orderMapper.updateOrderInfo(orderEntity, DateUtils.getPreviousMonthFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+        }
+        return result;
+    }
+
+    @Override
+    public boolean insertThirdOrder(OrderEntity orderEntity) {
+        return orderMapper.insertThirdOrder(orderEntity);
+    }
+
+    /**
+     * 更新第三方订单信息
+     *
+     * @param orderEntity
+     */
+    @Override
+    public boolean updateThirdOrder(OrderEntity orderEntity) {
+        boolean result = false;
+        result = orderMapper.updateThirdOrder(orderEntity);
+        if (!result) {
+            orderEntity.setCurMonth(DateUtils.getPreviousMonthFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+            result = orderMapper.updateThirdOrder(orderEntity);
+        }
+        return result;
+    }
+
+    /**
+     * 查询第三方订单信息
+     *
+     * @param orderEntity
+     */
+    @Override
+    public OrderEntity queryThirdOrder(OrderEntity orderEntity) {
+        OrderEntity order = orderMapper.queryThirdOrder(orderEntity);
+        if (order == null) {
+            orderEntity.setCurMonth(DateUtils.getPreviousMonthFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+            order = orderMapper.queryThirdOrder(orderEntity);
+        }
+        return order;
+    }
+
+    @Override
+    public OrderEntity queryOrderByGameOrderNo(String gameOrderNo,
+                                               String curMonth) {
+
+        return null;
+    }
+
+}

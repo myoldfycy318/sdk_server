@@ -1,0 +1,67 @@
+package com.dome.sdkserver.constants;
+
+/**
+ * RedisKey
+ *
+ * @author Zhang ShanMin
+ * @date 2016/7/20
+ * @time 15:36
+ */
+public enum RedisKeyEnum {
+
+    BQ_USER_INFO("bqSdkserver:login:bwuser:", 60 * 60 * 24),//冰穹宝玩用户
+    BQ_GAME_PAY_TYPE("bqSdkserver:pay:type:game:", 60 * 60 * 24 * 30),//冰趣游戏支付类型
+    GAME_BQ_APP("bqSdkserver:game:type:app:", 60 * 60 * 24 * 30),//冰趣手游游戏
+    GAME_WEB("bqSdkserver:game:type:web:", 60 * 60 * 24 * 30),//宝玩页游
+    GAME_BW_H5("bqSdkserver:game:type:h5:bw:", 60 * 60 * 24 * 30),//宝玩H5
+    GAME_BQ_H5("bqSdkserver:game:type:h5:bq:", 60 * 60 * 24 * 30),//冰趣H5
+    GAME_BQ("bqsdk:game:type:new:", 60 * 60 * 24 * 30),//冰趣H5
+    BQ_IOS_PAY_SWITCH("bqSdkserver:pay:ios:switch:", 60 * 60 * 24 * 30),//冰趣IOS支付开关
+    NEW_OPEN_CHANNEL("bqSdkserver:channel:", 60 * 60 * 24 * 30)//新开放平台渠道
+    ;
+
+    private RedisKeyEnum(String key, Integer expireTime) {
+
+        this.key = key;
+        this.expireTime = expireTime;
+    }
+
+    private String key;
+
+    private Integer expireTime;
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
+    }
+
+    public Integer getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(Integer expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    /**
+     * 获取游戏redis  key
+     *
+     * @param appCode
+     * @return
+     */
+    public static RedisKeyEnum getGameType(String appCode) {
+        if (appCode.matches("^(H)\\d+")) {
+            return GAME_BW_H5;
+        } else if (appCode.matches("^(HD)\\d+")) {
+            return GAME_BQ_H5;
+        } else if (appCode.matches("^(Y)\\d+")) {
+            return GAME_WEB;
+        } else if (appCode.matches("^(D)\\d+")) {
+            return GAME_BQ_APP;
+        }
+        return GAME_BQ;
+    }
+}

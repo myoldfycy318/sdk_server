@@ -1,0 +1,52 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:rabbit="http://www.springframework.org/schema/rabbit" 
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+    http://www.springframework.org/schema/rabbit
+    http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd" >
+
+    <description>rabbitmq 连接服务配置</description>
+    <!-- 连接配置 -->
+    <rabbit:connection-factory id="connectionFactory" 
+	    host="${mq.host}" 
+	    username="${mq.username}"
+	    password="${mq.password}" 
+	    port="${mq.port}" />
+    <rabbit:admin connection-factory="connectionFactory"/>
+    
+    <!-- spring template声明-->
+    <rabbit:template exchange="mq-exchange" id="amqpTemplate"  connection-factory="connectionFactory" message-converter="jsonMessageConverter"/>
+    
+    <!-- 消息对象json转换类 -->
+    <bean id="jsonMessageConverter" class="org.springframework.amqp.support.converter.Jackson2JsonMessageConverter" />  
+    
+    <!-- 申明同步数据至bi队列名 -->
+	<rabbit:queue id="openba_sny_app_to_bi" name="openba_sny_app_to_bi" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue id="openba_sny_app_to_bi_list" name="openba_sny_app_to_bi_list" durable="true" auto-delete="false" exclusive="false" />
+
+    <!--以后涉及到上下架同步应用数据的需求都通过该消息处理-->
+    <rabbit:queue id="openba_sny_app_info" name="openba_sny_app_info" durable="true" auto-delete="false" exclusive="false" />
+
+    <rabbit:direct-exchange name="mq-exchange" durable="true" auto-delete="false" id="mq-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="openba_sny_app_to_bi" key="openba_sny_app_to_bi"/>
+            <rabbit:binding queue="openba_sny_app_to_bi_list" key="openba_sny_app_to_bi_list"/>
+            <rabbit:binding queue="openba_sny_app_info" key="openba_sny_app_info"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="auto">
+        <rabbit:listener queues="openba_sny_app_to_bi" ref="snyAppInfoToBiListener"/>
+        <rabbit:listener queues="openba_sny_app_to_bi_list" ref="snyAppInfoListToBiListener"/>
+        <rabbit:listener queues="openba_sny_app_info" ref="snyAppInfoListener"/>
+    </rabbit:listener-container>
+
+    <bean id="snyAppInfoListener" class="com.dome.sdkserver.listener.SnyAppInfoListener">
+        <property name="snyUrlList">
+            <list>
+                <value>http://passportba.domegame.cn/passport/game/open/snyGameStatus</value>
+            </list>
+        </property>
+    </bean>
+</beans>

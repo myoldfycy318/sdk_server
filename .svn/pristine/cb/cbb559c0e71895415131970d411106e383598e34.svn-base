@@ -1,0 +1,23 @@
+package com.dome.sdkserver.biz.utils;
+
+import com.dome.sdkserver.bq.enumeration.OpenSelectEnum;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+
+/**
+ * BizUtil
+ *
+ * @author Zhang ShanMin
+ * @date 2017/10/17
+ * @time 11:01
+ */
+public class BizUtil {
+
+    /**
+     * @param appInfoEntity
+     * @param envFlag       环境标识，0：测试环境，1：生产环境
+     * @return
+     */
+    public static String getGameUrl(AppInfoEntity appInfoEntity, Integer envFlag) {
+        return (appInfoEntity.getOpenSelect() == OpenSelectEnum.新开放平台.getOpenSelect() && envFlag == 0) ? appInfoEntity.getTestGameUrl() : appInfoEntity.getGameUrl();
+    }
+}

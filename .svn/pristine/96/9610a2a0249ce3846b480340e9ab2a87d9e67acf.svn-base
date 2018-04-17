@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta name="description" content="登陆界面">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../dist/css/login.css">
+</head>
+<body>
+<!--公用头部-->
+<!--公用头部-->
+<div class="loginBox">
+    <div class="logView">
+        <div class="logo"></div>
+        <div class="title">冰穹开发者账号登录</div>
+        <div class="inpbox">
+            <input data-name="userName" class="account" type="text" placeholder="手机号码/邮箱"/>
+        </div>
+        <div class="inpbox">
+            <input data-name="password"  class="password" type="password" placeholder="密码"/>
+        </div>
+        <div class="logSub subLog cur">立即登录</div>
+        <div class="wj_pass">
+            <a href="forgetPass.html" class="pass_word">忘记密码</a>
+        </div>
+
+    </div>
+    <!--公用尾部-->
+    <div class="beizu">
+    <p>沪网文[2016]0079-079号 沪ICP备16004449号</p>
+    <p><a href="http://www.miitbeian.gov.cn/state/outPortal/loginPortal.action" target="_blank">ICP证号 增值电信业务许可证号 沪B2-20160192</a></p>
+</div>
+
+    
+    <!--公用尾部-->
+</div>
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../dist/js/login.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

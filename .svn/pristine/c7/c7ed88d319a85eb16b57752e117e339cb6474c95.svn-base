@@ -1,0 +1,12 @@
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 2.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_2_0.dtd">
+
+<tiles-definitions>
+	
+	<definition name="index.page" template="/index.jsp">
+	</definition>
+	
+	<definition name="refund.page" template="/refund.jsp">
+	</definition>
+</tiles-definitions>

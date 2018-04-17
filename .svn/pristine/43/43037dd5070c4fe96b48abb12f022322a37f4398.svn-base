@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.OrderMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity" id="resultMap">
+        <result property="orderNo" jdbcType="VARCHAR" column="orderNo"/>
+        <result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="buyerId" jdbcType="VARCHAR" column="buyer_Id"/>
+        <result property="chargePointCode" jdbcType="VARCHAR" column="charge_point_code"/>
+        <result property="chargePointAmount" jdbcType="DECIMAL" column="charge_point_amount"/>
+        <result property="chargePointName" jdbcType="VARCHAR" column="charge_point_name"/>
+        <result property="payType" jdbcType="INTEGER" column="pay_type"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="finishTime" jdbcType="TIMESTAMP" column="finish_time"/>
+        <result property="orderStatus" jdbcType="INTEGER" column="order_status"/>
+        <result property="tradeNo" jdbcType="VARCHAR" column="tradeNo"/>
+        <result property="gameOrderNo" jdbcType="VARCHAR" column="game_orderNo"/>
+        <result property="payNotifyUrl" jdbcType="VARCHAR" column="pay_notify_url"/>
+        <result property="channelCode" jdbcType="VARCHAR" column="channel_code"/>
+        <result property="payOrigin" jdbcType="VARCHAR" column="pay_origin"/>
+        <result property="extraField" jdbcType="VARCHAR" column="extra_field"/>
+        <result property="buyerAccount" jdbcType="VARCHAR" column="buyer_account"/>
+        <result property="chargePointCode" jdbcType="VARCHAR" column="charge_point_code"/>
+        <result property="sysType" jdbcType="VARCHAR" column="sys_type"/>
+        <result property="gRoleId" jdbcType="VARCHAR" column="g_role_id"/>
+        <result property="zoneId" jdbcType="VARCHAR" column="zone_id"/>
+        <result property="zoneName" jdbcType="VARCHAR" column="zone_name"/>
+	    <result property="platformCode" jdbcType="VARCHAR" column="platform_code"/>
+        <result property="bwUserId" jdbcType="VARCHAR" column="bw_user_id"/>
+        <result property="callbackStatus" jdbcType="INTEGER" column="callback_status"/>
+    </resultMap>
+
+    <select id="queryOrderByOrderNo" resultMap="resultMap">
+	    SELECT
+			orderNo,app_code,app_name,buyer_Id,charge_point_code,charge_point_amount,charge_point_name,pay_type,create_time,finish_time,order_status,tradeNo,
+			game_orderNo,pay_notify_url,channel_code,pay_origin,extra_field,buyer_account,bw_user_id,callback_status
+		FROM
+			domesdk_order${curMonth}
+		WHERE
+			orderNo = #{orderNo,jdbcType=VARCHAR}
+	</select>
+
+    <select id="queryOrderAmount" resultType="java.lang.Double">
+	    SELECT
+			charge_point_amount
+		FROM
+			domesdk_order${curMonth}
+		WHERE
+			orderNo = #{orderNo,jdbcType=VARCHAR}
+	</select>
+
+    <!--保存订单信息-->
+    <insert id="insertOrder" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity">
+        insert into domesdk_order${entity.curMonth}(
+        orderNo
+        ,app_code
+        ,app_name
+        ,buyer_id
+        ,charge_point_code
+        ,charge_point_amount
+        ,charge_point_name
+        ,pay_type
+        ,game_orderNo
+        ,pay_notify_url
+        ,order_status
+        ,channel_code
+        ,bw_user_id
+        <if test="entity.payOrigin !=null and entity.payOrigin !=''">
+            ,pay_origin
+        </if>
+        <if test="entity.extraField !=null and entity.extraField !=''">
+            ,extra_field
+        </if>
+        <if test="entity.extraField2 !=null and entity.extraField2 !=''">
+            ,extra_field2
+        </if>
+        <if test="entity.createTime !=null ">
+            ,create_time
+        </if>
+        <if test="entity.sysType !=null and entity.sysType !=''">
+            ,sys_type
+        </if>
+        <if test="entity.zoneId !=null and entity.zoneId !=''">
+            ,zone_id
+        </if>
+        <if test="entity.zoneName !=null and entity.zoneName !=''">
+            ,zone_name
+        </if>
+        <if test="entity.roleId !=null and entity.roleId !=''">
+            ,g_role_id
+        </if>
+        ) values (
+        #{entity.orderNo}
+        ,#{entity.appCode}
+        ,#{entity.appName}
+        ,#{entity.buyerId}
+        ,#{entity.chargePointCode}
+        ,#{entity.chargePointAmount}
+        ,#{entity.chargePointName}
+        ,#{entity.payType}
+        ,#{entity.gameOrderNo}
+        ,#{entity.payNotifyUrl}
+        ,#{entity.orderStatus}
+        ,#{entity.channelCode}
+        ,#{entity.bwUserId}
+        <if test="entity.payOrigin !=null and entity.payOrigin !=''">
+            ,#{entity.payOrigin}
+        </if>
+        <if test="entity.extraField !=null and entity.extraField !=''">
+            ,#{entity.extraField}
+        </if>
+        <if test="entity.extraField2 !=null and entity.extraField2 !=''">
+            ,#{entity.extraField2}
+        </if>
+        <if test="entity.createTime !=null ">
+            ,#{entity.createTime}
+        </if>
+    <if test="entity.sysType !=null and entity.sysType !=''">
+            ,#{entity.sysType}
+        </if>
+        <if test="entity.zoneId !=null and entity.zoneId !=''">
+            ,#{entity.zoneId}
+        </if>
+        <if test="entity.zoneName !=null and entity.zoneName !=''">
+            ,#{entity.zoneName}
+        </if>
+        <if test="entity.roleId !=null and entity.roleId !=''">
+            ,#{entity.roleId}
+        </if>
+        )
+    </insert>
+
+    <update id="updateOrder">
+        update domesdk_order${curMonth}
+        <set>
+            <if test="entity.buyerAccount != null and entity.buyerAccount != ''">
+                buyer_account = #{entity.buyerAccount},
+            </if>
+            <if test="entity.orderStatus != 0 ">
+                order_status = #{entity.orderStatus},
+            </if>
+            <if test="entity.tradeNo != null and entity.tradeNo != '' ">
+                tradeNo=#{entity.tradeNo},
+            </if>
+            <if test="entity.callbackStatus != null">
+                callback_status=#{entity.callbackStatus},
+            </if>
+            finish_time=now()
+
+        </set>
+        where orderNo = #{entity.orderNo}
+    </update>
+
+    <update id="updateOrderInfo">
+        update domesdk_order${curMonth}
+        <set>
+            <if test="entity.tradeNo != null and entity.tradeNo != ''">
+                tradeNo=#{entity.tradeNo},
+            </if>
+            <if test="entity.extraField != null and entity.extraField != ''">
+                extra_field = #{entity.extraField},
+            </if>
+            <if test="entity.callbackStatus != null">
+                callback_status = #{entity.callbackStatus},
+            </if>
+            finish_time=now()
+        </set>
+        where orderNo = #{entity.orderNo}
+    </update>
+
+    <insert id="insertThirdOrder">
+        insert into sdk_third_party_order_${entity.curMonth}(
+        orderNo
+        ,app_code
+        ,app_name
+        ,buyer_id
+        ,charge_point_amount
+        ,charge_point_name
+        ,pay_channel
+        ,order_status
+        ,channel_code
+        ,platform_code
+        ,create_time
+        ,extra_field
+        ,pay_notify_url
+    	<if test="entity.chargePointCode != null and entity.chargePointCode !='' ">,charge_point_code</if>
+        <if test="entity.zoneId != null and entity.zoneId !='' ">,zone_id</if>
+        <if test="entity.zoneName != null and entity.zoneName !='' ">,zone_name</if>
+        <if test="entity.roleId != null and entity.roleId !='' ">,g_role_id</if>
+        <if test="entity.sysType != null and entity.sysType !='' ">,sys_type</if>
+        <if test="entity.gameOrderNo != null and entity.gameOrderNo !=''">,game_orderNo</if>
+        
+        ) values (
+        #{entity.orderNo}
+        ,#{entity.appCode}
+        ,#{entity.appName}
+        ,#{entity.buyerId}
+        ,#{entity.chargePointAmount}
+        ,#{entity.chargePointName}
+        ,#{entity.payChannel}
+        ,#{entity.orderStatus}
+        ,#{entity.channelCode}
+        ,#{entity.platformCode}
+        ,now()
+        ,#{entity.extraField}
+        ,#{entity.payNotifyUrl}
+   	<if test="entity.chargePointCode != null and entity.chargePointCode !='' ">,#{entity.chargePointCode}</if>
+        <if test="entity.zoneId != null and entity.zoneId !='' ">,#{entity.zoneId}</if>
+        <if test="entity.zoneName != null and entity.zoneName !='' ">,#{entity.zoneName}</if>
+        <if test="entity.roleId != null and entity.roleId !='' ">,#{entity.roleId}</if>
+        <if test="entity.sysType != null and entity.sysType !='' ">,#{entity.sysType}</if>
+        <if test="entity.gameOrderNo != null and entity.gameOrderNo !=''">,#{entity.gameOrderNo}</if>
+       
+        )
+    </insert>
+
+    <!--增加  game_orderNo字段-->
+    <insert id="insertThirdOrder2">
+        insert into sdk_third_party_order_${entity.curMonth}
+        <trim prefix=" (" suffix=")" suffixOverrides=",">
+            <if test="entity.orderNo != null">orderNo,</if>
+            <if test="entity.appCode != null">app_code,</if>
+            <if test="entity.appName != null">app_name,</if>
+            <if test="entity.buyerId != null">buyer_id,</if>
+            <if test="entity.chargePointAmount != null">charge_point_amount,</if>
+            <if test="entity.chargePointName != null">charge_point_name,</if>
+            <if test="entity.payChannel != null">pay_channel,</if>
+            <if test="entity.orderStatus != null">order_status,</if>
+            <if test="entity.channelCode != null">channel_code,</if>
+            <if test="entity.platformCode != null">platform_code,</if>
+            <if test="entity.tradeNo != null">tradeNo,</if>
+            <if test="entity.gameOrderNo != null">game_orderNo,</if>
+            create_time,
+            <if test="entity.extraField != null">extra_field,</if>
+            <if test="entity.payNotifyUrl != null">pay_notify_url,</if>
+            <if test="entity.chargePointCode != null">charge_point_code,</if>
+            <if test="entity.sysType != null">sys_type,</if>
+            <if test="entity.callbackStatus != null">callback_status,</if>
+            <if test="entity.gRoleId != null">g_role_id,</if>
+            <if test="entity.zoneId != null">zone_id,</if>
+            <if test="entity.zoneName != null">zone_name,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="entity.orderNo != null">#{entity.orderNo},</if>
+            <if test="entity.appCode != null">#{entity.appCode},</if>
+            <if test="entity.appName != null">#{entity.appName},</if>
+            <if test="entity.buyerId != null">#{entity.buyerId},</if>
+            <if test="entity.chargePointAmount != null">#{entity.chargePointAmount},</if>
+            <if test="entity.chargePointName != null">#{entity.chargePointName},</if>
+            <if test="entity.payChannel != null">#{entity.payChannel},</if>
+            <if test="entity.orderStatus != null">#{entity.orderStatus},</if>
+            <if test="entity.channelCode != null">#{entity.channelCode},</if>
+            <if test="entity.platformCode != null">#{entity.platformCode},</if>
+            <if test="entity.tradeNo != null">#{entity.tradeNo},</if>
+            <if test="entity.gameOrderNo != null">#{entity.gameOrderNo},</if>
+            now(),
+            <if test="entity.extraField != null">#{entity.extraField},</if>
+            <if test="entity.payNotifyUrl != null">#{entity.payNotifyUrl},</if>
+            <if test="entity.chargePointCode != null">#{entity.chargePointCode},</if>
+            <if test="entity.sysType != null">#{entity.sysType},</if>
+            <if test="entity.callbackStatus != null">#{entity.callbackStatus},</if>
+            <if test="entity.gRoleId != null">#{entity.gRoleId},</if>
+            <if test="entity.zoneId != null">#{entity.zoneId},</if>
+            <if test="entity.zoneName != null">#{entity.zoneName},</if>
+        </trim>
+    </insert>
+
+
+    <update id="updateThirdOrder">
+        update sdk_third_party_order_${entity.curMonth}
+        <set>
+            <if test="entity.orderStatus !=0 ">
+                order_status = #{entity.orderStatus},
+            </if>
+            <if test="entity.tradeNo != null and entity.tradeNo !=''">
+                tradeNo=#{entity.tradeNo},
+            </if>
+            <if test="entity.payChannel != null and entity.payChannel != ''">
+                pay_channel=#{entity.payChannel},
+            </if>
+            <if test="entity.extraField != null and entity.extraField != ''">
+                extra_field = #{entity.extraField},
+            </if>
+            <if test="entity.callbackStatus != null">
+                callback_status = #{entity.callbackStatus},
+            </if>
+            finish_time=now()
+        </set>
+        where orderNo = #{entity.orderNo}
+    </update>
+
+
+    <select id="queryThirdOrder" resultMap="resultMap">
+        SELECT
+        orderNo,app_code,buyer_Id,charge_point_amount,order_status,extra_field,pay_notify_url,game_orderNo,
+        charge_point_code,sys_type,callback_status,g_role_id,zone_id,zone_name
+        FROM
+        sdk_third_party_order_${entity.curMonth}
+        WHERE
+        orderNo = #{entity.orderNo}
+    </select>
+
+    <update id="createTable">
+				CREATE TABLE if not exists `domesdk_order201607` (
+  `orderNo` varchar(32) NOT NULL COMMENT '订单编号',
+  `app_code` varchar(32) NOT NULL COMMENT '应用ID',
+  `app_name` varchar(32) NOT NULL COMMENT '应用名称',
+  `buyer_Id` varchar(32) NOT NULL COMMENT '买家id',
+  `charge_point_code` varchar(32) NOT NULL COMMENT '计费点code',
+  `charge_point_amount` decimal(12,2) NOT NULL COMMENT '计费点金额',
+  `charge_point_name` varchar(64) NOT NULL COMMENT '计费点名称',
+  `pay_type` int(11) NOT NULL COMMENT '支付方式',
+  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '订单创建时间',
+  `finish_time` timestamp NULL DEFAULT NULL COMMENT '交易完成时间',
+  `order_status` int(11) NOT NULL COMMENT '订单状态 待支付 支付成功 支付失败',
+  `tradeNo` varchar(100) DEFAULT NULL COMMENT '第三方交易流水号',
+  `game_orderNo` varchar(100) NOT NULL COMMENT '游戏方的订单号',
+  `pay_notify_url` varchar(100) NOT NULL COMMENT '支付成功后游戏的回调地址'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+	</update>
+
+</mapper>

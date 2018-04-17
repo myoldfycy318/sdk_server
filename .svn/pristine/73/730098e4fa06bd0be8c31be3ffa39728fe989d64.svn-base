@@ -1,0 +1,115 @@
+package com.dome.sdkserver.util;
+
+import org.apache.commons.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.DESKeySpec;
+import java.security.SecureRandom;
+
+public final class DESUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(FileUtils.class);
+
+    /**
+     *  DES加密Base64处理
+     * @param orig
+     * @param desKey
+     * @return
+     */
+    public static String desBase64Encrypt(String orig, String desKey) {
+        return Base64.encodeBase64String(encrypt(orig, desKey).getBytes());
+    }
+
+    /**
+     * DES解密Base64处理
+     * @param orig
+     * @param desKey
+     * @return
+     */
+    public static String desBase64Decrypt(String orig, String desKey) {
+        return decrypt(new String(Base64.decodeBase64(orig)), desKey);
+    }
+
+
+    /**
+     * @param orig
+     * @param desKey 位数长度要>=8
+     * @return
+     */
+    public static String encrypt(String orig, String desKey) {
+        String encryptedData = null;
+        try {
+            // DES算法要求有一个可信任的随机数源
+            SecureRandom sr = new SecureRandom();
+            // 创建一个密匙工厂，然后用它把DESKeySpec转换成一个SecretKey对象
+            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+            DESKeySpec deskey = new DESKeySpec(desKey.getBytes());
+            SecretKey key = keyFactory.generateSecret(deskey);
+            // 加密对象
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(Cipher.ENCRYPT_MODE, key, sr);
+            // 加密，并把字节数组编码成字符串
+            encryptedData = new sun.misc.BASE64Encoder().encode(cipher.doFinal(orig.getBytes("UTF-8")));
+            //加密后移除换行符
+            encryptedData = removeLineFeedChar(encryptedData);
+        } catch (Exception e) {
+            log.error("加密错误，错误信息：", e);
+            e.printStackTrace();
+        }
+        return encryptedData;
+    }
+
+
+    /**
+     * @param orig
+     * @param desKey 位数长度要>=8
+     * @return
+     */
+    public static String decrypt(String orig, String desKey) {
+        //解密前移除换行符
+        orig = removeLineFeedChar(orig);
+        String decryptedData = null;
+        try {
+            // DES算法要求有一个可信任的随机数源
+            SecureRandom sr = new SecureRandom();
+            // 创建一个密匙工厂，然后用它把DESKeySpec转换成一个SecretKey对象
+            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+
+            DESKeySpec deskey = new DESKeySpec(desKey.getBytes());
+            SecretKey key = keyFactory.generateSecret(deskey);
+            // 加密对象
+            Cipher cipher = Cipher.getInstance("DES");
+            cipher.init(Cipher.DECRYPT_MODE, key, sr);
+            // 加密，并把字节数组编码成字符串
+            decryptedData = new String(cipher.doFinal(new sun.misc.BASE64Decoder().decodeBuffer(orig)), "UTF-8");
+        } catch (Exception e) {
+            log.error("解密错误，错误信息：", e);
+            e.printStackTrace();
+        }
+        return decryptedData;
+    }
+
+
+    private static String removeLineFeedChar(String orig) {
+        return orig.replaceAll("\n|\r|\t", "");
+    }
+
+    public static void main(String[] args) {
+
+        String encrypt = DESUtil.encrypt("domeuser123", "1234!@#$");
+        System.out.println(encrypt);
+        System.out.println(Base64.encodeBase64String(encrypt.getBytes()));
+        System.out.println("--------------------");
+        String base64Encrypt = DESUtil.desBase64Encrypt("222222", "1234!@#$");
+        System.out.println("base64Encrypt=" + base64Encrypt);
+        System.out.println("-----------------");
+        String result = DESUtil.decrypt(encrypt, "1234!@#$");
+        System.out.println(result);
+        System.out.println("22:" + DESUtil.desBase64Decrypt(base64Encrypt, "1234!@#$"));
+    }
+
+}

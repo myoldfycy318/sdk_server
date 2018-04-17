@@ -1,0 +1,41 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.domesdk.server</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0</version>
+  </parent>
+
+  <artifactId>service-mgr</artifactId>
+  <packaging>jar</packaging>
+  <name>service-mgr</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+
+      <!--rabbit mq-->
+      <dependency>
+          <groupId>com.rabbitmq</groupId>
+          <artifactId>amqp-client</artifactId>
+          <version>3.5.1</version>
+      </dependency>
+      <dependency>
+          <groupId>org.springframework.amqp</groupId>
+          <artifactId>spring-rabbit</artifactId>
+          <version>1.6.8.RELEASE</version>
+      </dependency>
+      <!--rabbit mq-->
+
+
+
+    <dependency>
+    	<groupId>com.domesdk.server</groupId>
+    	<artifactId>metadata</artifactId>
+    	<version>1.0</version>
+    </dependency>
+  </dependencies>
+</project>

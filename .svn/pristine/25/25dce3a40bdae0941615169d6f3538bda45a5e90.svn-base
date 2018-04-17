@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+    <!-- 宝券自动发放 -->
+    <bean id="autoSendBq" class="com.dome.sdkserver.job.AutoSendBqTask"/>
+    <bean id="sendBqByAliPay" class="com.dome.sdkserver.job.SendBqByAliPayTask"/>
+
+    <bean id="sendBqJobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="autoSendBq"/>
+        <property name="targetMethod" value="sumConsume"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+    <bean id="sendBqCronTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="sendBqJobDetail"/>
+        <property name="cronExpression" value="0 30 3 * * ?"/>
+    </bean>
+
+    <bean id="sendBqByAliPayJobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="sendBqByAliPay"/>
+        <property name="targetMethod" value="sumConsume"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+    <bean id="sendBqByAliPayCronTrigger"
+          class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail" ref="sendBqByAliPayJobDetail"/>
+        <property name="cronExpression" value="0 0 3 * * ?"/>
+    </bean>
+
+    <bean id="startQuertz"
+          class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="sendBqCronTrigger"/>
+                <ref bean="sendBqByAliPayCronTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+</beans>

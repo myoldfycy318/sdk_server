@@ -1,0 +1,162 @@
+package com.dome.sdkserver.biz.utils.alipay;
+
+import com.dome.sdkserver.bq.domain.AliPayReq;
+import org.apache.commons.lang3.StringUtils;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * AliPayUtil
+ *
+ * @author Zhang ShanMin
+ * @date 2016/12/17
+ * @time 16:10
+ */
+public class AliPayUtil {
+
+    public enum AliGateWay {
+        PAYDOWN("https://mapi.alipay.com/gateway.do");
+
+        private AliGateWay(String gateWap) {
+            this.gateWap = gateWap;
+        }
+
+        private String gateWap;
+
+        public String getGateWap() {
+            return gateWap;
+        }
+    }
+
+    /**
+     * 创支付宝-即时到账(pc)请求信息
+     *
+     * @param aliPayReq
+     * @return
+     * @throws Exception
+     */
+    public static Object createPayDownInfo(AliPayReq aliPayReq) {
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("service", "create_direct_pay_by_user");
+        data.put("notify_url", aliPayReq.getNotifyUrl());//异步通知
+        data.put("return_url", aliPayReq.getReturnUrl());//同步通知
+        data.put("goods_type", "0");//商品类型,1：实物类商品、0：虚拟类商品 不传默认为实物类商品。
+        if (StringUtils.isNotBlank(aliPayReq.getExtraCommonParam())) {
+            data.put("extra_common_param", aliPayReq.getExtraCommonParam());//公用回传参数
+        }
+        return getAliPayInfo(aliPayReq, data);
+    }
+
+    /**
+     * 支付宝-wap支付请求信息
+     *
+     * @param aliPayReq
+     * @return
+     * @throws Exception
+     */
+    public static Object createWapAliPayInfo(AliPayReq aliPayReq) throws Exception {
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("service", "alipay.wap.create.direct.pay.by.user");
+//        data.put("app_pay", "Y");//app_pay=Y：尝试唤起支付宝客户端进行支付
+        data.put("goods_type", "0");//商品类型,1：实物类商品、0：虚拟类商品 不传默认为实物类商品。
+        data.put("notify_url", aliPayReq.getNotifyUrl());//异步通知
+        data.put("return_url", aliPayReq.getReturnUrl());//同步通知
+        if (StringUtils.isNotBlank(aliPayReq.getExtraCommonParam())) {
+            data.put("extra_common_param", aliPayReq.getExtraCommonParam());//公用回传参数
+        }
+        return getAliPayInfo(aliPayReq, data);
+    }
+
+    /**
+     * 创建支付宝支付请求公用参数
+     *
+     * @param aliPayReq
+     * @param data
+     * @return
+     */
+    public static Object getAliPayInfo(AliPayReq aliPayReq, Map<String, String> data) {
+        data.put("partner", aliPayReq.getPartner());
+        data.put("seller_id", aliPayReq.getSellerId());
+        data.put("_input_charset", aliPayReq.getInputCharset());
+        data.put("payment_type", "1");
+        data.put("out_trade_no", aliPayReq.getOutTradeNo());
+        data.put("subject", aliPayReq.getSubject());
+        data.put("total_fee", String.valueOf(aliPayReq.getTotalFee()));
+        data.put("body", aliPayReq.getBody());
+        data.put("it_b_pay", "30m");
+        Map<String, String> sPara = AlipayCore.paraFilter(data);
+        String linkStr = AlipayCore.createLinkString(sPara);
+        String sign = RSA.sign(linkStr, aliPayReq.getRsaPrivateKey(), aliPayReq.getInputCharset());
+        sPara.put("sign_type", "RSA");
+        sPara.put("sign", sign);
+        return encapsulatePayKV(sPara);
+    }
+
+    /**
+     * 封装支付返回信息
+     *
+     * @param data
+     * @return
+     */
+    public static Object[] encapsulatePayKV(Map<String, String> data) {
+        class KV {
+            private String name;
+            private String value;
+
+            public KV(String name, String value) {
+                this.name = name;
+                this.value = value;
+            }
+
+            public String getName() {
+                return name;
+            }
+
+            public String getValue() {
+                return value;
+            }
+        }
+        Object[] objects = new Object[data.size()];
+        int i = 0;
+        for (Map.Entry<String, String> entry : data.entrySet()) {
+            objects[i++] = new KV(entry.getKey(), entry.getValue());
+        }
+        return objects;
+    }
+
+    /**
+     * 拼接唤起支付wap支付页面
+     *
+     * @param payInfo
+     * @return
+     * @throws Exception
+     */
+    public static String getAliWapPayInfo(Object[] payInfo) throws Exception {
+
+        String ALIPAY_GATEWAY_NEW = "https://mapi.alipay.com/gateway.do?";
+        StringBuffer sbHtml = new StringBuffer();
+
+        sbHtml.append("<form id=\"alipaysubmit\" name=\"alipaysubmit\" action=\"" + ALIPAY_GATEWAY_NEW + "_input_charset=utf-8" + "\"method=\"" + "get" + "\">");
+
+        Object name = null;
+        Object value = null;
+        for (Object obj : (Object[]) payInfo) {
+            for (Field field : obj.getClass().getDeclaredFields()) {
+                field.setAccessible(true);
+                if (field.getName().equals("name")) {
+                    name = field.get(obj);
+                }
+                if (field.getName().equals("value")) {
+                    value = field.get(obj);
+                }
+            }
+            sbHtml.append("<input type=\"hidden\" name=\"" + name + "\" value=\"" + value + "\"/>");
+        }
+        //submit按钮控件请不要含有name属性
+        sbHtml.append("<input type=\"submit\" value=\"" + "确认" + "\" style=\"display:none;\"></form>");
+        sbHtml.append("<script>document.forms['alipaysubmit'].submit();</script>");
+        return sbHtml.toString();
+    }
+}

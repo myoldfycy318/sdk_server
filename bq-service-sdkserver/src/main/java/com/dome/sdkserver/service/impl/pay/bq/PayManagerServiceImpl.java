@@ -1,0 +1,121 @@
+package com.dome.sdkserver.service.impl.pay.bq;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.utils.SpringBeanProxy;
+import com.dome.sdkserver.bq.enumeration.H5Game2PlatformEnum;
+import com.dome.sdkserver.bq.enumeration.PayPlatformEnum;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.h5game.H5GameEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.service.channel.NewOpenChannelService;
+import com.dome.sdkserver.service.pay.bq.ForwardPayService;
+import com.dome.sdkserver.service.pay.bq.PayManagerService;
+import com.dome.sdkserver.service.pay.bq.PayNotifyService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Map;
+
+/**
+ * PayPageManagerServiceImpl
+ *
+ * @author Zhang ShanMin
+ * @date 2016/11/10
+ * @time 12:15
+ */
+
+@Service("payManagerService")
+public class PayManagerServiceImpl implements PayManagerService{
+
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    @Autowired
+    private NewOpenChannelService newOpenChannelService;
+
+    /**
+     * 产生H5游戏支付页连接
+     *
+     * @return
+     */
+    @Override
+    public SdkOauthResult producePayPageLink(H5GameEntity entity, AppInfoEntity appInfoEntity) throws Exception {
+        ForwardPayService forwardPayService = null;
+        //验证渠道
+        SdkOauthResult result = validateChannelCode(entity,appInfoEntity);
+        if (!result.isSuccess())
+            return result;
+        //根据渠道code获取收银平台
+        PayPlatformEnum payPlatformEnum = PayPlatformEnum.getPayPlatform(entity.getPlatformCode());
+        switch (payPlatformEnum) {
+            case DOME:
+                forwardPayService = SpringBeanProxy.getBean(ForwardPayService.class, "bqForwardPayService");
+                break;
+            case YOUPIAO:
+                forwardPayService = SpringBeanProxy.getBean(ForwardPayService.class, "youPiaoForwardPay");
+                break;
+            case WX_PUBLIC:
+                forwardPayService = SpringBeanProxy.getBean(ForwardPayService.class, "wxJsApiPayForwardPayService");
+                break;
+            default:
+                //默认跳冰趣的H5支付页
+                forwardPayService = SpringBeanProxy.getBean(ForwardPayService.class, "bqForwardPayService");
+        }
+        if (forwardPayService == null) {
+            logger.info("冰趣H5游戏跳平台:{}支付页面，获取不到forwardPayService", JSONObject.toJSONString(entity));
+            return SdkOauthResult.failed("系统异常，请稍后重试");
+        }
+        return forwardPayService.toPayPage(entity, appInfoEntity);
+    }
+
+    /**
+     * 验证渠道
+     * 钱宝、有票渠道entity.getPlatformCode()为QBAO、YOUPIAO;
+     * 微信公众号渠道entity.getPlatformCode()="CHA0000047_微信appId",其他渠道entity.getPlatformCode()="CHA000001"
+     * @param entity
+     * @param appInfoEntity
+     * @return
+     */
+    private SdkOauthResult validateChannelCode(H5GameEntity entity, AppInfoEntity appInfoEntity) {
+        String channelCode = entity.getPlatformCode();
+        appInfoEntity.setChannelCode(channelCode);
+        if (org.apache.commons.lang3.StringUtils.isBlank(channelCode)) {
+            logger.error("未知渠道错误，支付请求平台:{}", entity.getPlatformCode());
+            return SdkOauthResult.failed("未知渠道错误，请联系客服");
+        }
+        if (channelCode.indexOf("_") > -1) { //微信公众号渠道entity.getPlatformCode()="CHA0000047_微信appId"
+            channelCode = channelCode.split("_")[0];
+        }
+        if (!newOpenChannelService.containChanneCode(channelCode)) {
+            logger.error("未知渠道错误，支付请求平台:{}", entity.getPlatformCode());
+            return SdkOauthResult.failed("未知渠道错误，请联系客服");
+        }
+        return SdkOauthResult.success();
+    }
+
+    /**
+     * H5游戏第三方支付通知
+     *
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public SdkOauthResult h5ThirdPayNotify(Map<String, String[]> requestParams) throws Exception {
+        //H5游戏嵌入平台标识
+        String platformCode = requestParams.get("platformCode")[0];
+        H5Game2PlatformEnum h5Game2Platform = H5Game2PlatformEnum.getH5Game2Platform(platformCode);
+        PayNotifyService payNotifyService = null;
+        switch (h5Game2Platform) {
+            case YOUPIAO:
+                payNotifyService = SpringBeanProxy.getBean(PayNotifyService.class, "payNotifyService");
+                break;
+            default:
+                payNotifyService = null;
+        }
+        if (payNotifyService == null) {
+            logger.error("处理H5游戏第三方支付平台:{}，获取不到payNotifyService", JSONObject.toJSONString(h5Game2Platform));
+            return SdkOauthResult.failed("系统异常，请稍后重试");
+        }
+        return payNotifyService.handleThirdPayNotify(requestParams);
+    }
+}

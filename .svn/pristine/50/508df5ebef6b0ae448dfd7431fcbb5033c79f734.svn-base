@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.qbao.PayAsyncNoticeMapper">
+	<resultMap type="com.dome.sdkserver.metadata.entity.qbao.PayAsyncNoticeEntity" id="resultMap">
+		<id property="id" jdbcType="BIGINT" column="id" />
+		<result property="sdkflowId" jdbcType="VARCHAR" column="sdkflow_id" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+		<result property="bizCode" jdbcType="VARCHAR" column="biz_code" />
+		<result property="callbackUrl" jdbcType="VARCHAR" column="callback_url" />
+		<result property="times" jdbcType="TINYINT" column="times" />
+		<result property="status" jdbcType="CHAR" column="status" />
+		<result property="transDate" jdbcType="CHAR" column="trans_date" />
+		<result property="transTime" jdbcType="CHAR" column="trans_time" />
+		<result property="responseCode" jdbcType="CHAR" column="response_code" />
+		<result property="errorCode" jdbcType="VARCHAR" column="error_code" />
+		<result property="errorMsg" jdbcType="VARCHAR" column="error_msg" />
+		<result property="isSuccess" jdbcType="VARCHAR" column="is_success" />
+		<result property="nextSendTime" jdbcType="TIMESTAMP" column="next_send_time" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+	</resultMap>
+	
+	<!-- 添加支付交易异步通知信息 -->
+	<insert id="addPayAsyncNotice">
+		insert into pay_async_notice(
+			sdkflow_id,
+			app_code,
+			biz_code,
+			trans_date,
+			callback_url,
+			trans_time,
+			response_code,
+			status,
+			error_code,
+			error_msg,
+			is_success,
+			next_send_time,
+			create_time,
+			update_time
+		)values(
+			#{entity.sdkflowId},
+			#{entity.appCode},
+			#{entity.bizCode},
+			#{entity.transDate},
+			#{entity.callbackUrl},
+			#{entity.transTime},
+			#{entity.responseCode},
+			#{entity.status},
+			#{entity.errorCode},
+			#{entity.errorMsg},
+			#{entity.isSuccess},
+			#{entity.nextSendTime},
+			now(),
+			now()
+		)
+	</insert>
+	
+	<!--  修改支付交易异步通知信息 -->
+	<update id="updatePayAsyncNotice">
+		UPDATE
+			pay_async_notice
+		SET 
+			times=#{entity.times},
+			STATUS=#{entity.status},
+			next_send_time=#{entity.nextSendTime}
+		WHERE 
+			id=#{entity.id}
+	
+	</update>
+	
+	<!-- 根据发送状态查找支付异步通知信息 -->
+	<select id="getPayAsyncNoticeByStatus" resultMap="resultMap">
+		SELECT 
+		    id,
+			sdkflow_id,
+			app_code,
+			biz_code,
+			trans_date,
+			trans_time,
+			callback_url,
+			response_code,
+			STATUS,
+			times,
+			error_code,
+			error_msg,
+			is_success,
+			next_send_time,
+			create_time,
+			update_time
+		FROM 
+			pay_async_notice 
+		WHERE 
+			STATUS in (30,40)
+		AND
+			times  &lt; 5
+		AND 
+			next_send_time &lt;= #{currentDate}
+			
+		order by next_send_time 
+		
+		limit 0,300
+	
+	</select>
+	
+	<update id="updateStatus">
+		UPDATE 
+			pay_async_notice
+	    SET 
+	    	STATUS=#{status} 
+	    WHERE 
+	    	id 
+	    IN 
+    	<foreach collection="entities" open="(" close=")" separator="," item="entity">
+    		#{entity.id}
+    	</foreach>
+	
+	</update>
+
+
+</mapper>

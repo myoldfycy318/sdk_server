@@ -1,0 +1,193 @@
+package com.dome.sdkserver.biz.utils;
+
+import com.dome.sdkserver.biz.utils.alipay.Base64;
+import com.dome.sdkserver.util.MD5;
+import org.apache.commons.lang3.StringUtils;
+
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.*;
+
+/**
+ * @author Zhang ShanMin
+ * @date 2016/9/23
+ * @time 11:15
+ */
+public class H5GameUtil {
+
+    /**
+     * 选填字段、sign不参与签名
+     */
+    private static List<String> IGNORE_SIGN_PARAS = new ArrayList<String>(){
+        {
+            add("item");
+            add("zoneName");
+            add("roleId");
+            add("p1");
+            add("p2");
+            add("sign");
+            add("platformCode");
+            add("itemCode");
+            add("outTradeNo");
+            add("outOrderNo");
+        }
+    };
+
+    /**
+     * 获取sign
+     *
+     * @param map
+     * @param key
+     * @return
+     */
+    public static String generateSign(Map<String, String> map, String key) throws Exception {
+        String base = createLinkString(paramHandle(map));
+        String baseSign = base + "&" + key;
+        return  MD5.md5Encode(baseSign);
+    }
+
+    /**
+     * 验证签名
+     *
+     * @param map
+     * @param key
+     * @param sign
+     * @return
+     */
+    public static boolean validateSign(Map<String, String> map, String key, String sign) throws Exception {
+        String originalSign = generateSign(map, key);
+        return sign.equals(originalSign);
+    }
+
+    /**
+     * 获取Auth
+     *
+     * @param map
+     * @return
+     */
+    public static String generateAuth(Map<String, String> map) throws Exception {
+        String base = createLinkString(map);
+        base = Base64.encode(base.getBytes());
+        base = URLEncoder.encode(base, "utf-8");
+        return base;
+    }
+
+    /**
+     * 解析Auth
+     *
+     * @param auth
+     * @return
+     */
+    public static Map<String, String> parseAuth(String auth) {
+        Map<String, String> map = new HashMap<String, String>();
+        String key = null;
+        String val = null;
+        String base = null;
+        try {
+            base = URLDecoder.decode(auth, "utf-8");
+            base = new String(Base64.decode(base));
+            for (String kv : base.split("&")) {
+                val = kv.split("=")[1];
+                key = kv.split("=")[0];
+                if (StringUtils.isBlank(val) || StringUtils.isBlank(key))
+                    continue;
+                map.put(key, val);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
+
+    /**
+     * 参数URLEncode处理
+     *
+     * @param sArray
+     * @return
+     * @throws Exception
+     */
+    public static Map<String, String> paramHandle(Map<String, String> sArray) throws Exception {
+        Map<String, String> result = new HashMap<String, String>();
+        if (sArray == null || sArray.size() <= 0) {
+            return result;
+        }
+        for (String key : sArray.keySet()) {
+            String value = sArray.get(key);
+            if (StringUtils.isBlank(value) || "null".equals(value) || IGNORE_SIGN_PARAS.contains(key)) {
+                continue;
+            }
+            result.put(key, value);
+        }
+        return result;
+    }
+
+
+    /**
+     * 把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
+     *
+     * @param params 需要排序并参与字符拼接的参数组
+     * @return 拼接后字符串
+     */
+    public static String createLinkString(Map<String, String> params) {
+        List<String> keys = new ArrayList<String>(params.keySet());
+        Collections.sort(keys);
+        String prestr = "";
+        for (int i = 0; i < keys.size(); i++) {
+            String key = keys.get(i);
+            String value = params.get(key);
+            if (i == keys.size() - 1) {//拼接时，不包括最后一个&字符
+                prestr = prestr + key + "=" + value;
+            } else {
+                prestr = prestr + key + "=" + value + "&";
+            }
+        }
+        return prestr;
+    }
+
+    /**
+     * 参数URLEncode处理
+     *
+     * @param sArray
+     * @return
+     * @throws Exception
+     */
+    public static Map<String, String> valURLEncode(Map<String, String> sArray) throws Exception {
+        Map<String, String> result = new HashMap<String, String>();
+        if (sArray == null || sArray.size() <= 0) {
+            return result;
+        }
+        for (String key : sArray.keySet()) {
+            String value = sArray.get(key);
+            if (StringUtils.isBlank(value)) {
+                continue;
+            }
+            result.put(key, URLEncoder.encode(value, "utf-8"));
+        }
+        return result;
+    }
+
+    /**
+     * 含中文字符串编码
+     * @param str
+     * @return
+     * @throws Exception
+     */
+    public static String strEncoder(String str) throws Exception {
+        String encode = Base64.encode(str.getBytes());
+        encode = URLEncoder.encode(encode, "utf-8");
+        return encode;
+    }
+
+    /**
+     * 含中文字符串解码
+     * @param str
+     * @return
+     * @throws Exception
+     */
+    public static String strDecoder(String str) throws Exception {
+        String encode = URLDecoder.decode(str, "utf-8");
+        return new String(Base64.decode(encode));
+    }
+
+
+}

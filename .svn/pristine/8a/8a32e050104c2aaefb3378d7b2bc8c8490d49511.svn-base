@@ -1,0 +1,21 @@
+package com.dome.sdkserver.service.pay;
+
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+
+/**
+ * PayService
+ *
+ * @author Zhang ShanMin
+ * @date 2016/12/17
+ * @time 14:45
+ */
+public interface PayService {
+
+    /**
+     * 创建订单
+     * @param requestOrderInfo
+     * @return
+     */
+    SdkOauthResult createOrder(HttpRequestOrderInfo requestOrderInfo) throws Exception;
+}

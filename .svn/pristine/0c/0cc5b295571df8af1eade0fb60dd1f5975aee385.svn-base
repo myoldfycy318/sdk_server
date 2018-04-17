@@ -1,0 +1,47 @@
+/**
+ * 
+ */
+package com.dome.sdkserver.service.impl.chargepoint;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.BqChargePointMapper;
+import com.dome.sdkserver.metadata.entity.bq.pay.BqChargePointInfo;
+import com.dome.sdkserver.service.chargePoint.ChargePointService;
+import com.dome.sdkserver.util.RedisUtil;
+
+/**
+ * @author liuxingyue
+ *
+ */
+@Service
+public class ChargePointServiceImpl implements ChargePointService {
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
+	
+	@Resource
+	private BqChargePointMapper bqChargePointMapper;
+	
+	@Autowired
+	private RedisUtil redisUtil;
+	@Override
+	public BqChargePointInfo getChargePointInfoByCode(String chargePointCode,String appCode) {
+		BqChargePointInfo chargePointInfo = bqChargePointMapper.getChargePointInfoByCode(chargePointCode,appCode);
+//		if(chargePointInfo == null){
+//			chargePointInfo = bqChargePointMapper.getChargePointInfoByCode2(chargePointCode, appCode);
+//		}
+		return chargePointInfo;
+	}
+	
+	@Override
+	public List<BqChargePointInfo> selectByAppCode(String appCode) {
+		return bqChargePointMapper.selectByAppCode(appCode);
+	}
+}

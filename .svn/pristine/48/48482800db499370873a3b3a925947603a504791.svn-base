@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.AppOperRecordMapper">
+	<resultMap type="AppOperRecord" id="recordMap">
+		<result property="appId" jdbcType="INTEGER" column="appid" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+		<result property="chargePointId" jdbcType="INTEGER" column="charging_point_id" />
+		<result property="status" jdbcType="TINYINT" column="status" />
+		<result property="operDesc" jdbcType="VARCHAR" column="oper_desc" />
+		<result property="remark" jdbcType="VARCHAR" column="remark" />
+		<result property="operUserId" jdbcType="INTEGER" column="oper_user_id" />
+		<result property="operUser" jdbcType="VARCHAR" column="oper_user" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+	</resultMap>
+
+	<insert id="insert" parameterType="AppOperRecord">
+		insert into domesdk_app_oper_record (appid, charging_point_id, status, oper_desc, remark, oper_user_id, oper_user, create_time)
+			values (#{r.appId}, #{r.chargePointId}, #{r.status}, #{r.operDesc}, #{r.remark}, #{r.operUserId}, #{r.operUser}, now());
+	</insert>
+	<select id="queryOperRecordList" resultMap="recordMap">
+		select appid, charging_point_id, status, oper_desc, remark, oper_user_id, oper_user, create_time from domesdk_app_oper_record
+			where appid=#{appId} order by id desc limit #{begin},#{pageSize};
+	</select>
+	
+	<select id="selectOperRecordCount" resultType="int">
+		select count(*) from domesdk_app_oper_record where appid=#{appId};
+	</select>
+
+    <select id="maxId" resultType="int">
+        SELECT MAX(id) FROM domesdk_app_oper_record;
+    </select>
+	
+	<insert id="insertGame" parameterType="AppOperRecord">
+		insert into domesdk_game_oper_record (app_code, status, oper_desc, remark, oper_user_id, oper_user, create_time)
+			values (#{r.appCode}, #{r.status}, #{r.operDesc}, #{r.remark}, #{r.operUserId}, #{r.operUser}, now());
+	</insert>
+	<select id="selectGameOperList" resultMap="recordMap">
+		select app_code, status, oper_desc, remark, oper_user_id, oper_user, create_time from domesdk_game_oper_record
+			where app_code=#{appCode} order by id desc limit #{begin},#{pageSize};
+	</select>
+	
+	<select id="selectGameOperCount" resultType="int">
+		select count(*) from domesdk_game_oper_record where app_code=#{appCode};
+	</select>
+</mapper>

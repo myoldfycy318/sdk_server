@@ -1,0 +1,6 @@
+com\dome\sdkserver\service\impl\award\AutoSendBq.class
+com\dome\sdkserver\service\impl\award\SendBqByQbPayService.class
+com\dome\sdkserver\service\impl\award\StoreAwardConfServiceImpl.class
+com\dome\sdkserver\service\impl\award\SendBqByAliPayService.class
+com\dome\sdkserver\service\award\StoreAwardConfService.class
+com\dome\sdkserver\service\impl\award\AutoSendBq$1.class

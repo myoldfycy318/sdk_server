@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.AppPictureMapper">
+	
+	<resultMap type="AppPicture" id="appPicMap">
+		<result property="appId" jdbcType="INTEGER" column="appid" />
+		<result property="picUrl" jdbcType="VARCHAR" column="pic_url" />
+		<result property="desc" jdbcType="VARCHAR" column="pic_desc" />
+		<result property="delFlag" jdbcType="VARCHAR" column="del_flag" />
+	</resultMap>
+	
+	<select id="queryPicList" resultMap="appPicMap">
+		select pic_url, pic_desc from domesdk_app_pic
+		 where del_flag=0 and appid=#{appId};
+	</select>
+	
+	<insert id="add" parameterType="AppPicture">
+		insert into domesdk_app_pic (appid, pic_url
+		,pic_desc
+		,del_flag, create_time, update_time)
+		 values (#{appId}, #{picUrl}
+		 <choose>
+		 		<when test="pic.desc != null">
+		 			,#{pic.desc}
+		 		</when>
+		 		<otherwise>,'无描述信息'</otherwise>
+		 </choose>
+		 , 0, now(), now());
+	</insert>
+	
+	<update id="update" parameterType="AppPicture">
+		update domesdk_app_pic set update_time=now()
+			<if test="desc != null">
+				, pic_desc=#{desc}
+			</if>
+			<if test="picUrl != null">
+				, pic_url=#{picUrl}
+			</if>
+			<if test="delFlag != 0">
+				, del_flag=#{delFlag}
+			</if>
+		where del_flag=0 and appid=#{appId};
+	</update>
+	
+	<insert id="batchAdd">
+		insert into domesdk_app_pic (appid, pic_url
+		,pic_desc
+		,del_flag, create_time, update_time)
+		 values 
+		 <foreach collection="appPicList" separator="," item="pic">
+		 	(#{pic.appId}, #{pic.picUrl}
+		 	<choose>
+		 		<when test="pic.desc != null">
+		 			,#{pic.desc}
+		 		</when>
+		 		<otherwise>,'无描述信息'</otherwise>
+		 	</choose>
+		 	, 0, now(), now())
+		 </foreach>
+	</insert>
+	
+	<update id="del">
+		update domesdk_app_pic set update_time=now(), del_flag=1 where appid=#{appId} and pic_url in
+		<foreach collection="picUrlList" open="(" close=")" separator="," item="url">
+			#{url}
+		</foreach>;
+	</update>
+</mapper>

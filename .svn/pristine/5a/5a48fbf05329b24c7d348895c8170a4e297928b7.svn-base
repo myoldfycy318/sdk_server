@@ -1,0 +1,86 @@
+package com.dome.sdkserver.service.impl.pay;
+
+import com.dome.sdkserver.bq.domain.AliPayReq;
+import com.dome.sdkserver.bq.util.GenOrderCode;
+import com.dome.sdkserver.bq.util.PriceUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+/**
+ * AliPayServiceImpl
+ *
+ * @author Zhang ShanMin
+ * @date 2016/12/17
+ * @time 14:49
+ */
+@Service("aliPayService")
+public class AliPayServiceImpl extends PayOrderManager implements PayService {
+
+    @Autowired
+    private OrderService orderService;
+
+    /**
+     * 创建订单
+     *
+     * @param requestOrderInfo
+     * @return
+     */
+    @Override
+    public SdkOauthResult createOrder(HttpRequestOrderInfo requestOrderInfo) throws Exception {
+        //处理支付请求
+        SdkOauthResult result = handlePayReq(requestOrderInfo);
+        //转化订单入库参数
+        OrderEntity orderEntity = convertOrderEntity(requestOrderInfo);
+        orderService.createOrder(orderEntity);
+        return result;
+    }
+
+    /**
+     * 预处理请求参数
+     *
+     * @param requestOrderInfo
+     */
+    protected void preHandleReqOrder(HttpRequestOrderInfo requestOrderInfo) {
+        requestOrderInfo.setChargePointCode("00");
+        requestOrderInfo.setAppCode("00");
+        requestOrderInfo.setChannelCode("00");
+        requestOrderInfo.setOrderNo(GenOrderCode.next());
+    }
+
+    /**
+     * 构建支付宝支付所有的请求参数
+     *
+     * @param requestOrderInfo
+     * @return
+     */
+    @Override
+    protected AliPayReq buildAliPayReq(HttpRequestOrderInfo requestOrderInfo, Map<String, String> payConfig) {
+        AliPayReq aliPayReq = new AliPayReq();
+        aliPayReq.setPartner(payConfig.get(BqSdkConstants.aliPayPartner));
+        aliPayReq.setSellerId(payConfig.get(BqSdkConstants.aliPayPartner));
+        aliPayReq.setInputCharset(payConfig.get(BqSdkConstants.aliPayCharset));
+        aliPayReq.setPaymentType("1");//支付类型,只支持取值为1
+        aliPayReq.setOutTradeNo(requestOrderInfo.getOrderNo());
+        aliPayReq.setSubject(requestOrderInfo.getSubject());
+        //该笔订单的资金总额，单位为RMB-Yuan
+        aliPayReq.setTotalFee(PriceUtil.convert2YuanD(new BigDecimal(requestOrderInfo.getTotalFee())).doubleValue());
+        aliPayReq.setBody(requestOrderInfo.getBody());
+        aliPayReq.setSignType("RSA");
+        aliPayReq.setRsaPrivateKey(payConfig.get(BqSdkConstants.sellerPrivateKey));
+        aliPayReq.setReturnUrl(requestOrderInfo.getReturnUrl());
+        aliPayReq.setNotifyUrl(payConfig.get(BqSdkConstants.aliPayNotifyUrl));
+        //公用回传参数,默认返回外部调用sdk即时到帐支付订单号
+        aliPayReq.setExtraCommonParam(StringUtils.isBlank(requestOrderInfo.getExtraCommonParam()) ? requestOrderInfo.getOutOrderNo() : requestOrderInfo.getExtraCommonParam());
+        return aliPayReq;
+    }
+}

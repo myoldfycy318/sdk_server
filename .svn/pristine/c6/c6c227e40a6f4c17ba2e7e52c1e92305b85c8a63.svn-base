@@ -1,0 +1,264 @@
+package com.dome.sdkserver.controller.pay.notify;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.entity.DomeRequestEntity;
+import com.dome.sdkserver.bq.enumeration.PayTypeEnum;
+import com.dome.sdkserver.biz.pay.PayNotifyBiz;
+import com.dome.sdkserver.biz.utils.WechatPayUtil;
+import com.dome.sdkserver.bq.enumeration.H5Game2PlatformEnum;
+import com.dome.sdkserver.bq.util.MapUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.BaseController;
+import com.dome.sdkserver.metadata.entity.bq.turntable.TurntableSendTimesVO;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.chargePoint.ChargePointService;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayConfigService;
+import com.dome.sdkserver.service.pay.bq.PayManagerService;
+import com.dome.sdkserver.service.pay.mycard.PublishOrderService;
+import com.dome.sdkserver.service.rabbitmq.RabbitMqService;
+import com.dome.sdkserver.util.PropertiesUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/notify")
+public class PayNotifyController extends BaseController {
+
+    @Resource(name = "aliPayNotifyBiz")
+    private PayNotifyBiz aliPayNotifyBiz;
+
+    @Resource(name = "weiXinPayNotifyBiz")
+    private PayNotifyBiz weiXinPayNotifyBiz;
+
+    @Autowired
+    private PayConfigService payConfigService;
+
+    @Autowired
+    private OrderService orderService;
+
+    @Autowired
+    private AmqpTemplate amqpTemplate;
+    @Resource(name = "payManagerService")
+    private PayManagerService payManagerService;
+    @Autowired
+    private PublishOrderService publishOrderService;
+    @Autowired
+    private ChargePointService chargePointService;
+    @Autowired
+    protected PropertiesUtil domainConfig;
+    @Resource(name = "rabbitMqService")
+    private RabbitMqService rabbitMqService;
+
+    @RequestMapping(value = "aliPayNotify")
+    @ResponseBody
+    public void aliPayNotify(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        log.info(">>>>>>>>支付宝异步回调请求参数:" + JSON.toJSONString(request.getParameterMap()));
+        Map<String, String[]> requestParams = request.getParameterMap();
+        String message = "fail";
+        try {
+            JSONObject payConfig = payConfigService.getNotifyPayConfigByPayType(PayTypeEnum.支付宝支付.getCode());
+            message = aliPayNotifyBiz.payBizProcess(requestParams, payConfig);
+        } catch (Exception e) {
+            log.info("支付宝异步回调异常", e);
+        }
+        if (StringUtils.isNotBlank(message)) {
+            PrintWriter printWriter = response.getWriter();
+            printWriter.print(message);
+            printWriter.flush();
+            printWriter.close();
+        }
+    }
+
+
+    @RequestMapping(value = "/aliPcSyncNotify")
+    @ResponseBody
+    public SdkOauthResult aliPCSyncPayNotify(HttpServletRequest request, HttpServletResponse response) {
+        log.info(">>>>>>>>支付宝即时到帐同步回调参数:" + JSON.toJSONString(request.getParameterMap()));
+        Map<String, String[]> requestParams = request.getParameterMap();
+        JSONObject payConfig = payConfigService.getNotifyPayConfigByPayType(PayTypeEnum.支付宝支付.getCode());
+        return aliPayNotifyBiz.aliPcSyncNotifyProcess(requestParams, payConfig);
+    }
+
+
+    /**
+     * 手游支付同步通知
+     *
+     * @param request
+     * @param response
+     * @throws Exception
+     */
+    @RequestMapping(value = "/sync")
+    public void syncPayNotify(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        log.info(">>>>>>>>支付同步回调参数:" + JSON.toJSONString(request.getParameterMap()));
+        Map<String, String> requestParams = MapUtil.convert2Map(request.getParameterMap());
+        String sdkOrderNo = StringUtils.isNotBlank(requestParams.get("out_trade_no")) ? requestParams.get("out_trade_no") : (StringUtils.isNotBlank(requestParams.get("orderId")) ? requestParams.get("orderId") : "");
+        StringBuilder sb = new StringBuilder(domainConfig.getString("appgame.wap.return.result.url"));
+        sb.append("?").append("sdkOrderNo").append("=").append(sdkOrderNo);
+        response.sendRedirect(sb.toString());
+    }
+
+
+    /**
+     * H5游戏第三方支付回调通知(该接口目前只给有票支付回调使用)
+     *
+     * @param platformCode
+     * @param request
+     * @param response
+     */
+    @RequestMapping(value = "/thirdPartyNotify/{platformCode}")
+    @ResponseBody
+    public void h5ThirdPartyNotify(@PathVariable String platformCode, HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String message = "FAIL";
+            Map<String, String[]> requestParams = new HashMap<String, String[]>();
+            requestParams.putAll(request.getParameterMap());
+            log.info("第三方平台:{},支付通知参数:{}", platformCode, JSONObject.toJSONString(requestParams));
+            requestParams.put("platformCode", new String[]{platformCode});
+            SdkOauthResult sdkOauthResult = payManagerService.h5ThirdPayNotify(requestParams);
+            if (sdkOauthResult.isSuccess()) {
+                message = "SUCCESS";
+            }
+            //有票支付异步通知，必须返回SUCCESS不然有票会一直通知，有支付异常场景线下对账
+            if (!sdkOauthResult.isSuccess() && H5Game2PlatformEnum.YOUPIAO.name().equalsIgnoreCase(H5Game2PlatformEnum.getH5Game2Platform(platformCode).name())) {
+                message = "SUCCESS";
+                log.error("有票支付通知异常,需线下对账处理，有票订单号:{},", requestParams.get("biz_order_no"));
+            }
+            PrintWriter printWriter = response.getWriter();
+            printWriter.print(message);
+            printWriter.flush();
+            printWriter.close();
+        } catch (Exception e) {
+            log.error("第三方平台:{},支付通知异常", platformCode, e);
+        }
+    }
+
+    /**
+     * 微信APP支付 异步通知
+     *
+     * @param request
+     * @param response
+     * @throws IOException
+     */
+    @RequestMapping(value = "weixinPayNotify")
+    @ResponseBody
+    public void weixinPayNotify(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        StringBuffer sb = new StringBuffer();
+        String message = WechatPayUtil.setXml("fail", "微信查询订单接口失败");
+        try {
+            String inputLine;
+            while ((inputLine = request.getReader().readLine()) != null) {
+                sb.append(inputLine);
+            }
+            request.getReader().close();
+            Map<String, String> requestParams = WechatPayUtil.xmltoMap(sb.toString());
+            log.info(">>>>>>>>微信APP支付异步回调请求参数:" + JSON.toJSONString(requestParams));
+
+            JSONObject payConfig = payConfigService.getNotifyPayConfigByPayType(PayTypeEnum.微信支付.getCode());
+            message = weiXinPayNotifyBiz.payBizProcess2(requestParams, payConfig);
+        } catch (Exception e) {
+            log.info("微信APP支付异步回调异常", e);
+        } finally {
+            if (StringUtils.isNotBlank(message)) {
+                PrintWriter printWriter = response.getWriter();
+                printWriter.print(message);
+                printWriter.flush();
+                printWriter.close();
+            }
+        }
+    }
+
+
+    /**
+     * 这只是个测试接口
+     *
+     * @param request
+     * @param response
+     * @throws IOException
+     */
+    @RequestMapping(value = "wxpay")
+    @ResponseBody
+    public void wxPay(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Map<String, String[]> requestParams = request.getParameterMap();
+        JSONObject payConfig = payConfigService.getNotifyPayConfigByPayType(PayTypeEnum.支付宝支付.getCode());
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("sdkflowId", "sdk00001");
+        data.put("orderNo", "o10000000000000");
+
+        DomeRequestEntity requestEntity = new DomeRequestEntity();
+        requestEntity.setResponseCode("1000");
+        requestEntity.setErrorCode("");
+        requestEntity.setErrorMsg("");
+        requestEntity.setOrderNo("o10000000000000");
+        requestEntity.setSdkflowId("sdk00001");
+        requestEntity.setData(data);
+        requestEntity.setPrivateKey(payConfig.getString(BqSdkConstants.asyncPrivateKey));
+        requestEntity.setPayNotifyUrl("http://sdkserver.domestore.cn/notify/gameInter");
+
+        if (aliPayNotifyBiz.asyncNotice(requestEntity, 1, 5)) {
+            response.getWriter().println("======================================");
+        }
+    }
+
+    /**
+     * 这只是个测试接口
+     *
+     * @param request
+     * @param response
+     * @throws Exception
+     */
+    @RequestMapping(value = "gameInter")
+    @ResponseBody
+    public void gameInter(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        Map<String, String[]> requestParams = request.getParameterMap();
+
+        System.out.println(JSON.toJSONString(requestParams));
+
+        JSONObject json = new JSONObject();
+        json.put("isSuccess", "true");
+        try {
+            response.getWriter().println(json.toJSONString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @RequestMapping(value = "test")
+    @ResponseBody
+    public void test(HttpServletRequest request, HttpServletResponse response) throws Exception {
+//		orderService.updateOrder("1464231145024", 1, "ali000001", "201605");
+        response.getWriter().println(JSONObject.toJSONString(orderService.queryOrderByOrderNo("1464231145024", "201605")));
+    }
+
+
+    @RequestMapping("/testPay")
+    @ResponseBody
+    public String testPay(@RequestParam(required = true) String userId, @RequestParam(required = true) String money) {
+        //冰趣大转盘活动,支付成功发mq增加次数
+        TurntableSendTimesVO vo = new TurntableSendTimesVO();
+        vo.setType("pay");
+        vo.setUserId(userId);
+        vo.setMoney(money);
+        try {
+            amqpTemplate.convertAndSend("turntable_get_lottery_times_queue_key", vo);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "ok";
+    }
+}

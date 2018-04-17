@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>钱宝网管理平台</title>
+  <meta name="description" content="钱宝网管理平台">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link href="bower_components/admin-lte/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+  <link href="bower_components/components-font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+  <link href="bower_components/ionicons/css/ionicons.min.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="bower_components/bootstrap-daterangepicker/daterangepicker.css" type="text/css" />
+  <link rel="stylesheet" href="bower_components/admin-lte/dist/css/AdminLTE.min.css" type="text/css" />
+  <link rel="stylesheet" href="bower_components/admin-lte/dist/css/skins/skin-blue.min.css" type="text/css" />
+</head>
+
+<body class="skin-blue sidebar-collapse">
+  <!--[if lt IE 8]>
+    <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+  <![endif]-->
+  <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+    <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+  <![endif]-->
+  <script type="text/javascript" src="bower_components/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="bower_components/admin-lte/bootstrap/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="bower_components/admin-lte/dist/js/app.js"></script>
+  <script type="text/javascript" src="bower_components/moment/min/moment.min.js"></script>
+  <script type="text/javascript" src="bower_components/bootstrap-daterangepicker/daterangepicker.js"></script>
+  <script type="text/javascript" src="bower_components/clndr/clndr.min.js"></script>
+
+  <script type="text/javascript" src="bower_components/xheditor/xheditor-1.2.2.min.js"></script>
+  <script type="text/javascript" src="bower_components/xheditor/xheditor_lang/zh-cn.js"></script>
+  <script type="text/javascript" src="bower_components/zeroclipboard/dist/ZeroClipboard.min.js"></script>
+  <script type="text/javascript" src="assets/vendor.bundle.js"></script>
+  <script type="text/javascript" src="assets/main.js"></script>
+</body>
+
+</html>

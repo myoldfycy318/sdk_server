@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.PayIosSwitchMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch" id="baseResultMap">
+        <id column="id" property="id" jdbcType="INTEGER"/>
+        <result column="app_code" property="appCode" jdbcType="VARCHAR"/>
+        <result column="app_name" property="appName" jdbcType="VARCHAR"/>
+        <result column="is_around" property="isAround" jdbcType="INTEGER"/>
+        <result column="pay_type" property="payType" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch">
+        insert into sdk_ios_pay_round_switch (app_code,app_name,is_around,pay_type,create_time,update_time)
+        VALUES ( #{appCode}, #{appName},#{isAround},#{payType},now(),now())
+    </insert>
+
+    <update id="updateByAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch">
+        update sdk_ios_pay_round_switch
+        <set>
+            is_around = #{isAround},
+            <if test="payType != null ">
+                pay_type = #{payType},
+            </if>
+            update_time = now()
+        </set>
+        where app_code = #{appCode}
+    </update>
+
+    <select id="isExistAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch"
+            resultType="INTEGER">
+        select count(1) from  sdk_ios_pay_round_switch WHERE app_code = #{appCode}
+    </select>
+
+    <delete id="delByAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch">
+        DELETE FROM sdk_ios_pay_round_switch WHERE app_code = #{appCode}
+    </delete>
+
+    <select id="selectByAppCode" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.PayIosSwitch"
+            resultMap="baseResultMap">
+        select app_code,app_name,is_around,pay_type from  sdk_ios_pay_round_switch WHERE app_code = #{appCode}
+    </select>
+</mapper>

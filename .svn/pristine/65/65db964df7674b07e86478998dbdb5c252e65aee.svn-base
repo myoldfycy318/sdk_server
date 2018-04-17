@@ -1,0 +1,149 @@
+package com.dome.sdkserver.service.impl.pay;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.enums.PayTypeEnum;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.util.PropertiesUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
+public class AlipayConfig {
+
+    @Value("${pay.ali.pid}")
+    private String partner;
+
+    @Value("${pay.ali.notifyUrl}")
+    private String notifyUrl;
+
+    @Value("${pay.ali.sellerid}")
+    private String sellerId;
+
+    @Value("${pay.ali.notify.sign.type}")
+    private String sinType;
+
+    @Value("${pay.ali.notify.input.charset}")
+    private String charset;
+
+    @Value("${pay.ali.notify.publicKey}")
+    private String aliPayPublicKey;
+
+    @Value("${pay.ali.notify.seller.privateKey}")
+    private String sellerPrivateKey;
+
+    @Value("${async.private.key}")
+    private String asyncPrivateKey;
+
+    @Value("${async.notice.maxTryTimes}")
+    private String asyncNoticeMaxTryTimes;
+
+    @Value("${async.notice.thread.sleep}")
+    private String asyncNoticeThreadSleep;
+
+    @Value("${pay.ali.pc.sync.notifyUrl}")
+    private String pcSyncNotifyUrl;
+
+    @Value("${pay.ali.wap.sync.notifyUrl}")
+    private String wapSyncNotifyUrl;
+    //微信支付配置
+    @Value("${pay.weixin.appid}")
+    private String weixinPayAppId;
+
+    @Value("${pay.weixin.mch_id}")
+    private String weixinPayMchId;
+
+    @Value("${pay.weixin.notify_url}")
+    private String weixinPayNotifyUrl;
+
+    @Value("${pay.weixin.unifiedorder}")
+    private String weixinPayUnifiedorder;
+
+    @Value("${pay.weixin.wap.key}")
+    private String weixinPaySignKey;
+
+    @Value("${pay.weixin.orderquery}")
+    private String weixinPayOrderQuery;
+
+    @Autowired
+    private PropertiesUtil payConfig;
+
+
+
+    public String getPayConfigInfo() {
+        Map<String, String> data = new HashMap<String, String>();
+        data.put(BqSdkConstants.aliPayPartner, partner);
+        data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+        data.put(BqSdkConstants.aliPaySellerId, sellerId);
+        return JSONObject.toJSONString(data);
+    }
+
+    public JSONObject getNotifyConfigInfo(int payType,String appCode) {
+        Map<String, Object> data = new HashMap<String, Object>();
+        if (payType == PayTypeEnum.支付宝支付.getCode()) {
+            data.put(BqSdkConstants.aliPayPartner, partner);
+            data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+            data.put(BqSdkConstants.aliPaySellerId, sellerId);
+            data.put(BqSdkConstants.aliPaySinType, sinType);
+            data.put(BqSdkConstants.aliPayCharset, charset);
+            data.put(BqSdkConstants.aliPayPublicKey, aliPayPublicKey);
+            data.put(BqSdkConstants.sellerPrivateKey, sellerPrivateKey);
+            data.put(BqSdkConstants.PC_SYNC_NOTIFY_URL, pcSyncNotifyUrl);
+            data.put(BqSdkConstants.WAP_SYNC_NOTIFY_URL, wapSyncNotifyUrl);
+        }
+        if (payType == PayTypeEnum.微信支付.getCode()) {
+            //微信支付方式 0是wap(通用方式) 1是app支付(部落崛起游戏定制使用)
+            String wxPaytype = StringUtils.isNotBlank(payConfig.getString(appCode+".pay.weixin.app.sign_key")) ? "1" : "0";
+            String signKey = wxPaytype.equals("1") ? payConfig.getString(appCode+".pay.weixin.app.sign_key") : weixinPaySignKey;
+            data.put(BqSdkConstants.weixinPayType, wxPaytype);
+            data.put(BqSdkConstants.weixinPayAppId, weixinPayAppId);
+            data.put(BqSdkConstants.weixinPayMchId, weixinPayMchId);
+            data.put(BqSdkConstants.weixinPayNotifyUrl, weixinPayNotifyUrl);
+            data.put(BqSdkConstants.weixinPaySignKey, signKey);
+            data.put(BqSdkConstants.weixinPayUnifiedorder, weixinPayUnifiedorder);
+        }
+        data.put(BqSdkConstants.asyncPrivateKey, asyncPrivateKey);
+        data.put(BqSdkConstants.asyncNoticeMaxTryTimes, asyncNoticeMaxTryTimes);
+        data.put(BqSdkConstants.asyncNoticeThreadSleep, asyncNoticeThreadSleep);
+        return new JSONObject(data);
+    }
+
+    public Map<String, String> getConfigInfo(int payType,String appCode) {
+        Map<String, String> data = new HashMap<String, String>();
+        if (payType == PayTypeEnum.支付宝支付.getCode()) {
+            data.put(BqSdkConstants.aliPayPartner, partner);
+            data.put(BqSdkConstants.aliPayNotifyUrl, notifyUrl);
+            data.put(BqSdkConstants.aliPaySellerId, sellerId);
+            data.put(BqSdkConstants.aliPaySinType, sinType);
+            data.put(BqSdkConstants.aliPayCharset, charset);
+            data.put(BqSdkConstants.aliPayPublicKey, aliPayPublicKey);
+            data.put(BqSdkConstants.asyncPrivateKey, asyncPrivateKey);
+            data.put(BqSdkConstants.sellerPrivateKey, sellerPrivateKey);
+            data.put(BqSdkConstants.PC_SYNC_NOTIFY_URL, pcSyncNotifyUrl);
+            data.put(BqSdkConstants.WAP_SYNC_NOTIFY_URL, wapSyncNotifyUrl);
+        }
+        if (payType == PayTypeEnum.微信支付.getCode()) {
+            //微信支付方式 0是wap(通用方式) 1是app支付(部落崛起游戏定制使用)
+            String wxPaytype = StringUtils.isNotBlank(payConfig.getString(appCode+".pay.weixin.app.sign_key")) ? "1" : "0";
+            String signKey = wxPaytype.equals("1") ? payConfig.getString(appCode+".pay.weixin.app.sign_key") : weixinPaySignKey;
+            data.put(BqSdkConstants.weixinPayType, wxPaytype);
+            data.put(BqSdkConstants.weixinPayAppId, weixinPayAppId);
+            data.put(BqSdkConstants.weixinPayMchId, weixinPayMchId);
+            data.put(BqSdkConstants.weixinPaySignKey, signKey);
+            data.put(BqSdkConstants.weixinPayNotifyUrl, weixinPayNotifyUrl);
+            data.put(BqSdkConstants.weixinPayUnifiedorder, weixinPayUnifiedorder);
+            data.put(BqSdkConstants.asyncPrivateKey, asyncPrivateKey);
+            data.put(BqSdkConstants.weixinPayOrderQuery,weixinPayOrderQuery);
+        }
+
+        return data;
+    }
+
+
+    public static void main(String[] args) {
+    }
+}

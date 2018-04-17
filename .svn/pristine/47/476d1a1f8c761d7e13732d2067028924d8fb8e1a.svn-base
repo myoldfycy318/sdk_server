@@ -1,0 +1,35 @@
+package com.dome.sdkserver.service.order;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+
+
+public interface OrderService {
+
+    public boolean createOrder(OrderEntity orderEntity);
+
+    public void createAndSaveOrder(HttpRequestOrderInfo order);
+
+    public boolean updateOrder(OrderEntity orderEntity, String curMonth);
+
+    public double queryOrderAmount(String orderNo, String curMonth);
+
+    public OrderEntity queryOrderByOrderNo(String orderNo, String curMonth);
+
+    public OrderEntity queryOrderByOutOrderNo(OrderEntity orderEntity);
+
+    public void createTable();
+
+    public JSONObject isOrderPaid(String orderNo) throws Exception;
+
+    public boolean updateOrderInfo(OrderEntity orderEntity, String curMonth);
+
+    public boolean insertThirdOrder(OrderEntity orderEntity);
+
+    boolean insertThirdOrder2(OrderEntity orderEntity);
+
+    boolean updateThirdOrder(OrderEntity orderEntity);
+
+    OrderEntity queryThirdOrder(OrderEntity orderEntity);
+}

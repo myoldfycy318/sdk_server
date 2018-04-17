@@ -1,0 +1,101 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:rabbit="http://www.springframework.org/schema/rabbit" 
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd 
+    http://www.springframework.org/schema/rabbit
+    http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd" >
+
+    <description>rabbitmq 连接服务配置</description>
+    <!-- 连接配置 -->
+    <rabbit:connection-factory id="connectionFactory" 
+    host="${mq.host}" 
+    username="${mq.username}"
+    password="${mq.password}" 
+    port="${mq.port}" />
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+	 <!-- spring template声明-->
+    <rabbit:template exchange="mq-exchange" id="amqpTemplate"  connection-factory="connectionFactory"  message-converter="jsonMessageConverter" />
+
+    <!-- 消息对象json转换类 -->
+    <bean id="jsonMessageConverter" class="org.springframework.amqp.support.converter.Jackson2JsonMessageConverter" />  
+
+	<!-- 申明队列名 -->
+    <!-- 宝玩充值送红包活动消费流水消息队列 -->
+	<rabbit:queue id="sdk_pay_trans_queue_key" name="sdk_pay_trans_queue_key" durable="true" auto-delete="false" exclusive="false" />
+    <!-- 冰趣大转盘充值送抽奖次数活动消费流水消息队列 -->
+    <rabbit:queue id="turntable_get_lottery_times_queue_key" name="turntable_get_lottery_times_queue_key" durable="true" auto-delete="false" exclusive="false" />
+    <!-- 聚宝盆充值异步通知消息队列 -->
+    <rabbit:queue id="juBaoPen_pay_key" name="juBaoPen_pay_key" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue id="mobile_game_pay_key" name="mobile_game_pay_key" durable="true" auto-delete="false" exclusive="false" />
+ <!-- 商肃订单查询消息队列 -->
+    <rabbit:queue id="shangsu_pay_status_key" name="shangsu_pay_status_key" durable="true" auto-delete="false" exclusive="false" />
+
+
+    <rabbit:direct-exchange name="mq-exchange" durable="true" auto-delete="false" id="mq-exchange">
+	    <rabbit:bindings>
+	        <rabbit:binding queue="sdk_pay_trans_queue_key" key="sdk_pay_trans_queue_key"/>
+            <rabbit:binding queue="turntable_get_lottery_times_queue_key" key="turntable_get_lottery_times_queue_key"/>
+            <rabbit:binding queue="juBaoPen_pay_key" key="jubaopen_pay_key"/>
+            <rabbit:binding queue="mobile_game_pay_key" key="mobile_game_pay_key"/>
+            <rabbit:binding queue="shangsu_pay_status_key" key="shangsu_pay_status_key"/>
+	    </rabbit:bindings>
+	</rabbit:direct-exchange>
+
+    <!-- spring template声明-->
+    <rabbit:template exchange="sign-exchange" id="signTemplate"  connection-factory="connectionFactory"  message-converter="jsonMessageConverter" />
+    <!-- 四月签到h5宝石与爬塔消息队列 -->
+    <rabbit:queue id="h5_game_pata_queue" name="h5_game_pata" durable="true" auto-delete="false" exclusive="false" />
+
+    <rabbit:direct-exchange name="sign-exchange" durable="true" auto-delete="false" id="sign-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="h5_game_pata_queue" key="h5_game_pata_key"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!-- spring template声明-->
+    <rabbit:template exchange="game-exchange" id="gameTemplate"   connection-factory="connectionFactory"  message-converter="jsonMessageConverter" />
+    <!-- 国内手游游戏消息队列 -->
+    <rabbit:queue id="inland_mobile_game_pay_queue" name="inland_mobile_game_pay_queue" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue id="inland_m_game_ios_pay_queue" name="inland_m_game_ios_pay_queue" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue id="recharge_centre_queue" name="recharge_centre_queue" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:queue id="web_pay_queue" name="web_pay_queue" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:direct-exchange name="game-exchange" durable="true" auto-delete="false" id="game-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="inland_mobile_game_pay_queue" key="inland_mobile_game_pay_key"/>
+            <rabbit:binding queue="inland_m_game_ios_pay_queue" key="inland_m_game_ios_pay_key"/>
+            <rabbit:binding queue="recharge_centre_queue" key="recharge_centre_queue_key"/>
+            <rabbit:binding queue="web_pay_queue" key="web_pay_queue_key"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!-- spring template声明-->
+    <rabbit:template exchange="bi-exchange" id="bITemplate"   connection-factory="connectionFactory"  message-converter="jsonMessageConverter" />
+    <!--计费点同步Bi队列-->
+    <rabbit:queue id="bi_chargePoint_queue" name="bi_chargePoint_queue" durable="true" auto-delete="false" exclusive="false" />
+    <!--sdkserver支付x新增数据同步Bi队列-->
+    <rabbit:queue id="bi_pay_insert_queue" name="bi_pay_insert_queue" durable="true" auto-delete="false" exclusive="false" />
+    <!--sdkserver支付变更数据同步Bi队列-->
+    <rabbit:queue id="bi_pay_update_queue" name="bi_pay_update_queue" durable="true" auto-delete="false" exclusive="false" />
+    <rabbit:direct-exchange name="bi-exchange" durable="true" auto-delete="false" id="bi-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="bi_chargePoint_queue" key="bi_chargePoint_queue_key"/>
+            <rabbit:binding queue="bi_pay_insert_queue" key="bi_pay_queue_insert_key"/>
+            <rabbit:binding queue="bi_pay_update_queue" key="bi_pay_queue_update_key"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!-- 监听队列-->
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="auto">
+        <rabbit:listener queues="juBaoPen_pay_key" ref="juBaoPenPayListener"/>
+        <rabbit:listener queues="shangsu_pay_status_key" ref="shangSuPayStatusQueryListener"/>
+        <rabbit:listener queues="h5_game_pata_queue" ref="h5GamePaTaListener"/>
+        <rabbit:listener queues="mobile_game_pay_key" ref="mobileGamePayListener"/>
+        <rabbit:listener queues="inland_mobile_game_pay_queue" ref="inlandMobileGamePayListener"/>
+        <rabbit:listener queues="inland_m_game_ios_pay_queue" ref="inlandMGameIosPayListener"/>
+        <rabbit:listener queues="recharge_centre_queue" ref="rechargeCentrePayListener"/>
+        <rabbit:listener queues="web_pay_queue" ref="webGamePayNotifyListener"/>
+    </rabbit:listener-container>
+
+</beans>

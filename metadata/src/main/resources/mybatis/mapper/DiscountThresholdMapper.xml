@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.DiscountThresholdMapper">
+
+	<!-- 设置cpa 或cps -->
+    <update id="updateSetDiscount">
+        UPDATE domesdk_discount_threshold
+        SET
+        	<if test="dt.discount!=null">
+        	discount=#{dt.discount},
+        	</if>
+        	<if test="dt.activeThreshold!=null">
+        	active_threshold=#{dt.activeThreshold},
+        	</if>
+            <if test="dt.rechargeAmountDiscount!=null">
+            recharge_amount_discount=#{dt.rechargeAmountDiscount},
+            </if>
+            <if test="dt.payingUserDiscount!=null">
+			paying_user_discount=#{dt.payingUserDiscount},            
+            </if>
+            <if test="dt.payingThreshold!=null">
+			paying_threshold=#{dt.payingThreshold},	
+            </if>
+            status=1,
+            
+        	create_time=#{dt.createTime}
+        WHERE
+        channel_code=#{dt.channelCode} AND status=0 AND delete_flag=0
+    </update>
+	
+	<!-- 查询设置时间 -->
+	<select id="selectCreatTime" parameterType="com.dome.sdkserver.bo.DiscountThreshold" 
+			resultType="com.dome.sdkserver.bo.DiscountThreshold">
+		SELECT create_time createTime
+		FROM domesdk_discount_threshold
+		WHERE   channel_code=#{dt.channelCode} 
+				AND status=1 
+				AND delete_flag=0
+	</select>
+	<!-- 查询修改时间 -->
+	<select id="selectChangeTime" parameterType="com.dome.sdkserver.bo.DiscountThreshold" 
+			resultType="com.dome.sdkserver.bo.DiscountThreshold">
+		SELECT update_time updateTime
+		FROM domesdk_discount_threshold
+		WHERE channel_code=#{dt.channelCode} 
+			  AND status=1 
+			  AND delete_flag=0
+	</select>
+	
+	
+	<!--修改cpa 或cps 执行更新操作-->
+	<update id="updateDeleteFlag" parameterType="com.dome.sdkserver.bo.DiscountThreshold">
+		UPDATE domesdk_discount_threshold
+		SET
+			<if test="dt.createTime!=null">
+		    update_time = NOW(),
+			</if> 
+		   delete_flag = 1
+		WHERE 	channel_code = #{dt.channelCode} 
+				AND status = 1 
+				AND delete_flag=0;
+	</update>
+
+
+	<!-- 修改cpa 或cps 执行插入操作 -->
+	<insert id="insertChangeDiscount" parameterType="com.dome.sdkserver.bo.DiscountThreshold">
+		INSERT INTO domesdk_discount_threshold 
+				       (	
+				             channel_code,
+				             <if test="dt.discount!=null">
+				             discount,
+				             </if>
+				             <if test="dt.updateTime!=null">
+				             update_time,
+				             </if>
+				             <if test="dt.activeThreshold!=null">
+				             active_threshold,
+				             </if>
+				             <if test="dt.rechargeAmountDiscount!=null">
+				             recharge_amount_discount,
+				             </if>
+				             <if test="dt.payingUserDiscount!=null">
+				             paying_user_discount,
+				             </if>
+				             <if test="dt.payingThreshold!=null">
+				             paying_threshold,
+				             </if>
+				             status,
+				             change_flag 
+			            )
+		VALUES (
+					
+			        #{dt.channelCode},
+			        <if test="dt.discount!=null">
+			        #{dt.discount},
+			        </if>
+			        <if test="dt.updateTime!=null">
+			        #{dt.updateTime},
+			        </if>
+			        <if test="dt.activeThreshold!=null">
+			        #{dt.activeThreshold},
+			        </if>
+			        <if test="dt.rechargeAmountDiscount!=null">
+			        #{dt.rechargeAmountDiscount},
+			        </if>
+			        <if test="dt.payingUserDiscount!=null">
+			        #{dt.payingUserDiscount},
+			        </if>
+			        <if test="dt.payingThreshold!=null">
+			        #{dt.payingThreshold},
+			        </if>
+			        1,
+			        1
+		       )
+	</insert>
+	
+	
+	
+	<!-- 根据渠道名称和状态查询渠道信息 -->
+	<select id="selectChannel" resultType="com.dome.sdkserver.bo.DiscountThreshold">
+		SELECT 	d1.id,
+				s.name,
+				s.cooper_type cooperType,
+				s.parent_id parentId,
+				d1.channel_code channelCode,
+				d1.discount,
+				d1.status,
+				d1.active_threshold activeThreshold,
+				d1.update_time updateTime,
+				d1.recharge_amount_discount rechargeAmountDiscount,
+				d1.paying_user_discount payingUserDiscount,
+				d1.paying_threshold payingThreshold,
+				d1.create_time createTime,
+				d1.change_flag changeFlag
+		FROM domesdk_discount_threshold d1
+		LEFT JOIN  domesdk_second_channel s 
+		ON d1.channel_code=s.code	
+		WHERE   d1.delete_flag=0 and s.del_flag=0
+				AND (s.name IS NOT NULL)
+				<if test="dt.name!=null">
+				AND s.name LIKE(CONCAT('%',#{dt.name},'%'))
+				</if>
+				<if test="dt.status!=null">
+				AND d1.status=#{dt.status}
+				</if>	
+		ORDER BY d1.channel_code
+		LIMIT #{begin},#{pageSize}
+	</select>
+	
+	
+	<!-- 查询渠道信息总数 -->
+	<select id="selectCountSecond" resultType="int">
+		SELECT 	count(d1.id)
+		FROM domesdk_discount_threshold d1
+		LEFT JOIN  domesdk_second_channel s 
+		ON d1.channel_code=s.code	
+		WHERE   d1.delete_flag=0 AND s.del_flag=0
+				AND (s.name IS NOT NULL)
+				<if test="dt.name!=null">
+				AND s.name LIKE(CONCAT('%',#{dt.name},'%'))
+				</if>
+				<if test="dt.status!=null">
+				AND d1.status=#{dt.status}
+				</if>
+	</select>
+
+    <select id="selectDiscountTable" resultType="string">
+        SELECT d.channel_code AS channelCode FROM domesdk_discount_threshold d WHERE d.delete_flag=0
+    </select>
+
+    <!--向domesdk_second_channel表中查询渠道code-->
+    <select id="selectSecondTable" resultType="string">
+        SELECT DISTINCT(s.code) FROM domesdk_second_channel s WHERE s.del_flag=0
+    </select>
+
+
+
+    <!--向表中插入渠道code-->
+    <insert id="insertChannelCode">
+        INSERT INTO domesdk_discount_threshold(channel_code,create_time )
+        VALUES ( #{dt.channelCode}, NOW())
+    </insert>
+
+
+</mapper>

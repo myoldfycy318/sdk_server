@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.datadictmapper.DatadictMapper">
+
+    <resultMap type="com.dome.sdkserver.bo.datadict.DataDictInfo" id="BaseResultMap">
+        <id property="id" jdbcType="INTEGER" column="id"/>
+        <result property="attrCode" jdbcType="VARCHAR" column="attr_code"/>
+        <result property="attrName" jdbcType="VARCHAR" column="attr_name"/>
+        <result property="attrVal" jdbcType="VARCHAR" column="attr_val"/>
+        <result property="describe" jdbcType="VARCHAR" column="attr_desc"/>
+        <result property="remark" jdbcType="VARCHAR" column="remark"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+	       id,attr_code,attr_name,attr_val,attr_desc,remark
+	  </sql>
+
+    <select id="getDataDictListByAttrCode" parameterType="java.util.ArrayList" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        domesdk_data_dictionary
+        WHERE
+        attr_code IN
+        <foreach collection="list" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <update id="updateDataDictListByAttrCode" parameterType="com.dome.sdkserver.bo.datadict.DataDictInfo">
+        update
+        domesdk_data_dictionary
+        <set>
+            <if test="attrName != null">
+                attr_name = #{attrName},
+            </if>
+            <if test="attrVal != null">
+                attr_val = #{attrVal},
+            </if>
+            <if test="describe != null">
+                attr_desc = #{describe} ,
+            </if>
+            <if test="remark != null ">
+                remark = #{remark},
+            </if>
+        </set>
+        where
+        attr_code = #{attrCode}
+    </update>
+
+    <update id="updateDataDictByBatch" parameterType="java.util.List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update
+            domesdk_data_dictionary
+            <set>
+                <if test="item.attrName != null">
+                    attr_name = #{item.attrName},
+                </if>
+                <if test="item.attrVal != null">
+                    attr_val = #{item.attrVal},
+                </if>
+                <if test="item.describe != null ">
+                    attr_desc = #{item.describe} ,
+                </if>
+                <if test="item.remark != null ">
+                    remark = #{item.remark},
+                </if>
+            </set>
+            where
+            attr_code = #{item.attrCode}
+        </foreach>
+    </update>
+
+</mapper>

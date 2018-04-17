@@ -1,0 +1,135 @@
+package com.dome.sdkserver.service.impl.rabbitmq;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.PayRecordSync;
+import com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity;
+import com.dome.sdkserver.metadata.entity.qbao.PayTransEntity;
+import com.dome.sdkserver.service.pay.qbao.bo.ChargePointInfo;
+import com.dome.sdkserver.service.rabbitmq.RabbitMqService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * RabbitMqServiceImpl
+ *
+ * @author Zhang ShanMin
+ * @date 2017/3/24
+ * @time 12:26
+ */
+@Service("rabbitMqService")
+public class RabbitMqServiceImpl implements RabbitMqService {
+
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    @Autowired
+    private AmqpTemplate amqpTemplate;
+
+    @Autowired
+    private AmqpTemplate gameTemplate;
+    @Autowired
+    private AmqpTemplate bITemplate;
+
+    /**
+     * 商肃支付状态队列
+     *
+     * @param entity
+     */
+    @Override
+    public void shangSuPayStatusQueue(PayTransEntity entity) {
+        try {
+            amqpTemplate.convertAndSend("shangsu_pay_status_key", entity);
+        } catch (Exception e) {
+            logger.error("商肃支付状态队列异步通知添加rabbitmq异常，请求参数:{},异常=", JSONObject.toJSONString(entity), e);
+        }
+    }
+
+    @Override
+    public void mGamePayQueue(PublishOrderEntity orderEntity) {
+        try {
+            amqpTemplate.convertAndSend("mobile_game_pay_key", orderEntity);
+        } catch (Exception e) {
+            logger.error("手游支付异步通知添加rabbitmq异常，请求参数:{},", JSONObject.toJSONString(orderEntity), e);
+        }
+    }
+
+
+    /**
+     *  内地手游
+     * @param orderEntity
+     */
+    @Override
+    public void inlandMGamePayQueue(OrderEntity orderEntity) {
+        try {
+            gameTemplate.convertAndSend("inland_mobile_game_pay_key", orderEntity);
+        } catch (Exception e) {
+            logger.error("内地手游支付异步通知添加rabbitmq异常，请求参数:{},", JSONObject.toJSONString(orderEntity), e);
+        }
+    }
+
+    /**
+     * 内地手游IOS支付
+     * @param orderEntity
+     */
+    @Override
+    public void inlandMGameIosPayQueue(PublishOrderEntity orderEntity) {
+        try {
+            gameTemplate.convertAndSend("inland_m_game_ios_pay_key", orderEntity);
+        } catch (Exception e) {
+            logger.error("内地手游IOS支付异步通知添加rabbitmq异常，请求参数:{},", JSONObject.toJSONString(orderEntity), e);
+        }
+    }
+
+    @Override
+    public void rechargeCentreQueue(OrderEntity orderEntity) {
+        try {
+            gameTemplate.convertAndSend("recharge_centre_queue_key", orderEntity);
+        } catch (Exception e) {
+            logger.error("游戏充值中心支付异步通知添加rabbitmq异常，请求参数:{},", JSONObject.toJSONString(orderEntity), e);
+        }
+    }
+
+    /**
+     * H5游戏、页游同步计费点到BI报表
+     *
+     * @param chargePointInfo
+     */
+    @Override
+    public void syncChargePoint(ChargePointInfo chargePointInfo) {
+        try {
+           // bITemplate.convertAndSend("bi_chargePoint_queue_key", chargePointInfo);
+        } catch (Exception e) {
+            logger.error("同步H5游戏、页游同步计费点到BI报表异常，请求参数:{},", JSONObject.toJSONString(chargePointInfo), e);
+        }
+    }
+
+    /**
+     * 同步sdkserver新增支付记录到Bi报表
+     *
+     * @param payRecordSync
+     */
+    @Override
+    public void syncInsertPayData2Bi(PayRecordSync payRecordSync) {
+        try {
+          //  bITemplate.convertAndSend("bi_pay_queue_insert_key", payRecordSync);
+        } catch (Exception e) {
+            logger.error("同步sdkserverx新增支付记录到Bi报表异常，请求参数:{},", JSONObject.toJSONString(payRecordSync), e);
+        }
+    }
+
+    /**
+     * 同步sdkserver变更支付记录到Bi报表
+     *
+     * @param payRecordSync
+     */
+    @Override
+    public void syncUpdatePayData2Bi(PayRecordSync payRecordSync) {
+        try {
+           // bITemplate.convertAndSend("bi_pay_queue_update_key", payRecordSync);
+        } catch (Exception e) {
+            logger.error("同步sdkserverx变更支付记录到Bi报表异常，请求参数:{},", JSONObject.toJSONString(payRecordSync), e);
+        }
+    }
+}

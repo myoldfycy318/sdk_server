@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.CallbackAuditMapper">
+    
+    <resultMap type="CallbackAudit" id="ResultMap">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result property="appCode" jdbcType="VARCHAR" column="app_code" />
+        <result property="loginCallbackUrl" jdbcType="VARCHAR" column="login_callback_url" />
+        <result property="payCallbackUrl" jdbcType="VARCHAR" column="pay_callback_url" />
+        <result property="testLoginCallbackUrl" jdbcType="VARCHAR" column="test_login_callback_url" />
+        <result property="testPayCallbackUrl" jdbcType="VARCHAR" column="test_pay_callback_url" />
+        <result property="registCallbackUrl" jdbcType="VARCHAR" column="regist_callback_url"/>
+        <result property="testRegistCallbackUrl" jdbcType="VARCHAR" column="test_regist_callback_url"/>
+        <result property="gameUrl" jdbcType="VARCHAR" column="game_url" />
+        <result property="status" jdbcType="VARCHAR" column="status" />
+        <result property="delFlag" jdbcType="TIMESTAMP" column="del_flag" />
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+        <result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+        <!--<result property="appType" jdbcType="TIMESTAMP" column="app_type" />-->
+        <result property="appName" jdbcType="TIMESTAMP" column="app_name" />
+    </resultMap>
+
+
+    <select id="queryCallbackAudit" resultMap="ResultMap">
+        SELECT * FROM domesdk_app_callback_audit
+        WHERE del_flag=0
+        <if test="ca.appName!=null and ca.appName!=''">
+            AND app_name LIKE CONCAT('%',#{ca.appName},'%')
+        </if>
+        ORDER BY status ASC ,create_time DESC
+        LIMIT #{begin},#{pageSize}
+    </select>
+
+    <select id="countCallbackAudit" resultType="int">
+        SELECT COUNT(id) FROM domesdk_app_callback_audit
+        WHERE del_flag=0
+        <if test="ca.appName!=null and ca.appName!=''">
+            AND app_name LIKE CONCAT('%',#{ca.appName},'%')
+        </if>
+        ORDER BY status ASC ,create_time DESC
+    </select>
+
+
+    <select id="queryByIdOrAppCode"  resultMap="ResultMap">
+        SELECT * FROM domesdk_app_callback_audit WHERE del_flag=0
+        <if test="appCode != null and appCode != ''">
+            AND app_code=#{appCode}
+        </if>
+        <if test="id != null">
+            AND id=#{id}
+        </if>
+    </select>
+
+
+    <update id="updateByAppCode"  parameterType="com.dome.sdkserver.bo.CallbackAudit">
+        UPDATE domesdk_app_callback_audit
+       	<set>
+	       	<if test="ca.loginCallbackUrl != null and ca.loginCallbackUrl != ''">
+	            login_callback_url=#{ca.loginCallbackUrl},
+	        </if>
+	        <if test="ca.payCallbackUrl != null and ca.payCallbackUrl != ''">
+	            pay_callback_url=#{ca.payCallbackUrl},
+	        </if>
+	        <if test="ca.testLoginCallbackUrl != null and ca.testLoginCallbackUrl != ''">
+	            test_login_callback_url=#{ca.testLoginCallbackUrl},
+	        </if>
+	        <if test="ca.testPayCallbackUrl != null and ca.testPayCallbackUrl != ''">
+	            test_pay_callback_url=#{ca.testPayCallbackUrl},
+	        </if>
+            <if test="ca.registCallbackUrl != null and ca.registCallbackUrl != ''">
+                regist_callback_url = #{ca.registCallbackUrl}
+            </if>
+            <if test="ca.testRegistCallbackUrl != null and ca.testRegistCallbackUrl != ''">
+                test_regist_callback_url = #{ca.testRegistCallbackUrl}
+            </if>
+	        <if test="ca.gameUrl != null and ca.gameUrl != ''">
+	            game_url=#{ca.gameUrl},
+	        </if>
+	        <if test="ca.status != null">
+	            status=#{ca.status},
+	        </if>
+	        <if test="ca.delFlag != null">
+	            del_flag=#{ca.delFlag},
+	        </if>
+	        update_time=NOW()
+       	</set>
+        WHERE del_flag=0 AND app_code=#{ca.appCode}
+    </update>
+
+
+    <insert id="insert">
+        INSERT INTO domesdk_app_callback_audit
+            (
+             app_code,
+            <if test=" ca.loginCallbackUrl != null and ca.loginCallbackUrl != ''">
+                login_callback_url,
+            </if>
+            <if test=" ca.payCallbackUrl != null and ca.payCallbackUrl != ''">
+                pay_callback_url,
+            </if>
+            <if test=" ca.testLoginCallbackUrl != null and ca.testLoginCallbackUrl != ''">
+                test_login_callback_url,
+            </if>
+            <if test=" ca.testPayCallbackUrl != null and ca.testPayCallbackUrl != ''">
+                test_pay_callback_url,
+            </if>
+            <if test="ca.registCallbackUrl != null and ca.registCallbackUrl != ''">
+                regist_callback_url,
+            </if>
+            <if test="ca.testRegistCallbackUrl != null and ca.testRegistCallbackUrl != ''">
+                test_regist_callback_url,
+            </if>
+            <if test=" ca.gameUrl != null and ca.gameUrl != ''">
+                game_url,
+            </if>
+             app_name,
+             status,
+             del_flag,
+             create_time
+             )
+        VALUES (
+            #{ca.appCode},
+            <if test=" ca.loginCallbackUrl != null and ca.loginCallbackUrl != ''">
+                #{ca.loginCallbackUrl},
+            </if>
+            <if test=" ca.payCallbackUrl != null and ca.payCallbackUrl != ''">
+                #{ca.payCallbackUrl},
+            </if>
+            <if test=" ca.testLoginCallbackUrl != null and ca.testLoginCallbackUrl != ''">
+                #{ca.testLoginCallbackUrl},
+            </if>
+            <if test=" ca.testPayCallbackUrl != null and ca.testPayCallbackUrl != ''">
+                #{ca.testPayCallbackUrl},
+            </if>
+            <if test="ca.registCallbackUrl != null and ca.registCallbackUrl != ''">
+                #{ca.registCallbackUrl},
+            </if>
+            <if test="ca.testRegistCallbackUrl != null and ca.testRegistCallbackUrl != ''">
+                #{ca.testRegistCallbackUrl},
+            </if>
+            <if test=" ca.gameUrl != null and ca.gameUrl != ''">
+                #{ca.gameUrl},
+            </if>
+            #{ca.appName},
+            0,
+            0,
+            NOW()
+            )
+    </insert>
+        
+    <update id="updateH5CallbackUrl">
+        UPDATE domesdk_h5_game SET game_url=#{ca.gameUrl} , pay_callback_url=#{ca.payCallbackUrl} WHERE game_code=#{ca.appCode} AND del_flag=0
+    </update>
+
+
+    <select id="queryAppChannelCode" resultType="string">
+        SELECT channel_type FROM domesdk_app_channel WHERE app_code=#{appCode}
+    </select>
+
+</mapper>

@@ -1,0 +1,848 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.MerchantAppMapper">
+
+	<resultMap type="MerchantAppInfo" id="BaseResultMap">
+		<id property="appId" jdbcType="INTEGER" column="app_id" />
+		<result property="merchantInfoId" jdbcType="INTEGER" column="merchant_info_id" />
+		<result property="appName" jdbcType="VARCHAR" column="app_name" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code" />
+		<result property="appIcon" jdbcType="VARCHAR" column="app_icon" />
+		<result property="appUrl" jdbcType="VARCHAR" column="app_url" />
+		<result property="appDesc" jdbcType="VARCHAR" column="app_desc" />
+		<result property="appType" jdbcType="VARCHAR" column="app_type" />
+		<result property="runPlatform" jdbcType="CHAR" column="run_platform" />	
+		<result property="appKey" jdbcType="VARCHAR" column="app_key" />
+		<result property="outPublicRsakey" jdbcType="VARCHAR" column="out_public_rsakey" />
+		<result property="outPrivateRsakey" jdbcType="VARCHAR" column="out_private_rsakey" />
+		<result property="status" jdbcType="TINYINT" column="status" />
+		<result property="remark" jdbcType="VARCHAR" column="remark" />
+		<result property="whiteListIp" jdbcType="VARCHAR" column="white_list_ip" />
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag" />
+		<result property="createIp" jdbcType="VARCHAR" column="create_ip" />
+		<result property="auditorId" jdbcType="INTEGER" column="auditor_id" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+		<result property="merchantFullName" jdbcType="VARCHAR" column="merchant_full_name" />
+		<result property="merchantCode" jdbcType="VARCHAR" column="merchant_code" />
+		<result property="testAppKey" jdbcType="VARCHAR" column="test_app_key" />
+		<result property="testWhiteListIp" jdbcType="VARCHAR" column="test_white_list_ip" />
+		<result property="testPublicRsakey" jdbcType="VARCHAR" column="test_out_public_rsakey" />
+		<result property="testPrivateRsakey" jdbcType="VARCHAR" column="test_out_private_rsakey" />
+		<result property="testWhiteListIpLogin" jdbcType="VARCHAR" column="test_white_list_ip_login" />
+		<result property="whiteListIpLogin" jdbcType="VARCHAR" column="white_list_ip_login" />
+		
+		<result property="gameDesc" jdbcType="VARCHAR" column="game_desc" />
+		<result property="gameType" jdbcType="VARCHAR" column="game_type" />
+		<result property="gameAttr" jdbcType="VARCHAR" column="game_attr" />
+		<result property="appTypeName" jdbcType="VARCHAR" column="type_attr_name" />		
+		<result property="loginCallBackUrl" jdbcType="VARCHAR" column="login_callback_url" />
+		<result property="payCallBackUrl" jdbcType="VARCHAR" column="pay_callback_url" />
+		<result property="testLoginCallBackUrl" jdbcType="VARCHAR" column="test_login_callback_url" />
+		<result property="testPayCallBackUrl" jdbcType="VARCHAR" column="test_pay_callback_url" />
+        <result property="registCallBackUrl" jdbcType="VARCHAR" column="regist_callback_url" />
+        <result property="testRegistCallBackUrl" jdbcType="VARCHAR" column="test_regist_callback_url" />
+	</resultMap>
+	<resultMap type="com.dome.sdkserver.metadata.entity.AppVo" id="appVoMap" extends="BaseResultMap">
+		<result property="copyRightFlag" jdbcType="INTEGER" column="game_copyright_flag" />
+		<result property="compareSoftwareUrl" jdbcType="VARCHAR" column="compare_software_url" />
+		<result property="developers" jdbcType="VARCHAR" column="developers" />
+		<result property="loginKey" jdbcType="VARCHAR" column="login_key" />
+		<result property="payKey" jdbcType="VARCHAR" column="pay_key" />
+		<result property="appKey2" jdbcType="VARCHAR" column="app_key2" />
+	</resultMap>
+	<sql id="Base_Column_List">
+	    app.app_id,
+		app.merchant_info_id,
+		app.app_name,
+		app.app_code,
+		app.app_icon,
+		app.app_url,
+		app.app_desc,
+		app.run_platform,
+ 		app.app_type,
+		app.app_key,
+		app.out_public_rsakey,
+		app.out_private_rsakey,
+		app.status,
+		app.remark,
+		app.del_flag,
+		app.create_ip,
+		app.auditor_id,
+		app.create_time,
+		app.white_list_ip,
+		app.update_time,
+		mert.merchant_full_name,
+		mert.merchant_code
+	  </sql>
+	  
+	  <sql id="Base_App_List">
+	 	app.app_id,
+		app.merchant_info_id,
+		app.app_name,
+		app.app_code,
+		app.app_icon,
+		app.app_url,
+		app.app_desc,
+		app.run_platform,
+ 		app.app_type, 
+		app.app_key,
+		app.out_public_rsakey,
+		app.out_private_rsakey,
+		app.status,
+		app.remark,
+		app.del_flag,
+		app.create_ip,
+		app.auditor_id,
+		app.white_list_ip,
+		app.create_time,
+		app.update_time,
+		app.test_app_key,
+		app.test_white_list_ip,
+		app.test_out_public_rsakey,
+		app.test_out_private_rsakey,
+		app.test_white_list_ip_login,
+		app.white_list_ip_login
+	  </sql>
+	
+	<update id="editMerchantAppInfoById">
+		update 
+			domesdk_app_info
+		set 
+			app_id = app_id
+		   <if test="entity.appCode != null and entity.appCode != ''">
+				,app_code = #{entity.appCode,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.appName != null and entity.appName != ''">
+				,app_name = #{entity.appName,jdbcType=VARCHAR}
+		   </if>	
+		   <if test="entity.appIcon != null and entity.appIcon != ''">
+				,app_icon = #{entity.appIcon,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.appUrl != null and entity.appUrl != ''">
+				,app_url = #{entity.appUrl,jdbcType=VARCHAR}
+		   </if>	
+		   <if test="entity.appDesc != null and entity.appDesc != ''">
+				,app_desc = #{entity.appDesc,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.appType != null and entity.appType != ''">
+				,app_type = #{entity.appType,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.runPlatform != null and entity.runPlatform != ''">
+				,run_platform = #{entity.runPlatform,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.status != null">
+				,status = #{entity.status,jdbcType=TINYINT}
+		   </if>
+		   <if test="entity.whiteListIp != null">
+				,white_list_ip = #{entity.whiteListIp,jdbcType=TINYINT}
+		   </if>
+		   <if test="entity.whiteListIpLogin != null and entity.whiteListIpLogin != '' ">
+				,white_list_ip_Login = #{entity.whiteListIpLogin,jdbcType=TINYINT}
+		   </if>
+		   <if test="entity.delFlag != null">
+				,del_flag = #{entity.delFlag,jdbcType=TINYINT}
+		   </if>		
+		   <if test="entity.remark != null and entity.remark != ''">
+				,remark = #{entity.remark,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.testAppKey != null and entity.testAppKey != ''">
+				,test_app_key = #{entity.testAppKey,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.testPublicRsakey != null and entity.testPublicRsakey != ''">
+				,test_out_public_rsakey = #{entity.testPublicRsakey,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.testPrivateRsakey != null and entity.testPrivateRsakey != ''">
+				,test_out_private_rsakey = #{entity.testPrivateRsakey,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.testWhiteListIp != null and entity.testWhiteListIp != ''">
+				,test_white_list_ip = #{entity.testWhiteListIp,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.testWhiteListIpLogin != null and entity.testWhiteListIpLogin != ''">
+				,test_white_list_ip_Login = #{entity.testWhiteListIpLogin,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.appKey != null and entity.appKey != ''">
+				,app_key = #{entity.appKey,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.outPublicRsakey != null and entity.outPublicRsakey != ''">
+				,out_public_rsakey = #{entity.outPublicRsakey,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.outPrivateRsakey != null and entity.outPrivateRsakey != ''">
+				,out_private_rsakey = #{entity.outPrivateRsakey,jdbcType=VARCHAR}
+		   </if>
+		where
+			app_id = #{entity.appId, jdbcType=INTEGER}
+	</update>
+	<select id="getAppCountByMertId" resultType="int">
+		select count(*)
+		from domesdk_app_info a, domesdk_app_type_attr t
+		
+		where a.merchant_info_id = #{merchantId} and a.del_flag=0 and a.app_type=t.type_attr_code and t.del_flag=0;
+	</select>
+	<!-- 合作伙伴页面访问的应用列表 -->
+	<select id="getAppListByMerchantId" resultMap="BaseResultMap">
+		select a.app_code, a.app_name, a.app_icon,
+		a.status, a.remark <!-- 驳回理由 -->, a.create_time, a.update_time,
+		a.del_flag, t.type_attr_name
+		from domesdk_app_info a, domesdk_app_type_attr t
+		
+		where a.merchant_info_id = #{merchantId} and a.del_flag=0 and a.app_type=t.type_attr_code and t.del_flag=0
+		order by a.update_time desc
+		<if test="p != null">
+			limit #{p.start}, #{p.pageSize}
+		</if>
+		;
+	</select>
+
+	<!-- 合并了手游、页游和h5 -->
+	<select id="getAppListByCondition" resultMap="appVoMap">
+		select * from (
+			select m.merchant_info_id, m.merchant_code, m.merchant_full_name, a.app_id, a.app_code, a.app_name, a.`status`, a.remark, a.create_time, a.update_time, a.app_desc,a.app_icon, a.app_url
+			,a.run_platform, a.app_type, a.game_type, a.game_attr, game_desc
+			,a.app_key, a.test_app_key,a.out_public_rsakey, a.out_private_rsakey, a.test_out_private_rsakey, a.test_out_public_rsakey
+			,a.login_callback_url, a.pay_callback_url, a.test_login_callback_url, a.test_pay_callback_url, a.regist_callback_url, a.test_regist_callback_url
+			, 0 as game_copyright_flag, '' as compare_software_url, '' as login_key, '' as pay_key, '' as app_key2, '' as developers
+			   from domesdk_merchant_info m, domesdk_app_info a where m.merchant_info_id=a.merchant_info_id and a.del_flag=0 and m.del_flag=0 and a.status not in (10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and a.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and a.app_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and a.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and a.status in (17, 50, 51)
+				</when>
+			</choose>
+			
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and a.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and a.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>			   
+			UNION 
+			select m.merchant_info_id, m.merchant_code, m.merchant_full_name, g.game_id as app_id, g.game_code as app_code, g.game_name as app_name, g.`status`, g.remark, g.create_time, g.update_time, g.game_desc as app_desc, g.game_icon as app_icon,'' as app_url
+			,'' as run_platform, '' as app_type, '' as game_type, '' as game_attr, '' as game_desc
+			,'' as app_key, '' as test_app_key, '' as out_public_rsakey, '' as out_private_rsakey, '' as test_out_private_rsakey, '' as test_out_public_rsakey
+			,'' as login_callback_url, g.pay_callback_url as pay_callback_url, '' as test_login_callback_url, '' as test_pay_callback_url, '' as  regist_callback_url, '' as test_regist_callback_url
+			, 0 as game_copyright_flag, '' as compare_software_url, '' as login_key, '' as pay_key, '' as app_key2, '' as developers
+			from domesdk_merchant_info m, domesdk_yeyou_game g where m.del_flag=0 and g.del_flag=0 
+			and m.merchant_user_id=g.user_id and g.status not in (10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and g.status in (17, 50, 51)
+				</when>
+			</choose>
+			
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>
+			union 
+			select m.merchant_info_id, m.merchant_code, m.merchant_full_name, g.game_id as app_id
+			,g.game_code as app_code, g.game_name as app_name, g.`status`, g.remark, g.create_time, g.update_time, g.game_desc as app_desc, g.game_icon as app_icon, g.game_url as app_url
+			,'' as run_platform, '' as app_type, g.game_type as game_type, '' as game_attr, '' as game_desc
+			,'' as app_key, '' as test_app_key, '' as out_public_rsakey, '' as out_private_rsakey, '' as test_out_private_rsakey, '' as test_out_public_rsakey
+			,'' as login_callback_url, g.pay_callback_url as pay_callback_url, '' as test_login_callback_url, '' as test_pay_callback_url, '' as  regist_callback_url, '' as test_regist_callback_url
+			, g.game_copyright_flag, g.compare_software_url, g.login_key, g.pay_key, g.app_key as app_key2, g.developers as developers
+			  from domesdk_merchant_info m, 
+			(select a.game_id, a.game_code, a.game_name, a.`status`, a.remark, a.create_time, a.update_time, a.game_desc, a.game_icon, a.game_url
+			, a.game_copyright_flag, a.compare_software_url, a.game_type, k.login_key, k.pay_key, k.app_key, a.user_id, a.developers, a.pay_callback_url from domesdk_h5_game a left join domesdk_h5_key k on a.game_id=k.game_id where (k.del_flag=0 or k.del_flag is null) and a.del_flag=0 and a.status not in (10)
+			) g
+			where m.del_flag=0 and m.merchant_user_id=g.user_id 
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and g.status in (17, 50, 51)
+				</when>
+			</choose>
+			
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>
+		) t
+		order by t.update_time desc
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<select id="getAppInfoCountByCondition" resultType="java.lang.Integer">
+		select count(*) from (
+			select m.merchant_code, m.merchant_full_name, a.app_code, a.app_name, a.`status`, a.update_time  from domesdk_merchant_info m, domesdk_app_info a where m.merchant_info_id=a.merchant_info_id and a.del_flag=0 and m.del_flag=0
+			and a.status not in (10) <!-- 保存的应用不展示 -->
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and a.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and a.app_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and a.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and a.status in (17, 50, 51)
+				</when>
+			</choose>
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and a.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and a.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>
+			UNION 
+			select m.merchant_code, m.merchant_full_name, g.game_code as app_code, g.game_name as app_name, g.`status`, g.update_time  from domesdk_merchant_info m, domesdk_yeyou_game g where m.del_flag=0 and g.del_flag=0 
+			and m.merchant_user_id=g.user_id and g.status not in (10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and g.status in (17, 50, 51)
+				</when>
+			</choose>
+			
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>
+			union 
+			select m.merchant_code, m.merchant_full_name, g.game_code as app_code, g.game_name as app_name, g.`status`, g.update_time  from domesdk_merchant_info m, domesdk_h5_game g where m.del_flag=0 and g.del_flag=0 
+			and m.merchant_user_id=g.user_id and g.status not in (10)
+			<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+				and g.game_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+			</if>
+			<if test="entity.appCode != null and entity.appCode != ''">
+				and g.game_code = #{entity.appCode, jdbcType=VARCHAR}
+			</if>
+			<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+				and m.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+			</if>
+			<choose>
+				<when test="entity.status != null and entity.status != 0 and entity.status != 17">
+					
+					and g.status = #{entity.status, jdbcType=TINYINT}
+				</when>
+				<when test="entity.status == 17">
+					and g.status in (17, 50, 51)
+				</when>
+			</choose>
+			
+			<if test="entity.merchantCode != null and entity.merchantCode != ''">
+				and m.merchant_code = #{entity.merchantCode}
+			</if>
+			<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+				<![CDATA[
+					and g.update_time >= concat(#{entity.applyStartDate, jdbcType=VARCHAR}, ' 00:00:00')
+				]]>
+			</if>
+			<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+				<![CDATA[
+					and g.update_time <= concat(#{entity.applyEndDate, jdbcType=VARCHAR}, ' 23:59:59')
+				]]>
+			</if>) t
+	</select>
+	
+	<select id="getAppById" resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_App_List" />
+		FROM 
+			domesdk_app_info app
+		WHERE
+			1=1
+		and
+			app.del_flag = 0
+		and
+			app.app_id = #{appId, jdbcType=INTEGER}
+	</select>
+	
+	<select id="getAppByIdAndMertId" resultMap="BaseResultMap">
+		SELECT
+			*
+		FROM 
+			domesdk_app_info app
+		WHERE
+			1=1
+		and
+			app.del_flag = 0
+		and
+			app.merchant_info_id = #{merchantId, jdbcType=INTEGER}
+		and
+			app.app_id = #{appId, jdbcType=INTEGER}
+	</select>
+	
+	<!-- 根据商户id查询app列表 -->
+	<select id="getNewAppListByMerchantId" parameterType="long" resultMap="BaseResultMap">
+		SELECT
+			app.app_name,
+			app.app_code
+		FROM 
+			domesdk_app_info app
+		WHERE
+			app.del_flag = 0 and app.status=6
+		<if test="merchantId != null">
+			and app.merchant_info_id = #{merchantId, jdbcType=INTEGER}
+		</if>
+		;
+	</select>
+
+	<select id="getNewAppByIdAndMertId" resultMap="BaseResultMap">
+		SELECT
+				 	app.app_id,
+			app.merchant_info_id,
+			app.app_name,
+			app.app_code,
+			app.app_icon,
+			app.app_url,
+			app.app_desc,
+			app.run_platform, 
+			
+			app.status,
+			t.type_attr_name as app_type
+		FROM 
+			domesdk_app_info app left join domesdk_app_type_attr t on app.app_type=t.type_attr_code
+		WHERE
+			app.del_flag = 0 and app.status=6  and t.del_flag=0
+		<if test="merchantId != null">
+			and app.merchant_info_id = #{merchantId, jdbcType=INTEGER}
+		</if>
+		
+		and
+			app.app_code = #{appCode, jdbcType=INTEGER};
+	</select>
+	
+	<update id="updateAppCode">
+		update domesdk_app_info set app_code=#{appCode} where app_id=#{appId};
+	</update>
+
+	<insert id="addApp" parameterType="MerchantAppInfo">
+				insert into domesdk_app_info(
+				 merchant_info_id
+				 <if test="appCode != null">
+					,app_code
+				</if>
+				,app_name
+				,app_type, game_type, game_attr
+				,app_icon
+				,app_url
+				,run_platform
+ 				
+				,app_desc, game_desc
+				<if test="appKey != null">
+					,app_key
+				</if>
+				<if test="testAppKey != null">
+					,test_app_key
+				</if>
+
+				<if test="outPrivateRsakey != null">
+					,out_private_rsakey
+				</if>
+				<if test="outPublicRsakey != null">
+					,out_public_rsakey
+				</if>
+				<if test="testPrivateRsakey != null">
+					,test_out_private_rsakey
+				</if>
+				<if test="testPublicRsakey != null">
+					,test_out_public_rsakey
+				</if>
+  				<if test="whiteListIp != null">
+					,white_list_ip
+				</if>
+				<if test="whiteListIpLogin != null">
+					,white_list_ip_Login
+				</if>
+				<if test="testWhiteListIp != null">
+					,test_white_list_ip
+				</if>
+				<if test="testWhiteListIpLogin != null">
+					,test_white_list_ip_Login
+				</if>
+				<if test="remark != null">
+					,remark
+				</if>
+				,status
+				
+				,del_flag
+				<if test="createIp != null">
+					,create_ip
+				</if>
+				<if test="auditorId != null">
+					,auditor_id
+				</if>
+				,update_time
+				,create_time
+				<if test="loginCallBackUrl != null">
+					,login_callback_url
+				</if>
+				<if test="payCallBackUrl != null">
+					,pay_callback_url
+				</if>
+				<if test="testLoginCallBackUrl != null">
+					,test_login_callback_url
+				</if>
+				<if test="testPayCallBackUrl != null">
+					,test_pay_callback_url
+				</if>
+		                <!--注册回调地址-->
+		                <if test="registCallBackUrl != null">
+		                    ,regist_callback_url
+		                </if>
+		                <if test="testRegistCallBackUrl != null">
+		                    ,test_regist_callback_url
+		                </if>
+			) values (
+			    #{merchantInfoId,jdbcType=INTEGER}
+			    <if test="appCode != null">
+					,#{appCode,jdbcType=VARCHAR}
+				</if>
+			    ,#{appName,jdbcType=VARCHAR},#{appType,jdbcType=VARCHAR}, #{gameType}, #{gameAttr}
+			    ,#{appIcon,jdbcType=VARCHAR}
+			    ,#{appUrl,jdbcType=VARCHAR}
+			    ,#{runPlatform,jdbcType=VARCHAR}
+			    
+			    ,#{appDesc,jdbcType=VARCHAR}, #{gameDesc}
+			    <if test="appKey != null">
+					,#{appKey,jdbcType=VARCHAR}
+				</if>
+				<if test="testAppKey != null">
+					,#{testAppKey,jdbcType=VARCHAR}
+				</if>
+
+				<if test="outPrivateRsakey != null">
+					,#{outPrivateRsakey,jdbcType=VARCHAR}
+				</if>
+				<if test="outPublicRsakey != null">
+					,#{outPublicRsakey}
+				</if>
+				<if test="testPrivateRsakey != null">
+					,#{testPrivateRsakey}
+				</if>
+				<if test="testPublicRsakey != null">
+					,#{testPublicRsakey}
+				</if>
+  				<if test="whiteListIp != null">
+					,#{whiteListIp}
+				</if>
+				<if test="whiteListIpLogin != null">
+					,#{whiteListIpLogin}
+				</if>
+				<if test="testWhiteListIp != null">
+					,#{testWhiteListIp}
+				</if>
+				<if test="testWhiteListIpLogin != null">
+					,#{testWhiteListIpLogin}
+				</if>
+				<if test="remark != null">
+					,#{remark}
+				</if>
+			    ,#{status}
+				
+			    ,0
+			    <if test="createIp != null">
+					,#{createIp,jdbcType=VARCHAR}
+				</if>
+				<if test="auditorId != null">
+					,#{auditorId,jdbcType=VARCHAR}
+				</if>
+				,now()
+			    ,now()
+			    <if test="loginCallBackUrl != null">
+					,#{loginCallBackUrl}
+				</if>
+				<if test="payCallBackUrl != null">
+					,#{payCallBackUrl}
+				</if>
+				<if test="testLoginCallBackUrl != null">
+					,#{testLoginCallBackUrl}
+				</if>
+				<if test="testPayCallBackUrl != null">
+					,#{testPayCallBackUrl}
+				</if>
+		                <!--注册回调地址-->
+		                <if test="registCallBackUrl != null">
+		                    ,#{registCallBackUrl}
+		                </if>
+		                <if test="testRegistCallBackUrl != null">
+		                    ,#{testRegistCallBackUrl}
+		                </if>
+			)
+		<selectKey resultType="int" keyProperty="appId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		 </selectKey>
+	</insert>
+	
+	<update id="updateApp" parameterType="MerchantAppInfo">
+		update domesdk_app_info set
+			update_time=now()
+			<if test="appType != null">
+				,app_type=#{appType}
+			</if>
+			<if test="gameType != null">
+				,game_type=#{gameType}
+			</if>
+			<if test="gameAttr != null">
+				,game_attr=#{gameAttr}
+			</if>
+			<if test="runPlatform != null">
+				,run_platform=#{runPlatform}
+			</if>
+			<if test="appName != null">
+				,app_name=#{appName}
+			</if>
+			<if test="appIcon != null">
+				,app_icon=#{appIcon}
+			</if>
+			<if test="appUrl != null">
+				,app_url=#{appUrl}
+			</if>
+			<if test="appDesc != null">
+				,app_desc=#{appDesc}
+			</if>
+			<if test="gameDesc != null">
+				,game_desc=#{gameDesc}
+			</if>
+			<if test="status != null">
+				,status=#{status}
+			</if>
+			<if test="delFlag != null">
+				,del_flag=1
+			</if>
+			<if test="remark != null"> <!-- 驳回理由 -->
+				,remark=#{remark}
+			</if>
+			<!-- 登陆和支付回调地址 -->
+			<if test="loginCallBackUrl != null">
+				,login_callback_url=#{loginCallBackUrl}
+			</if>
+			<if test="payCallBackUrl != null">
+				,pay_callback_url=#{payCallBackUrl}
+			</if>
+			<if test="testLoginCallBackUrl != null">
+				,test_login_callback_url=#{testLoginCallBackUrl}
+			</if>
+			<if test="testPayCallBackUrl != null">
+				,test_pay_callback_url=#{testPayCallBackUrl}
+			</if>
+	            	<!--注册回调地址-->
+	            	<if test="registCallBackUrl != null">
+	                	,regist_callback_url = #{registCallBackUrl}
+	            	</if>
+	            	<if test="testRegistCallBackUrl != null">
+	                	,test_regist_callback_url = #{testRegistCallBackUrl}
+	            	</if>
+			<if test="appKey != null">
+				,app_key=#{appKey}
+			</if>
+			<if test="testAppKey != null">
+				,test_app_key=#{testAppKey}
+			</if>
+
+			<if test="outPrivateRsakey != null">
+				,out_private_rsakey=#{outPrivateRsakey}
+			</if>
+			<if test="outPublicRsakey != null">
+				,out_public_rsakey=#{outPublicRsakey}
+			</if>
+			<if test="testPrivateRsakey != null">
+				,test_out_private_rsakey=#{testPrivateRsakey}
+			</if>
+			<if test="testPublicRsakey != null">
+				,test_out_public_rsakey=#{testPublicRsakey}
+			</if>
+		<where>
+			<if test="appId != null">
+				and app_id = #{appId}
+			</if>
+			<if test="appCode != null">
+				and app_code = #{appCode}
+			</if>
+		</where>
+	</update>
+
+	<update id="updateAppStatus">
+		update domesdk_app_info set update_time=now(),
+			status=#{status}
+		where del_flag=0 and app_id = #{appId};
+			 
+	</update>
+	
+	<select id="queryApp" resultMap="BaseResultMap">
+		select a.app_id, a.app_code, a.app_name, a.app_desc, a.game_desc,
+			a.app_icon, a.app_url, a.run_platform,
+			a.app_type, a.game_type, a.game_attr, a.del_flag,
+			a.status, a.remark <!-- 驳回理由 -->, a.update_time, a.create_time,
+			login_callback_url, pay_callback_url, test_login_callback_url, test_pay_callback_url, regist_callback_url, test_regist_callback_url,
+			m.merchant_info_id, m.merchant_code, m.merchant_full_name, m.merchant_user_id,
+			t.type_attr_name,
+			a.app_key, a.test_app_key, a.out_public_rsakey, a.out_private_rsakey, a.test_out_public_rsakey, a.test_out_private_rsakey
+		from domesdk_app_info a, domesdk_merchant_info m, domesdk_app_type_attr t
+		where a.app_code=#{appCode} and a.app_type=t.type_attr_code and a.merchant_info_id=m.merchant_info_id;
+	</select>
+	
+	<!-- 以下为应用后台管理接口，面向运营人员审批等 -->
+	<update id="updateMgrAppStatus" parameterType="MerchantAppInfo">
+		update domesdk_app_info set update_time=now()
+		<choose>
+			<when test="status ==1">
+				, status=#{status}, has_shelf=1
+			</when>
+			<otherwise>
+				, status=#{status}
+			</otherwise>
+		</choose>
+		<if test="remark!=null and remark!=''">
+			,remark=#{remark}
+		</if>
+		where del_flag=0
+			<if test="appId != null">
+				and app_id = #{appId}
+			</if>
+			<if test="appCode != null">
+				and app_code = #{appCode}
+			</if>
+		;
+	</update>
+	
+	<select id="queryAppByName" resultMap="BaseResultMap">
+		select * from domesdk_app_info a where a.merchant_info_id=#{merchantId} and a.app_name=#{name} and 
+			a.del_flag=0 and game_type=#{gameType};
+	</select>
+	
+	<insert id="saveAppChannel">
+		insert into domesdk_app_channel (app_code, channel_type, del_flag, create_time, update_time) values (#{appCode, jdbcType=VARCHAR}, #{channel, jdbcType=VARCHAR},
+			0, now(), now());
+	</insert>
+	
+	<select id="queryAppChannel" resultType="hashmap">
+		select channel_type from domesdk_app_channel where app_code=#{appCode} and del_flag=0 order by channel_type;
+	</select>
+	
+	<delete id="delAppChannel">
+		delete from domesdk_app_channel where app_code=#{appCode};
+	</delete>
+	
+	<delete id="deleteApp">
+		delete from domesdk_app_info where app_code=#{appCode};
+	</delete>
+	
+	<update id="modfiyCallbackUrl">
+	    update domesdk_app_info set update_time=now()
+	      		<if test="app.loginCallBackUrl != null and app.loginCallBackUrl !=''">
+					,login_callback_url=#{app.loginCallBackUrl}
+				</if>
+				<if test="app.testLoginCallBackUrl != null and app.testLoginCallBackUrl !=''">
+					,test_login_callback_url=#{app.testLoginCallBackUrl}
+				</if>
+				<if test="app.payCallBackUrl != null and app.payCallBackUrl !=''">
+					,pay_callback_url=#{app.payCallBackUrl}
+				</if>
+				<if test="app.testPayCallBackUrl != null and app.testPayCallBackUrl !=''">
+					,test_pay_callback_url=#{app.testPayCallBackUrl}
+				</if>
+                <if test="app.registCallBackUrl != null and app.registCallBackUrl != ''">
+                    ,regist_callback_url = #{app.registCallBackUrl}
+                </if>
+                <if test="app.testRegistCallBackUrl != null and app.testRegistCallBackUrl != ''">
+                    ,test_regist_callback_url = #{app.testRegistCallBackUrl}
+                </if>
+				 where app_code=#{app.appCode} and del_flag=0;
+	</update>
+
+
+
+</mapper>

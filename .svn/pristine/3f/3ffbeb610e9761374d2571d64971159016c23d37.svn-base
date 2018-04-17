@@ -1,0 +1,35 @@
+数据统计功能
+app_tren.jsp
+statistic_overview.jsp
+user_access.jsp
+user_activity.jsp
+user_keep.jsp
+user_pay.jsp
+
+首页 app/index
+index.jsp
+#/dist/html目录下的页面文件
+add_detail          查看应用详情页面
+add_edit            编辑应用
+addApp              新增应用
+appList             应用列表
+forgetPass          忘记密码
+index               新增企业应用  流程一
+login               登陆页面
+management          包体上传页面
+phoneVail           注册页面，手机验证
+point               计费点管理
+registered          注册账号首页
+registeredSuccess   注册账号成功页
+reset-application   重新提交应用页面
+resetPassword       修改密码
+review              提交应用，审核结果页
+setPassPhone        忘记密码，设置密码
+setPassword         注册账号,设置密码
+submit-application  提交申请
+waiting             等待审核
+
+2016-11-03
+除了首页和联合登录、支付、用户中心和联系我们页面是jsp开发
+渠道系统、数据查询、商户注册、应用页面都在dist目录下面
+

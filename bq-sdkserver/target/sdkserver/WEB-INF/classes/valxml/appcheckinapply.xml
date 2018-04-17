@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fields>
+	<field attr="appCode">
+		<text>应用编码</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30009</code>
+		</check-null>
+		<check-length>
+			<max-length>18</max-length>
+			<code>30010</code>
+		</check-length>
+		
+	</field>
+	
+	<!-- <field attr="appType">
+		<text>应用类型</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30011</code>
+		</check-null>
+		<check-length>
+			<max-length>2</max-length>
+			<code>30012</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>30012</code>
+		</check-exp>
+	</field> -->
+	
+	<field attr="whiteListIp">
+		<text>白名单</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30013</code>
+		</check-null>
+		<check-length>
+			<max-length>250</max-length>
+			<code>30014</code>
+		</check-length>
+	</field>
+	
+	<field attr="oauthChecked">
+		<text>联合登录复选框</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>30015</code>
+		</check-null>
+		<check-length>
+			<max-length>1</max-length>
+			<code>30016</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>30016</code>
+		</check-exp>
+	</field>
+	
+	<field attr="payChecked">
+		<text>统一支付复选框</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>30017</code>
+		</check-null>
+		<check-length>
+			<max-length>1</max-length>
+			<code>30018</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>30018</code>
+		</check-exp>
+	</field>
+</fields>

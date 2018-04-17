@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.NewOpenChannelMapper" >
+  <resultMap id="BaseResultMap" type="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChannel" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="channel_code" property="channelCode" jdbcType="VARCHAR" />
+    <result column="channel_name" property="channelName" jdbcType="VARCHAR" />
+    <result column="note" property="note" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, channel_code, channel_name, note
+  </sql>
+  <select id="isChannelExist" resultType="boolean" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChannel" >
+    select count(1)
+    from sdk_new_open_channel
+    where channel_code = #{channelCode,jdbcType=VARCHAR}
+  </select>
+
+  <insert id="insertSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChannel" >
+    insert into sdk_new_open_channel
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="channelCode != null" >
+        channel_code,
+      </if>
+      <if test="channelName != null" >
+        channel_name,
+      </if>
+      <if test="note != null" >
+        note,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="channelCode != null" >
+        #{channelCode,jdbcType=VARCHAR},
+      </if>
+      <if test="channelName != null" >
+        #{channelName,jdbcType=VARCHAR},
+      </if>
+      <if test="note != null" >
+        #{note,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByChannelCodeSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChannel" >
+    update sdk_new_open_channel
+    <set >
+      <if test="channelName != null" >
+        channel_name = #{channelName,jdbcType=VARCHAR},
+      </if>
+      <if test="note != null" >
+        note = #{note,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where channel_code = #{channelCode,jdbcType=VARCHAR}
+  </update>
+
+  <select id="selectByChannelCode" resultMap="BaseResultMap" parameterType="string" >
+    select <include refid="Base_Column_List"/>
+    from sdk_new_open_channel
+    where channel_code = #{channelCode,jdbcType=VARCHAR} limit 1
+  </select>
+
+</mapper>

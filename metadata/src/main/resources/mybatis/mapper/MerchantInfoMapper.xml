@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.MerchantInfoMapper">
+
+	<resultMap type="MerchantInfo" id="BaseResultMap">
+		<id property="merchantInfoId" jdbcType="INTEGER" column="merchant_info_id" />
+		<result property="merchantFullName" jdbcType="VARCHAR" column="merchant_full_name" />
+		<result property="merchantCode" jdbcType="VARCHAR" column="merchant_code" />
+		<result property="merchantUrl" jdbcType="VARCHAR" column="merchant_url" />
+		<result property="contacts" jdbcType="VARCHAR" column="contacts" />
+		<result property="mobilePhoneNum" jdbcType="VARCHAR" column="mobile_phone_num" />
+		<result property="phoneAreaNum" jdbcType="VARCHAR" column="phone_area_num" />
+		<result property="phoneNum" jdbcType="VARCHAR" column="phone_num" />
+		<result property="registAmount" jdbcType="VARCHAR" column="regist_amount" />
+		<result property="merchantType" jdbcType="VARCHAR" column="merchant_type" />
+		<result property="isListed" jdbcType="INTEGER" column="is_listed" />
+		<result property="orgNum" jdbcType="VARCHAR" column="org_num" />
+		<result property="orgImageUrl" jdbcType="VARCHAR" column="org_image_url" />
+		<result property="licenceNum" jdbcType="VARCHAR" column="licence_num" />
+		<result property="licenceImageUrl" jdbcType="VARCHAR" column="licence_image_url" />
+		<result property="legalName" jdbcType="VARCHAR" column="legal_name" />
+		<result property="legalImageUrl" jdbcType="VARCHAR" column="legal_image_url" />
+		<result property="qqNum" jdbcType="VARCHAR" column="qq_num" />
+		<result property="merchantRegType" jdbcType="TINYINT" column="merchant_reg_type" />
+		<result property="merchantIntro" jdbcType="VARCHAR" column="merchant_intro" />
+		<result property="userId" jdbcType="INTEGER" column="merchant_user_id" />
+		<result property="applyUserAccount" jdbcType="VARCHAR" column="apply_user_account" />
+		<result property="status" jdbcType="TINYINT" column="status" />
+		<result property="remark" jdbcType="VARCHAR" column="remark" />
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag" />
+		<result property="createIp" jdbcType="VARCHAR" column="create_ip" />
+		<result property="auditorId" jdbcType="INTEGER" column="auditor_id" />
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time" />
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time" />
+		<result property="taxRegistNo" jdbcType="VARCHAR" column="tax_regist_no" />
+		<result property="taxRegistUrl" jdbcType="VARCHAR" column="tax_regist_url" />
+		<result property="networkCultureNo" jdbcType="VARCHAR" column="network_culture_no" />
+		<result property="networkCultureUrl" jdbcType="VARCHAR" column="network_culture_url" />
+		<result property="compareSoftwareNo" jdbcType="VARCHAR" column="compare_software_no" />
+		<result property="compareSoftwareUrl" jdbcType="VARCHAR" column="compare_software_url" />
+		<result property="email" jdbcType="VARCHAR" column="email" />
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+	    mert.merchant_info_id,
+		mert.merchant_full_name,
+		mert.merchant_code,
+		mert.merchant_url,
+		mert.contacts,
+		mert.mobile_phone_num,
+		mert.phone_area_num,
+		mert.phone_num,
+		mert.regist_amount,
+		mert.merchant_type,
+		mert.is_listed,
+		mert.org_num,
+		mert.org_image_url,
+		mert.licence_num,
+		mert.licence_image_url,
+		mert.legal_name,
+		mert.legal_image_url,
+		mert.qq_num,
+		mert.merchant_reg_type,
+		mert.merchant_intro,
+		mert.merchant_user_id,
+		mert.apply_user_account,
+		mert.status,
+		mert.remark,
+		mert.del_flag,
+		mert.create_ip,
+		mert.auditor_id,
+		mert.create_time,
+		mert.update_time,
+		mert.email,mert.tax_regist_no, mert.tax_regist_url,mert.network_culture_no, mert.network_culture_url,
+		mert.compare_software_no, mert.compare_software_url
+	  </sql>
+	
+	<select id="getMerchantInfoListByCondition" resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+		FROM 
+			domesdk_merchant_info mert
+		WHERE
+			1=1
+		and
+			mert.del_flag = 0
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mert.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.mobilePhoneNum != null and entity.mobilePhoneNum != ''">
+			and mert.mobile_phone_num = #{entity.mobilePhoneNum, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.contacts != null and entity.contacts != ''">
+			and mert.contacts=#{entity.contacts, jdbcType=VARCHAR} <!--去掉联系人模糊查询like concat('%',#{entity.contacts, jdbcType=VARCHAR},'%')-->
+		</if>
+		<choose>
+			<when test="entity.status != null and entity.status != 0">
+				and mert.status = #{entity.status, jdbcType=TINYINT}
+			</when>
+			<otherwise>
+				and mert.status in (1, 2) <!-- 只展示待审核和已审核的数据 -->
+			</otherwise>
+		</choose>
+		
+		<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+			<![CDATA[
+				and mert.update_time >= concat(DATE_FORMAT(#{entity.applyStartDate, jdbcType=VARCHAR}, '%Y-%m-%d'),' 00:00:00')
+			]]>
+		</if>
+		<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+			<![CDATA[
+				and mert.update_time <= concat(DATE_FORMAT(#{entity.applyEndDate, jdbcType=VARCHAR}, '%Y-%m-%d'),' 23:59:59')
+			]]>
+		</if>
+		order by status asc, update_time desc <!-- 待审核数据在前，然后是已审核的数据 -->
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	
+	<select id="getCountByCondition" resultType="java.lang.Integer">
+		SELECT
+			count(1)
+		FROM 
+			domesdk_merchant_info mert
+		WHERE
+			1=1
+		and
+			mert.del_flag = 0
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mert.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.mobilePhoneNum != null and entity.mobilePhoneNum != ''">
+			and mert.mobile_phone_num = #{entity.mobilePhoneNum, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.contacts != null and entity.contacts != ''">
+			and mert.contacts like concat('%',#{entity.contacts, jdbcType=VARCHAR},'%')
+		</if>
+		<choose>
+			<when test="entity.status != null and entity.status != 0">
+				and mert.status = #{entity.status, jdbcType=TINYINT}
+			</when>
+			<otherwise>
+				and mert.status in (1, 2) <!-- 只展示待审核和已审核的数据 -->
+			</otherwise>
+		</choose>
+		<if test="entity.applyStartDate != null and entity.applyStartDate != ''">
+			<![CDATA[
+				and mert.update_time >= concat(DATE_FORMAT(#{entity.applyStartDate, jdbcType=VARCHAR}, '%Y-%m-%d'),' 00:00:00')
+			]]>
+		</if>
+		<if test="entity.applyEndDate != null and entity.applyEndDate != ''">
+			<![CDATA[
+				and mert.update_time <= concat(DATE_FORMAT(#{entity.applyEndDate, jdbcType=VARCHAR}, '%Y-%m-%d'),' 23:59:59')
+			]]>
+		</if>
+	</select>
+	
+	<select id="getMerchantInfoById" resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+		FROM 
+			domesdk_merchant_info mert
+		WHERE
+			1=1
+		and
+			mert.del_flag = 0
+		and
+			mert.merchant_info_id = #{mertchantId, jdbcType=INTEGER}
+	</select>
+	
+	<select id="getMerchantInfoByCode" resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+		FROM 
+			domesdk_merchant_info mert
+		WHERE
+			1=1
+		and
+			mert.del_flag = 0
+		and
+			mert.merchant_code = #{merchantCode}
+	</select>
+	
+	<update id="editMerchantInfoByCode">
+		update 
+			domesdk_merchant_info
+		set 
+			update_time=now()
+		   <if test="entity.status != null">
+				,status = #{entity.status,jdbcType=TINYINT}
+		   </if>	
+		   <if test="entity.remark != null and entity.remark != ''">
+				,remark = #{entity.remark,jdbcType=VARCHAR}
+		   </if>
+		where del_flag=0
+			<if test="entity.merchantCode != null">
+				and merchant_code = #{entity.merchantCode}
+			</if>
+			 ;
+	</update>
+	
+	<update id="updateMerchantCode">
+		update 
+			domesdk_merchant_info
+		set 
+			merchant_code = #{merchantCode}
+		where
+			merchant_info_id=#{merchantId}
+			 ;
+	</update>
+	<insert id="addMerchantInfo" parameterType="com.dome.sdkserver.bo.MerchantInfo">
+		insert into
+			domesdk_merchant_info(
+				 merchant_full_name
+				,merchant_code
+				,merchant_url
+				,contacts
+				,mobile_phone_num
+				,phone_area_num
+				,phone_num
+				,regist_amount
+				,merchant_type
+				,is_listed
+				,org_num
+				,org_image_url
+				,licence_num
+				,licence_image_url
+				,legal_name
+				,legal_image_url
+				,qq_num
+				,merchant_reg_type
+				,merchant_intro
+				,merchant_user_id
+				,apply_user_account
+				,status
+				<!-- ,remark  -->
+				,del_flag
+				,create_ip
+				,auditor_id
+				,create_time
+				,update_time
+  				,tax_regist_no, tax_regist_url, compare_software_no, compare_software_url,email
+  			<if test="entity.networkCultureNo != null">
+  				,network_culture_no
+  			</if>
+  			<if test="entity.networkCultureUrl != null">
+  				,network_culture_url
+  			</if>
+			) values (
+			     #{entity.merchantFullName,jdbcType=VARCHAR}
+			    ,#{entity.merchantCode,jdbcType=VARCHAR}
+			    ,#{entity.merchantUrl,jdbcType=VARCHAR}
+			    ,#{entity.contacts,jdbcType=VARCHAR}
+			    ,#{entity.mobilePhoneNum,jdbcType=VARCHAR}
+			    ,#{entity.phoneAreaNum,jdbcType=VARCHAR}
+			    ,#{entity.phoneNum,jdbcType=VARCHAR}
+			    ,#{entity.registAmount,jdbcType=VARCHAR}
+			    ,#{entity.merchantType,jdbcType=VARCHAR}
+			    ,#{entity.isListed,jdbcType=VARCHAR}
+			    ,#{entity.orgNum,jdbcType=VARCHAR}
+			    ,#{entity.orgImageUrl,jdbcType=VARCHAR}
+			    ,#{entity.licenceNum,jdbcType=VARCHAR}
+			    ,#{entity.licenceImageUrl,jdbcType=VARCHAR}
+			    ,#{entity.legalName,jdbcType=VARCHAR}
+			    ,#{entity.legalImageUrl,jdbcType=VARCHAR}
+			    ,#{entity.qqNum,jdbcType=VARCHAR}
+			    ,#{entity.merchantRegType,jdbcType=VARCHAR}
+			    ,#{entity.merchantIntro,jdbcType=VARCHAR}
+			    ,#{entity.userId,jdbcType=INTEGER}
+			    ,#{entity.applyUserAccount,jdbcType=VARCHAR}
+			    ,#{entity.status,jdbcType=VARCHAR}
+			    <!-- ,#{entity.remark,jdbcType=VARCHAR}  -->
+			    ,#{entity.delFlag,jdbcType=VARCHAR}
+			    ,#{entity.createIp,jdbcType=VARCHAR}
+			    ,#{entity.auditorId,jdbcType=VARCHAR}
+			    ,now()
+			    ,now()
+			    ,#{entity.taxRegistNo}, #{entity.taxRegistUrl}, #{entity.compareSoftwareNo}, #{entity.compareSoftwareUrl}
+			    ,#{entity.email}
+  			<if test="entity.networkCultureNo != null">
+  				,#{entity.networkCultureNo}
+  			</if>
+  			<if test="entity.networkCultureUrl != null">
+  				,#{entity.networkCultureUrl}
+  			</if>
+			)
+		<selectKey resultType="int" keyProperty="entity.merchantInfoId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		 </selectKey> 	
+	</insert>
+	<!--根据用户ID获取商户信息-->
+	<select id="getMerchantInfoByUserId" resultMap="BaseResultMap">
+		SELECT
+			<include refid="Base_Column_List" />
+		FROM 
+			domesdk_merchant_info mert
+		WHERE
+			1=1
+		and
+			mert.del_flag = 0
+		and
+			mert.merchant_user_id = #{userId, jdbcType=INTEGER}
+	</select>
+	
+	<update id="editMerchantInfo">
+		update 
+			domesdk_merchant_info
+		set 
+			update_time=now(), remark=''
+		   <if test="entity.merchantFullName != null">
+				,merchant_full_name = #{entity.merchantFullName,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.merchantUrl != null">
+				,merchant_url = #{entity.merchantUrl,jdbcType=VARCHAR}
+		   </if>	
+		   <if test="entity.contacts != null">
+				,contacts = #{entity.contacts,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.mobilePhoneNum != null">
+				,mobile_phone_num = #{entity.mobilePhoneNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.phoneAreaNum != null">
+				,phone_area_num = #{entity.phoneAreaNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.phoneNum != null">
+				,phone_num = #{entity.phoneNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.registAmount != null">
+				,regist_amount = #{entity.registAmount,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.merchantType != null">
+				,merchant_type = #{entity.merchantType,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.isListed != null">
+				,is_listed = #{entity.isListed,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.orgNum != null">
+				,org_num = #{entity.orgNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.orgImageUrl != null">
+				,org_image_url = #{entity.orgImageUrl,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.licenceNum != null">
+				,licence_num = #{entity.licenceNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.licenceImageUrl != null">
+				,licence_image_url = #{entity.licenceImageUrl,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.legalName != null">
+				,legal_name = #{entity.legalName,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.legalImageUrl != null">
+				,legal_image_url = #{entity.legalImageUrl,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.qqNum != null">
+				,qq_num = #{entity.qqNum,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.merchantRegType != null">
+				,merchant_reg_type = #{entity.merchantRegType,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.merchantIntro != null">
+				,merchant_intro = #{entity.merchantIntro,jdbcType=VARCHAR}
+		   </if>
+		   <if test="entity.status != null">
+				,status = #{entity.status,jdbcType=TINYINT}
+		   </if>
+  			<if test="entity.networkCultureNo != null">
+  				,tax_regist_no=#{entity.taxRegistNo}
+  			</if>
+  			<if test="entity.networkCultureUrl != null">
+  				,tax_regist_url=#{entity.taxRegistUrl}
+  			</if>
+		   <if test="entity.networkCultureNo != null">
+  				,network_culture_no=#{entity.networkCultureNo}
+  			</if>
+  			<if test="entity.networkCultureUrl != null">
+  				,network_culture_url=#{entity.networkCultureUrl}
+  			</if>
+  			<if test="entity.networkCultureNo != null">
+  				,compare_software_no=#{entity.compareSoftwareNo}
+  			</if>
+  			<if test="entity.networkCultureUrl != null">
+  				,compare_software_url=#{entity.compareSoftwareUrl}
+  			</if>
+  			<if test="entity.email != null">
+  				,email=#{entity.email}
+  			</if>
+		where
+			merchant_info_id = #{entity.merchantInfoId, jdbcType=INTEGER}
+	</update>
+	
+	<delete id="deleteMerchant">
+		delete from domesdk_merchant_info where merchant_code=#{merchantCode};
+	</delete>
+</mapper>

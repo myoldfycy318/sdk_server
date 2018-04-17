@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="结算记录">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../../dist/css/application.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus cur">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+<div class="channel-nac-content">
+    <div class="channel-area-address">
+        <a href="javascript:void(0);">首页</a>
+        <em>&gt;</em>
+        <label>结算记录</label>
+    </div>
+
+    <div class="chan-nav">
+         <div class="nav-box">
+    <dl>
+        <dt class="icon1">渠道管理</dt>
+        <dd class="@@applygametips"><a href="channelmanage-applygame.html">渠道包申请（游戏）</a></dd>
+        <dd class="@@downloadgametips"><a href="channelmanage-downloadgame.html">渠道包下载（游戏）</a></dd>
+        <dd class="@@downloadapptips"><a href="channelmanage-downloadapp.html">渠道包下载（APP）</a></dd>
+        <dd class="@@searchchanneltips"><a href="channelmanage-searchchannel.html">查询渠道</a></dd>
+        <dd class="@@applychanneltips two-menu-box"><a href="channelmanage-applychannel.html">二级渠道申请</a></dd>
+        <dd class="@@searchdatatips"><a href="channelmanage-searchdata.html">数据查询</a></dd>
+    </dl>
+
+    <dl>
+        <dt class="icon2">用户中心</dt>
+        <dd class="@@informationtips"><a href="channelmanage-information.html">基本信息</a></dd>
+    </dl>
+
+    <dl class="two-menu-box">
+        <dt class="icon3">财务管理</dt>
+        <dd class="@@applyrestips"><a href="channelmanage-applyrecord.html">申请结算</a></dd>
+        <dd class="selected"><a href="channelmanage-resultrecord.html">结算记录</a></dd>
+    </dl>    
+</div>
+    </div>
+
+
+    <div class="chan-right">
+        <h1>结算记录</h1>
+
+        <div class="chan-right-content">
+            <table id="restable" cellspacing="0" cellpadding="0" class="channel-table">
+                <thead>
+                    <th width="15%">申请时间</th>
+                    <th width="10%">姓名</th>
+                    <th width="25%">卡号</th>
+                    <th width="25%">地址</th>
+                    <th width="15%">金额</th>
+                    <th width="10%">状态</th>
+                </thead>
+
+                <tbody id="tbody"></tbody>
+            </table>
+
+            <div class="pageCon page-numclick"></div>
+            <div id="util_pages" class="util_pages channel-page"></div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+
+
+<script id="tpl_table" type="text/html">
+
+    {{each list as tr i}}
+    {{if i%2==0}}
+    <tr class="cur">
+        {{else}}
+    <tr>
+        {{/if}}
+        <td>{{tr.applyDate}}</td>
+        <td>{{tr.contact}}</td>
+        <td>{{tr.bankAccount}}</td>
+        <td>{{tr.address}}</td>
+        <td>{{tr.amount}}</td>
+        <td class="edit_btn">
+            {{if tr.status==1}}
+            <span class="blue">已结算</span>
+            {{else if tr.status==2}}
+            <span class="blue">申请中</span>            
+            {{else}}
+            <span class="blue">驳回</span>
+            {{/if}}
+        </td>
+    </tr>
+    {{/each}}
+
+</script>
+
+<script id="tpl_pageCon" type="text/html">
+        <span>到第</span>
+        <input type="text" class="channel-numtext"/>
+        <span>页</span>
+
+        <a href="javascript:void(0);" class="channel-numbtn">确定</a>
+</script>
+
+
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../../dist/js/channelmanage-subresrecord.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

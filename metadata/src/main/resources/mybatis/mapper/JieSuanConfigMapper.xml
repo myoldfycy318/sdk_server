@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.channel.JieSuanConfigMapper">
+	<resultMap type="JieSuanConfig" id="jsMap">
+		<id property="id" jdbcType="INTEGER" column="id"/>
+		<result property="channelId" jdbcType="INTEGER" column="channel_id"/>
+		<result property="dividePercent" jdbcType="DECIMAL" column="divide_percent"/>
+		<result property="activityUnitPrice" jdbcType="DECIMAL" column="activity_unit_price"/>
+		
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	
+	<select id="select" resultMap="jsMap">
+		SELECT * FROM `domesdk_channel_jiesuanconfig` t where t.channel_id=#{channelId} and t.del_flag=0;
+	</select>
+	
+	<update id="delete">
+		update domesdk_channel_jiesuanconfig set update_time=now(), del_flag=1 where id=#{id} and del_flag=0;
+	</update>
+	
+	<insert id="add">
+		insert into domesdk_channel_jiesuanconfig (channel_id, del_flag, create_time, update_time
+			<if test="js.dividePercent!=null and js.dividePercent!=0.0">
+				,divide_percent
+			</if>
+			<if test="js.activityUnitPrice!=null and js.activityUnitPrice!=0.0">
+				,activity_unit_price
+			</if>
+		)
+		values (#{js.channelId}, 0, now(), now()
+			<if test="js.dividePercent!=null and js.dividePercent!=0.0">
+				,#{js.dividePercent}
+			</if>
+			<if test="js.activityUnitPrice!=null and js.activityUnitPrice!=0.0">
+				,#{js.activityUnitPrice}
+			</if>
+		);
+		<selectKey resultType="long" keyProperty="js.id" order="AFTER">
+		SELECT
+			LAST_INSERT_ID()
+	  </selectKey>
+	</insert>
+</mapper>

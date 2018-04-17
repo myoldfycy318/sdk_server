@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.paystatistics.PaytSatisticsMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.paystatistics.PayStatistics" id="BaseResultMap">
+        <id property="merchantInfoId" jdbcType="INTEGER" column="merchant_info_id"/>
+        <result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="bwPayAmount" jdbcType="DECIMAL" column="bw_pay_amount"/>
+        <result property="bwBqAmount" jdbcType="DECIMAL" column="bw_bq_amount"/>
+        <result property="aliPayAmount" jdbcType="DECIMAL" column="ali_pay_amount"/>
+        <result property="payUserCount" jdbcType="BIGINT" column="pay_user_count"/>
+        <result property="transDate" jdbcType="TIMESTAMP" column="trans_date"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="publishTime" jdbcType="TIMESTAMP" column="public_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+           trans_date,merchant_info_id,app_code,app_name,bw_pay_amount,bw_bq_amount,ali_pay_amount,pay_user_count,create_time
+	</sql>
+
+
+    <select id="queryPayStatistics" parameterType="com.dome.sdkserver.metadata.entity.bq.paystatistics.PayStatistics"
+            resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        agg_domesdk_order
+        WHERE
+        1=1
+        <if test="appCode != null">
+            and app_code = #{appCode}
+        </if>
+        <if test="merchantInfoId != null">
+            and merchant_info_id = #{merchantInfoId}
+        </if>
+        <if test="startTime !=null ">
+            and trans_date &gt;= DATE_FORMAT(#{startTime}, '%Y-%m-%d')
+        </if>
+        <if test="endTime !=null ">
+            and trans_date &lt;= DATE_FORMAT(#{endTime}, '%Y-%m-%d')
+        </if>
+        ORDER  by  trans_date DESC
+    </select>
+
+    <select id="queryPayTotalWater"
+            parameterType="com.dome.sdkserver.metadata.entity.bq.paystatistics.PayStatistics"
+            resultMap="BaseResultMap">
+            SELECT
+            t1.app_code,
+            t1.merchant_info_id,
+            t2.app_name,
+            t1.bw_pay_amount,
+            t1.bw_bq_amount,
+            t1.ali_pay_amount,
+            t1.pay_user_count,
+            t3.public_time
+            FROM
+            (
+            SELECT
+            app_code,
+            merchant_info_id,
+            sum(bw_pay_amount) bw_pay_amount,
+            sum(bw_bq_amount) bw_bq_amount,
+            sum(ali_pay_amount) ali_pay_amount,
+            sum(pay_user_count) pay_user_count
+            FROM
+            agg_domesdk_order
+            WHERE
+            1 = 1
+            <if test="merchantInfoId !=null">
+                and merchant_info_id = #{merchantInfoId}
+            </if>
+            <if test="appCode !=null and appCode !=''">
+                and app_code =#{appCode}
+            </if>
+            <if test="startTime !=null ">
+                and trans_date &gt;= DATE_FORMAT(#{startTime}, '%Y-%m-%d')
+            </if>
+            <if test="endTime !=null ">
+                and trans_date &lt;= DATE_FORMAT(#{endTime}, '%Y-%m-%d')
+            </if>
+            GROUP BY
+            merchant_info_id,
+            app_code
+            ) t1
+            JOIN domesdk_app_info t2 ON t1.app_code = t2.app_code
+            LEFT JOIN (
+            SELECT
+            appid,
+            MAX(create_time) public_time
+            FROM
+            domesdk_app_oper_record
+            WHERE
+            oper_desc = '上架通过'
+            GROUP BY
+            appid
+            ) t3 ON t2.app_id = t3.appid
+    </select>
+
+    <select id="queryAppCodeByMerchantId" resultType="HashMap">
+        <!-- select app_code appCode,app_name appName from domesdk_app_info where merchant_info_id =#{merchantInfoId} and has_shelf =1
+    	 -->
+    	select app_code as appCode, app_name as appName from domesdk_app_info where del_flag=0 and merchant_info_id=#{merchantId} and has_shelf=1
+		UNION
+		select game_code as appCode, game_name as appName from domesdk_yeyou_game where del_flag=0 and user_id=#{userId}
+		UNION 
+		select game_code as appCode, game_name as appName from domesdk_h5_game where del_flag=0 and user_id=#{userId}
+		;
+    </select>
+
+
+</mapper>

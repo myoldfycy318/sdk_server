@@ -1,0 +1,125 @@
+package com.dome.sdkserver.biz.impl.pay;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.entity.DomeRequestEntity;
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.biz.executor.*;
+import com.dome.sdkserver.biz.pay.PayNotifyBiz;
+import com.dome.sdkserver.biz.utils.WechatPayUtil;
+import com.dome.sdkserver.bq.util.PayUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.rabbitmq.RabbitMqService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.AmqpTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.Resource;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 微信支付 回调通知
+ * Created by ym on 2017/8/22.
+ */
+@Component("weiXinPayNotifyBiz")
+public class WeiXinPayNotifyBizImpl extends PayNotifyBiz {
+    protected final Logger log = LoggerFactory.getLogger(this.getClass());
+
+    @Resource(name = "executor")
+    private Executor executor;
+    @Autowired
+    private AmqpTemplate amqpTemplate;
+    @Resource(name = "rabbitMqService")
+    private RabbitMqService rabbitMqService;
+
+    private static final String SUCCESS_NOTIFY = "SUCCESS";
+
+    private static final String FAIL_NOTIFY = "fail";
+
+    @Override
+    public String payBizProcess(Map<String, String[]> params, JSONObject payConfig) {
+        return null;
+    }
+
+    @Override
+    public SdkOauthResult aliPcSyncNotifyProcess(Map<String, String[]> params, JSONObject payConfig) {
+        return null;
+    }
+
+    @Override
+    public String payBizProcess2(Map<String, String> params, JSONObject payConfig) {
+
+        if (!"SUCCESS".equals(params.get("result_code"))) {
+            log.error("微信支付失败,result_code:{},return_msg:{}", params.get("result_code"), params.get("return_msg"));
+            return WechatPayUtil.setXml(FAIL_NOTIFY, "微信返回的交易状态不正确,result_code:{" + params.get("result_code") + ",return_msg:{" + params.get("return_msg") + "}");
+        }
+        if (!WechatPayUtil.verifyNotifySign(params, payConfig.getString(BqSdkConstants.weixinPaySignKey))) {
+            log.error("微信支付回调地址请求参数签名验证失败");
+            return WechatPayUtil.setXml(SUCCESS_NOTIFY, "微信支付回调地址请求参数签名验证失败");
+        }
+
+        String out_trade_no = params.get("out_trade_no");//商户订单号
+        int total_fee = Integer.parseInt(params.get("total_fee"));// 获取订单金额
+        String transaction_id = params.get("transaction_id");//微信支付订单号
+
+        log.info("微信支付成功= 订单号:{},交易号:{}", out_trade_no, transaction_id);
+        String curMonth = PayUtil.getPayMonth(out_trade_no);
+        OrderEntity order = orderService.queryOrderByOrderNo(out_trade_no, curMonth);
+        if (order == null) {
+            log.error("无效的订单号,orderNo:{}", out_trade_no);
+            return WechatPayUtil.setXml(FAIL_NOTIFY, "无效的订单号,orderNo:{" + out_trade_no + "}");
+        }
+        int amount = (int) (order.getChargePointAmount() * 100);
+        if (amount != total_fee) {
+            log.error("订单金额不一致,total_fee = {} ,amount ={},out_trade_no={}", total_fee, amount, out_trade_no);
+            return WechatPayUtil.setXml(FAIL_NOTIFY, "订单金额不一致,totalFee = " + total_fee + "amount = " + amount + "out_trade_no =" + out_trade_no);
+        }
+        log.info("订单状态,orderNo:{},status:{}", order.getOrderNo(), order.getOrderStatus());
+        if (order.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+            log.error("订单已支付,订单号是:{}", out_trade_no);
+            return WechatPayUtil.setXml(SUCCESS_NOTIFY, "OK");
+        }
+        order.setTradeNo(transaction_id);
+        order.setOrderStatus(OrderStatusEnum.orderstatus_pay_sucess.code);
+        order.setBuyerAccount(params.get("openid"));////买家账户
+        boolean updateOrderResult = orderService.updateOrder(order, curMonth);
+        if (!updateOrderResult) {
+            order.setOrderStatus(OrderStatusEnum.orderstatus_pay_faild.code);
+            return WechatPayUtil.setXml(FAIL_NOTIFY, "订单支付失败,订单号是:{" + out_trade_no + "}");
+        }
+        //支付成功异步通知合作方
+        payNotifyService.handleDomePayNotify(payConfig,order,orderService);
+        return WechatPayUtil.setXml(SUCCESS_NOTIFY, "OK");
+    }
+
+
+    /**
+     * 构建支付成功后异步通知对象
+     *
+     * @param order
+     * @param payConfig
+     * @return
+     */
+    private DomeRequestEntity buildNotifyEntity(OrderEntity order, JSONObject payConfig) {
+        DomeRequestEntity requestEntity = new DomeRequestEntity();
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("sdkflowId", order.getOrderNo());
+        data.put("orderNo", order.getGameOrderNo());
+        requestEntity.setResponseCode("1000");
+        requestEntity.setErrorCode("");
+        requestEntity.setErrorMsg("");
+        requestEntity.setOrderNo(order.getGameOrderNo());
+        requestEntity.setSdkflowId(order.getOrderNo());
+        requestEntity.setPayNotifyUrl(order.getPayNotifyUrl());
+        requestEntity.setData(data);
+        requestEntity.setPrivateKey(payConfig.getString(BqSdkConstants.asyncPrivateKey));
+        requestEntity.setMaxTryTimes(payConfig.getInteger(BqSdkConstants.asyncNoticeMaxTryTimes));
+        requestEntity.setSleepTime(payConfig.getInteger(BqSdkConstants.asyncNoticeThreadSleep));
+        return requestEntity;
+    }
+
+}

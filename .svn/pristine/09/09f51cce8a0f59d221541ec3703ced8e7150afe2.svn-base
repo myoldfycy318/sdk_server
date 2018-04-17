@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fields>
+	<field attr="companyName">
+		<text>公司名称</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40041</code>
+		</check-null>
+		<check-length>
+			<max-length>20</max-length>
+			<code>40042</code>
+		</check-length>
+	</field>	
+	<field attr="companyUrl">
+		<text>公司网址</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40043</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40044</code>
+		</check-length>
+	</field>
+	<field attr="zoneCode">
+		<text>区号</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40045</code>
+		</check-null>
+		<check-length>
+			<max-length>4</max-length>
+			<code>40046</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d{2,4}$</exp>
+			<code>40046</code>
+		</check-exp>
+	</field>
+	<field attr="telephone">
+		<text>固定电话</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40045</code>
+		</check-null>
+		<check-length>
+			<max-length>8</max-length>
+			<code>40046</code>
+		</check-length>
+		<check-exp>
+			<exp>^[1-9]\d{6,8}$</exp>
+			<code>40046</code>
+		</check-exp>
+	</field>
+
+	<field attr="icpRecord">
+		<text>ICP备案号</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40047</code>
+		</check-null>
+		<check-length>
+			<max-length>50</max-length>
+			<code>40048</code>
+		</check-length>
+	</field>
+	
+	<field attr="vatNo">
+		<text>增值证号</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40049</code>
+		</check-null>
+		<check-length>
+			<max-length>50</max-length>
+			<code>40050</code>
+		</check-length>
+	</field>
+	
+	<field attr="vatPicUrl">
+		<text>增值证号图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40051</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40052</code>
+		</check-length>
+	</field>
+	<field attr="licenceNum">
+		<text>公司营业执照号码</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40053</code>
+		</check-null>
+		<check-length>
+			<max-length>50</max-length>
+			<code>40054</code>
+		</check-length>
+	</field>
+	<field attr="licenceImageUrl">
+		<text>公司营业执照号码图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40055</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40056</code>
+		</check-length>
+	</field>
+	
+	<field attr="legalName">
+		<text>法人代表姓名</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40057</code>
+		</check-null>
+		<check-length>
+			<max-length>5</max-length>
+			<code>40058</code>
+		</check-length>
+	</field>
+	
+	<field attr="legalImageUrl">
+		<text>法人代表姓名图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40059</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40060</code>
+		</check-length>
+	</field>
+	<field attr="taxRegistNo">
+		<text>税务登记证号</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40061</code>
+		</check-null>
+		<check-length>
+			<max-length>30</max-length>
+			<code>40062</code>
+		</check-length>
+	</field>
+	
+	<field attr="taxRegistUrl">
+		<text>税务登记证号图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40063</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40064</code>
+		</check-length>
+	</field>
+	
+	<field attr="networkCultureNo">
+		<text>网络文化经营许可证号</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40065</code>
+		</check-null>
+		<check-length>
+			<max-length>30</max-length>
+			<code>40066</code>
+		</check-length>
+	</field>
+	<field attr="networkCultureUrl">
+		<text>网络文化经营许可证号图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40067</code>
+		</check-null>
+		<check-length>
+			<max-length>256</max-length>
+			<code>40068</code>
+		</check-length>
+	</field>
+	
+	<field attr="registAmount">
+		<text>注册资金</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40069</code>
+		</check-null>
+		<check-length>
+			<max-length>12</max-length>
+			<code>40070</code>
+		</check-length>
+		<check-exp>
+			<exp>(^[1-9][0-9]{0,9}$)|(^[1-9][0-9]{0,9}\\.[0-9]{1,2}$)|(^0\\.[0-9]{1,2}$)</exp>
+			<code>40070</code>
+		</check-exp>
+	</field>
+	
+	<field attr="companyType">
+		<text>公司性质</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40071</code>
+		</check-null>
+		<check-length>
+			<max-length>2</max-length>
+			<code>40072</code>
+		</check-length>
+		<check-exp>
+			<exp>^[1-9]\d*$</exp>
+			<code>40072</code>
+		</check-exp>
+	</field>
+	
+	<field attr="isListed">
+		<text>公司上市情况</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>40073</code>
+		</check-null>
+		<check-length>
+			<max-length>1</max-length>
+			<code>40074</code>
+		</check-length>
+		<check-exp>
+			<exp>^\d*$</exp>
+			<code>40074</code>
+		</check-exp>
+	</field>
+	
+	<field attr="companyIntro">
+		<text>公司介绍</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40075</code>
+		</check-null>
+		<check-length>
+			<max-length>100</max-length>
+			<code>40076</code>
+		</check-length>
+	</field>
+	<field attr="bankName">
+		<text>开户行</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40077</code>
+		</check-null>
+		<check-length>
+			<max-length>50</max-length>
+			<code>40078</code>
+		</check-length>
+	</field>
+	<field attr="bankAccount">
+		<text>开户账号</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>40079</code>
+		</check-null>
+		<check-length>
+			<max-length>30</max-length>
+			<code>40080</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d{7,30}$</exp>
+			<code>40080</code>
+		</check-exp>
+	</field>
+</fields>

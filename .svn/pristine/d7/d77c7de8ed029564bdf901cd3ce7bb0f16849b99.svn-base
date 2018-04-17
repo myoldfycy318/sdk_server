@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.qbao.PayTransMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.qbao.PayTransEntity" id="BaseResultMap">
+        <id property="payTransId" jdbcType="BIGINT" column="pay_trans_id"/>
+        <result property="bizCode" jdbcType="VARCHAR" column="biz_code"/>
+        <result property="loginName" jdbcType="VARCHAR" column="login_name"/>
+        <result property="payTransCode" jdbcType="VARCHAR" column="pay_trans_code"/>
+        <result property="transType" jdbcType="VARCHAR" column="trans_type"/>
+        <result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="merchantUserId" jdbcType="BIGINT" column="merchant_user_id"/>
+        <result property="transAmount" jdbcType="DECIMAL" column="trans_amount"/>
+        <result property="versionCode" jdbcType="VARCHAR" column="version_code"/>
+        <result property="transDate" jdbcType="VARCHAR" column="trans_date"/>
+        <result property="transTime" jdbcType="VARCHAR" column="trans_time"/>
+        <result property="transIntro" jdbcType="VARCHAR" column="trans_intro"/>
+        <result property="callbackUrl" jdbcType="VARCHAR" column="callback_url"/>
+        <result property="transCloseTime" jdbcType="TIMESTAMP" column="trans_close_time"/>
+        <result property="signCode" jdbcType="VARCHAR" column="sign_code"/>
+        <result property="payUserId" jdbcType="BIGINT" column="pay_user_id"/>
+        <result property="accountAmount" jdbcType="DECIMAL" column="account_amount"/>
+        <result property="bqAccountAmount" jdbcType="DECIMAL" column="bq_account_amount"/>
+        <result property="accountFlowId" jdbcType="VARCHAR" column="account_flow_id"/>
+        <result property="accountChildflowId" jdbcType="VARCHAR" column="account_childflow_id"/>
+        <result property="status" jdbcType="VARCHAR" column="status"/>
+        <result property="remark" jdbcType="VARCHAR" column="remark"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+        <result property="memberLevel" jdbcType="VARCHAR" column="member_level"/>
+        <result property="payOrigin" jdbcType="VARCHAR" column="pay_origin"/>
+        <result property="extraField" jdbcType="VARCHAR" column="extra_field"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+	    paytrans.pay_trans_id,
+		paytrans.biz_code,
+		paytrans.login_name,
+		paytrans.pay_trans_code,
+		paytrans.trans_type,
+		paytrans.app_code,
+		paytrans.merchant_user_id,
+		paytrans.trans_amount,
+		paytrans.pay_user_id,
+		paytrans.charging_point_code,
+		paytrans.version_code,
+		paytrans.trans_date,
+		paytrans.trans_time,
+		paytrans.trans_intro,
+		paytrans.callback_url,
+		paytrans.trans_close_time,
+		paytrans.sign_code,
+		paytrans.status,
+		paytrans.remark,
+		paytrans.account_amount,
+		paytrans.bq_account_amount,
+		paytrans.create_time,
+		paytrans.update_time,
+		paytrans.member_level,
+		paytrans.pay_origin,
+		paytrans.extra_field
+	  </sql>
+
+    <insert id="addPayTransRequest" parameterType="com.dome.sdkserver.metadata.entity.qbao.PayTransEntity">
+        insert into
+        sdk_qbaopay_trans_${suffix}
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+                pay_trans_id,
+            <if test="entity.bizCode != null">
+                biz_code,
+            </if>
+            <if test="entity.loginName != null">
+                login_name,
+            </if>
+            <if test="entity.payTransCode != null">
+                pay_trans_code,
+            </if>
+            <if test="entity.transType != null">
+                trans_type,
+            </if>
+            <if test="entity.appCode != null">
+                app_code,
+            </if>
+            <if test="entity.merchantUserId != null">
+                merchant_user_id,
+            </if>
+            <if test="entity.payUserId != null">
+                pay_user_id,
+            </if>
+            <if test="entity.transAmount != null">
+                trans_amount,
+            </if>
+            <if test="entity.chargingPointCode != null">
+                charging_point_code,
+            </if>
+            <if test="entity.versionCode != null">
+                version_code,
+            </if>
+            <if test="entity.transDate != null">
+                trans_date,
+            </if>
+            <if test="entity.transTime != null">
+                trans_time,
+            </if>
+            <if test="entity.transIntro != null">
+                trans_intro,
+            </if>
+            <if test="entity.callbackUrl != null">
+                callback_url,
+            </if>
+            <if test="entity.transCloseTime != null">
+                trans_close_time,
+            </if>
+            <if test="entity.signCode != null">
+                sign_code,
+            </if>
+            <if test="entity.signType != null">
+                sign_type,
+            </if>
+            <if test="entity.status != null">
+                status,
+            </if>
+            <if test="entity.remark != null">
+                remark,
+            </if>
+            <if test="entity.appSource != null">
+                app_source,
+            </if>
+            <if test="entity.createTime != null">
+                create_time,
+            </if>
+            <if test="entity.updateTime != null">
+                update_time,
+            </if>
+            <if test="entity.memberLevel != null">
+                member_level,
+            </if>
+            <if test="entity.channelCode != null">
+                channelCode,
+            </if>
+            <if test="entity.bqUserId != null">
+                bq_user_id,
+            </if>
+            <if test="entity.payOrigin != null">
+                pay_origin,
+            </if>
+            <if test="entity.extraField != null">
+                extra_field,
+            </if>
+            <if test="entity.extraField2 != null">
+                extra_field2,
+            </if>
+            <if test="entity.accountAmount != null">
+                account_amount,
+            </if>
+            <if test="entity.bqAccountAmount != null">
+                bq_account_amount,
+            </if>
+            <if test="entity.accountFlowId != null">
+                account_flow_id,
+            </if>
+            <if test="entity.bbResCode != null">
+                bb_res_code,
+            </if>
+            <if test="entity.bbResMsg != null">
+                bb_res_msg,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+                #{entity.payTransId,jdbcType=BIGINT},
+            <if test="entity.bizCode != null">
+                #{entity.bizCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.loginName != null">
+                #{entity.loginName, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.payTransCode != null">
+                #{entity.payTransCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transType != null">
+                #{entity.transType, jdbcType=TINYINT},
+            </if>
+            <if test="entity.appCode != null">
+                #{entity.appCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.merchantUserId != null">
+                #{entity.merchantUserId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.payUserId != null">
+                #{entity.payUserId,jdbcType=BIGINT},
+            </if>
+            <if test="entity.transAmount != null">
+                #{entity.transAmount, jdbcType=DECIMAL},
+            </if>
+            <if test="entity.chargingPointCode != null">
+                #{entity.chargingPointCode,jdbcType=DECIMAL},
+            </if>
+            <if test="entity.versionCode != null">
+                #{entity.versionCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transDate != null">
+                #{entity.transDate, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transTime != null">
+                #{entity.transTime, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transIntro != null">
+                #{entity.transIntro, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.callbackUrl != null">
+                #{entity.callbackUrl, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transCloseTime != null">
+                #{entity.transCloseTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="entity.signCode != null">
+                #{entity.signCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.signType != null">
+                #{entity.signType, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.status != null">
+                #{entity.status, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.remark != null">
+                #{entity.remark, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.appSource != null">
+                #{entity.appSource, jdbcType=INTEGER},
+            </if>
+            <if test="entity.createTime != null">
+                #{entity.createTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="entity.updateTime != null">
+                #{entity.updateTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="entity.memberLevel != null">
+                #{entity.memberLevel, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.channelCode != null">
+                #{entity.channelCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bqUserId != null">
+                #{entity.bqUserId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.payOrigin != null">
+                #{entity.payOrigin},
+            </if>
+            <if test="entity.extraField != null">
+                #{entity.extraField},
+            </if>
+            <if test="entity.extraField2 != null">
+                #{entity.extraField2},
+            </if>
+            <if test="entity.accountAmount != null">
+                #{entity.accountAmount},
+            </if>
+            <if test="entity.bqAccountAmount != null">
+                #{entity.bqAccountAmount},
+            </if>
+            <if test="entity.accountFlowId != null">
+                #{entity.accountFlowId},
+            </if>
+            <if test="entity.bbResCode != null">
+                #{entity.bbResCode},
+            </if>
+            <if test="entity.bbResMsg != null">
+                #{entity.bbResMsg},
+            </if>
+        </trim>
+    </insert>
+
+    <select id="getPayTransReqByMertCodeTransCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        sdk_qbaopay_trans_${suffix} paytrans
+        WHERE
+        paytrans.app_code = #{appCode,jdbcType=VARCHAR}
+        AND
+        paytrans.biz_code = #{bizCode,jdbcType=VARCHAR}
+    </select>
+
+    <select id="getPayTransReqById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        sdk_qbaopay_trans_${suffix} paytrans
+        WHERE
+        paytrans.pay_trans_id = #{payTransId,jdbcType=BIGINT}
+    </select>
+
+    <update id="updatePayTransByPayTransId" parameterType="com.dome.sdkserver.metadata.entity.qbao.PayTransEntity">
+        update
+        sdk_qbaopay_trans_${suffix}
+        <set>
+            <if test="entity.bizCode != null">
+                biz_code = #{entity.bizCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.payTransCode != null">
+                pay_trans_code = #{entity.payTransCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transType != null">
+            trans_type = #{entity.transType, jdbcType=TINYINT},
+           </if>
+            <if test="entity.appSource != null">
+                app_source = #{entity.appSource, jdbcType=INTEGER},
+            </if>
+            <if test="entity.appCode != null">
+                app_code = #{entity.appCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.loginName != null">
+                login_name = #{entity.loginName, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.merchantUserId != null">
+                merchant_user_id= #{entity.merchantUserId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.payUserId != null">
+                pay_user_id = #{entity.payUserId,jdbcType=BIGINT},
+            </if>
+            <if test="entity.chargingPointCode != null">
+                charging_point_code= #{entity.chargingPointCode,jdbcType=DECIMAL},
+            </if>
+            <if test="entity.transAmount != null">
+                trans_amount = #{entity.transAmount, jdbcType=DECIMAL},
+            </if>
+            <if test="entity.versionCode != null">
+                version_code = #{entity.versionCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transDate != null">
+                trans_date = #{entity.transDate, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transTime != null">
+                trans_time = #{entity.transTime, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transIntro != null">
+                trans_intro = #{entity.transIntro, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.callbackUrl != null">
+                callback_url = #{entity.callbackUrl, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.transCloseTime != null">
+                trans_close_time = #{entity.transCloseTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="entity.signType != null">
+                sign_type = #{entity.signType, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.signCode != null">
+                sign_code = #{entity.signCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.remark != null">
+                remark= #{entity.remark, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.updateTime != null">
+                update_time= #{entity.updateTime, jdbcType=TIMESTAMP},
+            </if>
+            <if test="entity.channelCode != null">
+                channelCode= #{entity.channelCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bbResCode != null">
+                bb_res_code = #{entity.bbResCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bbResMsg != null">
+                bb_res_msg = #{entity.bbResMsg, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bqResCode != null">
+                bq_res_code = #{entity.bqResCode, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bqResMsg != null">
+                bq_res_msg = #{entity.bqResMsg, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.bqBizId != null">
+                bq_biz_id = #{entity.bqBizId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.status != null">
+                status = #{entity.status, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.accountAmount != null">
+                account_amount = #{entity.accountAmount, jdbcType=DECIMAL},
+            </if>
+            <if test="entity.bqAccountAmount != null">
+                bq_account_amount = #{entity.bqAccountAmount, jdbcType=DECIMAL},
+            </if>
+            <if test="entity.accountFlowId != null">
+                account_flow_id = #{entity.accountFlowId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.accountChildflowId != null">
+                account_childflow_id = #{entity.accountChildflowId, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.memberLevel != null">
+                member_level = #{entity.memberLevel, jdbcType=VARCHAR},
+            </if>
+            <if test="entity.extraField != null">
+                extra_field =  #{entity.extraField}
+            </if>
+        </set>
+        where
+        pay_trans_id = #{entity.payTransId, jdbcType=BIGINT}
+    </update>
+
+    <insert id="saveTPPayTransRequest">
+        insert into
+        sdk_tp_qbaopay_trans_${suffix}
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            pay_trans_id,
+            <if test="entity.bizCode != null">
+                biz_code,
+            </if>
+            <if test="entity.loginName != null">
+                login_name,
+            </if>
+            <if test="entity.payUserId != null">
+                pay_user_id,
+            </if>
+            <if test="entity.transAmount != null">
+                trans_amount,
+            </if>
+            <if test="entity.accountAmount != null">
+                account_amount,
+            </if>
+            <if test="entity.bqAccountAmount != null">
+                bq_account_amount,
+            </if>
+            <if test="entity.feeAmount != null">
+                fee_amount,
+            </if>
+            <if test="entity.transDate != null">
+                trans_date,
+            </if>
+            <if test="entity.transTime != null">
+                trans_time,
+            </if>
+            <if test="entity.transIntro != null">
+                trans_intro,
+            </if>
+            <if test="entity.callbackUrl != null">
+                callback_url,
+            </if>
+            <if test="entity.appSource != null">
+                app_source,
+            </if>
+            <if test="entity.transCloseTime != null">
+                trans_close_time,
+            </if>
+            <if test="entity.status != null">
+                status,
+            </if>
+            <if test="entity.payTradeNo != null">
+                pay_trade_no,
+            </if>
+            <if test="entity.resCode != null">
+                res_code,
+            </if>
+            <if test="entity.resMsg != null">
+                res_msg,
+            </if>
+            <if test="entity.payType != null">
+                pay_type,
+            </if>
+            <if test="entity.payOrigin != null">
+                pay_origin,
+            </if>
+            <if test="entity.signType != null">
+                sign_type,
+            </if>
+            <if test="entity.signCode != null">
+                sign_code,
+            </if>
+            <if test="entity.createTime != null">
+                create_time,
+            </if>
+            <if test="entity.updateTime != null">
+                update_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{entity.payTransId},
+            <if test="entity.bizCode != null">
+                #{entity.bizCode},
+            </if>
+            <if test="entity.loginName != null">
+                #{entity.loginName},
+            </if>
+            <if test="entity.payUserId != null">
+                #{entity.payUserId},
+            </if>
+            <if test="entity.transAmount != null">
+                #{entity.transAmount},
+            </if>
+            <if test="entity.accountAmount != null">
+                #{entity.accountAmount},
+            </if>
+            <if test="entity.bqAccountAmount != null">
+                #{entity.bqAccountAmount},
+            </if>
+            <if test="entity.feeAmount != null">
+                #{entity.feeAmount},
+            </if>
+            <if test="entity.transDate != null">
+                #{entity.transDate},
+            </if>
+            <if test="entity.transTime != null">
+                #{entity.transTime},
+            </if>
+            <if test="entity.transIntro != null">
+                #{entity.transIntro},
+            </if>
+            <if test="entity.callbackUrl != null">
+                #{entity.callbackUrl},
+            </if>
+            <if test="entity.appSource != null">
+                #{entity.appSource},
+            </if>
+            <if test="entity.transCloseTime != null">
+                #{entity.transCloseTime},
+            </if>
+            <if test="entity.status != null">
+                #{entity.status},
+            </if>
+            <if test="entity.payTradeNo != null">
+                #{entity.payTradeNo},
+            </if>
+            <if test="entity.resCode != null">
+                #{entity.resCode},
+            </if>
+            <if test="entity.resMsg != null">
+                #{entity.resMsg},
+            </if>
+            <if test="entity.payType != null">
+                #{entity.payType},
+            </if>
+            <if test="entity.payOrigin != null">
+                #{entity.payOrigin},
+            </if>
+            <if test="entity.signType != null">
+                #{entity.signType},
+            </if>
+            <if test="entity.signCode != null">
+                #{entity.signCode},
+            </if>
+            <if test="entity.createTime != null">
+                #{entity.createTime},
+            </if>
+            <if test="entity.updateTime != null">
+                #{entity.updateTime},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateTPPayTrans">
+        update
+        sdk_tp_qbaopay_trans_${suffix}
+        <set>
+            <if test="entity.status != null">
+                status = #{entity.status},
+            </if>
+            <if test="entity.payTradeNo != null">
+                pay_trade_no = #{entity.payTradeNo},
+            </if>
+            <if test="entity.resCode != null">
+                res_code = #{entity.resCode},
+            </if>
+            <if test="entity.resMsg != null">
+                res_msg = #{entity.resMsg},
+            </if>
+            update_time = now(),
+            trans_close_time = now()
+        </set>
+        where
+        pay_trans_id = #{entity.payTransId}
+    </update>
+
+</mapper>

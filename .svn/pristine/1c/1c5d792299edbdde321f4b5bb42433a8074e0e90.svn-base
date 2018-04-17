@@ -1,0 +1,97 @@
+package com.dome.sdkserver.service;
+
+import java.util.List;
+
+
+
+
+
+import com.dome.sdkserver.bo.ChargePointInfo;
+import com.dome.sdkserver.bo.MerchantAppInfo;
+import com.dome.sdkserver.bo.SearchChargePointBo;
+
+/**
+ * 计费点服务
+ * @author liuxingyue
+ *
+ */
+public interface ChargePointService {
+	
+	/**
+	 * 添加计费点信息
+	 * @param chargePointInfo
+	 * @return
+	 */
+	void addChargePointInfo(ChargePointInfo chargePointInfo);
+	/**
+	 * 根据查询条件查找
+	 * @param searchChargePointBo
+	 * @return
+	 */
+	List<ChargePointInfo> getChargePointInfos(SearchChargePointBo searchChargePointBo);
+	
+	/**
+	 * 根据查询条件得到总数
+	 * @param searchChargePointBo
+	 * @return
+	 */
+	int getChargePontCountByCondition(SearchChargePointBo searchChargePointBo);
+	
+	@Deprecated
+	List<ChargePointInfo> getChargePontInfosByCode(String chargePointCode);
+	
+	/**
+	 * 根据计费点id查找手游计费点信息
+	 * @param chargePointId
+	 * @return
+	 */
+	@Deprecated
+	ChargePointInfo getChargePointInfoById(String chargePointId);
+	
+	/**
+	 * 根据计费点id更新计费点信息
+	 * @param chargePointInfo
+	 */
+	void updateChargePointInfo(MerchantAppInfo app, ChargePointInfo chargePointInfo);
+	/**
+	 * 提交计费点信息
+	 * @param chargePointInfo
+	 */
+	void doPost(ChargePointInfo chargePointInfo);
+	
+	/**
+	 * 获得某计费点的已生效记录，每条计费点只能有一条记录已生效
+	 * @param chargePointCode
+	 * @return
+	 */
+	ChargePointInfo getChargePointInfoByCode(String chargePointCode);
+	
+	/**
+	 * 批量提交计费点信息
+	 * @param status
+	 * @param chargePointCodes
+	 */
+	boolean doBatchPost(Integer status,String[] chargePointCodes, MerchantAppInfo app);
+	
+	/**
+	 * 变更计费点，已生效的计费点设置为失效，新添加的计费点状态为待审核
+	 * @param newCharge
+	 */
+	public void changeChargePoint(MerchantAppInfo app, ChargePointInfo newCharge);
+	
+	/**
+	 * 查看计费点过去最新的历史记录
+	 * 变更会将计费点设置为失效，新增一条记录。失效的记录就会是返回结果
+	 * 如果有多条失效记录，返回最新的一条记录
+	 * @param appCode
+	 * @param chargePointCode
+	 * @return
+	 */
+	ChargePointInfo getRencentPreviousChargePoint(String appCode, String chargePointCode);
+
+	boolean isAllAvailable(String appCode);
+	
+	void delChargePoint(ChargePointInfo charge);
+	
+	ChargePointInfo selectCharge(String appCode, String chargeName);
+}

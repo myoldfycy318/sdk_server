@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.login.OauthAccessRecordMapper">
+	
+	 <insert id="insertOauthAccessRecord" parameterType="com.dome.sdkserver.metadata.entity.bq.login.OauthAccessRecordEntity">
+        <![CDATA[ 
+      	insert into oauth_access_record${curMonth}
+      	(access_time,access_type,client_id,user_name,user_id,result,request_url_type,os_version,mobile_type,accessIp,loginType,errorCode,errorMessage,loginChannelCode) 
+      	  values(#{accessTime},#{accessType},#{clientId},#{userName},#{userId},#{result},#{requestUrlType},#{osVersion},#{mobileType},#{accessIp},#{loginType},#{errorCode},#{errorMessage},#{loginChannelCode})
+       ]]>
+    </insert>
+    
+    	<update  id="createTable">
+				CREATE TABLE if not exists `oauth_access_record${tableSuffix}` (
+		  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '自增id',
+		  `access_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '访问时间',
+		  `access_type` tinyint(1) DEFAULT NULL COMMENT '访问接入类型,0:wap 1:web',
+		  `request_url_type` tinyint(1) DEFAULT NULL COMMENT '请求地址类型',
+		  `client_id` varchar(20) DEFAULT NULL COMMENT '第三方申请的appid',
+		  `user_name` varchar(32) DEFAULT NULL COMMENT '登录时的用户名',
+		  `user_id` varchar(32) DEFAULT NULL COMMENT '登录用户用户id',
+		  `os_version` varchar(32) DEFAULT NULL COMMENT '手机操作系统版本',
+		  `mobile_type` varchar(32) DEFAULT NULL COMMENT '手机型号',
+		  `accessIp` varchar(32) DEFAULT NULL COMMENT '访问ip',
+		  `result` varchar(2) DEFAULT NULL COMMENT '访问结果,0 失败 1 成功',
+		  `loginType` varchar(32) DEFAULT NULL COMMENT '登录类型',
+		  `errorMessage` varchar(100) DEFAULT NULL COMMENT '登录失败消息',
+		  `errorCode` varchar(32) DEFAULT NULL COMMENT '错误码',
+		  PRIMARY KEY (`id`),
+		  KEY `idx_oauth_access_record201605_requesturl` (`request_url_type`) USING BTREE,
+		  KEY `idx_oauth_access_record201605_clientid` (`client_id`,`user_name`,`access_type`) USING BTREE
+		) ENGINE=InnoDB AUTO_INCREMENT=98 DEFAULT CHARSET=utf8 COMMENT='oauth访问记录表'
+	</update>
+    
+</mapper>

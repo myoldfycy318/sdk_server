@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="utf-8">
+    <title>支付</title>
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes"><!--IOS中Safari允许全屏浏览-->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"><!--IOS中Safari顶端状态条样式-->
+    <meta name="format-detection" content="telephone=no"><!--忽略将数字变为电话号码：-->
+    <style>
+        @media (max-width: 375px) {
+            html {
+                font-size: 10px;
+            }
+        }
+
+        @media (min-width: 375px) and (max-width: 475px) {
+            html {
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 475px) and (max-width: 580px) {
+            html {
+                font-size: 14px;
+            }
+        }
+
+        @media (min-width: 580px) and (max-width: 680px) {
+            html {
+                font-size: 16px;
+            }
+        }
+
+        @media (min-width: 680px) {
+            html {
+                font-size: 20px;
+            }
+        }
+
+        @media (min-width: 750px) {
+            html {
+                font-size: 24px;
+            }
+        }
+
+        .btn {
+            width: 7rem;
+            height: 3.2rem;
+            display: inline-block;
+            margin: 0.5rem 0.7rem;
+            background: url(img/btn_back.png) no-repeat;
+            outline: 0
+        }
+
+        .cancel {
+            background-position: 0px 0px;
+            background-size: 100% auto;
+            border: 0;
+            box-shadow: -0.3rem 0.4rem 0 0.2rem #83aad6;
+            border-radius: 0.4rem
+        }
+
+        .success {
+            width: 2.4rem;
+            height: 2.4rem;
+            display: inline-block;
+            vertical-align: middle;
+            font-size: 2rem;
+            background: url(img/pay_success.gif) no-repeat;
+            background-size: 100% auto
+        }
+
+        .result {
+            font-size: 1.6rem;
+            line-height: 1.6rem;
+            vertical-align: middle;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .cancel:active {
+            box-shadow: -0.1rem 0.2rem 0 0.2rem #83aad6;
+            -webkit-transform: translate(-0.2rem, 0.2rem)
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        center {
+            margin: 2rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <center><em class="success"></em><span class="result">--</span></center>
+    <center><a class="btn cancel"></a></center>
+</div>
+<script src="//scdn.qbcdn.com/web/lib/jquery/1.12.0/jquery.min.js"></script>
+<script src="./js/success.min.js?v=1490327908957"></script>
+<script>
+    window.onload = function () {
+
+        //Import
+        var commBase = window.commBase;
+        var bubbleTips = commBase.bubbleTips;
+
+        //支付成功
+        var isSuccess = bubbleTips.urlParam("isSuccess");
+
+        if (isSuccess == "true") {
+            $(".container span").html("支付成功");
+        } else {
+            //支付失败
+            var msg = bubbleTips.urlParam("msg");
+            $(".container span").html(msg);
+        }
+
+        //返回跳转
+        var winHeight = $(window).height() - 100;
+        $('body').css('height', winHeight);
+        $('.cancel').bind('click tap', function () {
+            window.location.href = "index.htm"
+        })
+    }
+</script>
+</body>
+
+</html>

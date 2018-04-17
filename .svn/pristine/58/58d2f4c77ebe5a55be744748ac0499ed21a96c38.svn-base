@@ -1,0 +1,79 @@
+package com.dome.sdkserver.controller.webgame;
+
+import com.dome.sdkserver.biz.utils.H5GameUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.webgame.WebGameLoginEntity;
+import com.dome.sdkserver.service.game.GameService;
+import com.dome.sdkserver.util.MD5;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.net.util.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Created by heyajun on 2017/8/1.
+ */
+@Controller
+@RequestMapping("/webgame")
+public class WebGameLoginController {
+
+    private Logger log = LoggerFactory.getLogger(getClass());
+
+    @Resource(name = "gameService")
+    private GameService gameService;
+
+    //拼接游戏登录url不做跳转
+    @RequestMapping("/getLoginUrl")
+    @ResponseBody
+    public SdkOauthResult login(WebGameLoginEntity webGameLoginEntity, HttpServletRequest request) {
+        String url = null;
+        try {
+            if (StringUtils.isBlank(webGameLoginEntity.getAppCode())
+                    || StringUtils.isBlank(webGameLoginEntity.getAreaServerNumber()) //区服id
+                    || StringUtils.isBlank(webGameLoginEntity.getUserId())
+                    || StringUtils.isBlank(webGameLoginEntity.getAreaServerName())    //区服名称,透传到游戏字段
+                    || StringUtils.isBlank(webGameLoginEntity.getGameName())    //透传到游戏字段
+                    ) {
+                return SdkOauthResult.failed("缺少参数");
+            }
+            //查询根据AppCode查询信息 优先从redis中查询
+            AppInfoEntity webGame = gameService.getAppInfo(webGameLoginEntity.getAppCode());
+            if (webGame == null) {
+                return SdkOauthResult.failed("该页游不存在");
+            }
+            String loginUrl = webGame.getLoginCallBackUrl();
+            String loginKey = webGame.getLoginKey();
+            Map<String, String> baseParams = new HashMap<String, String>();
+            baseParams.put("appCode", webGameLoginEntity.getAppCode());
+            //页游平台配置的区服
+            baseParams.put("zoneId", webGameLoginEntity.getAreaServerNumber());
+            //冰穹uc的userId
+            baseParams.put("userId", webGameLoginEntity.getUserId());
+            //透传字段
+            baseParams.put("zoneName", webGameLoginEntity.getAreaServerName());
+            baseParams.put("gameName", webGameLoginEntity.getGameName());
+            String base = H5GameUtil.createLinkString(baseParams);
+            String baseSign = base + "&" + loginKey;
+            String sign = MD5.md5Encode(baseSign);
+            String auth = H5GameUtil.generateAuth(baseParams);
+            //返回游戏登录url及参数
+            url = loginUrl + "?" + "auth=" + auth  + "&sign=" + sign;
+            return SdkOauthResult.success(url);
+        } catch (Exception e) {
+            log.error("拼装页游登录url错误", e);
+            return SdkOauthResult.failed("拼装页游登录url错误");
+        }
+    }
+
+
+}

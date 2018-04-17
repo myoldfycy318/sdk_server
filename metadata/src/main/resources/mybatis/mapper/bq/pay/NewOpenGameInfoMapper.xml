@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.NewOpenGameInfoMapper" >
+  <resultMap id="BaseResultMap" type="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity" >
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="app_code" property="appCode" jdbcType="VARCHAR" />
+    <result column="merchant_code" property="merchantCode" jdbcType="VARCHAR" />
+    <result column="merchant_name" property="merchantName" jdbcType="VARCHAR" />
+    <result column="app_name" property="appName" jdbcType="VARCHAR" />
+    <result column="status" property="status" jdbcType="TINYINT" />
+    <result column="regist_callback_url" property="registCallBackUrl" jdbcType="VARCHAR" />
+    <result column="test_regist_callback_url" property="testRegistCallBackUrl" jdbcType="VARCHAR" />
+    <result column="login_callback_url" property="loginCallBackUrl" jdbcType="VARCHAR" />
+    <result column="test_login_callback_url" property="testLoginCallBackUrl" jdbcType="VARCHAR" />
+    <result column="pay_callback_url" property="payNotifyUrl" jdbcType="VARCHAR" />
+    <result column="test_pay_callback_url" property="testPayNotifyUrl" jdbcType="VARCHAR" />
+    <result column="game_url" property="gameUrl" jdbcType="VARCHAR" />
+    <result column="test_game_url" property="testGameUrl" jdbcType="VARCHAR" />
+    <result column="out_public_rsakey" property="outPublicRsaKey" jdbcType="VARCHAR" />
+    <result column="out_private_rsakey" property="outPrivateRsaKey" jdbcType="VARCHAR" />
+    <result column="app_key" property="appKey" jdbcType="VARCHAR" />
+    <result column="login_key" property="loginKey" jdbcType="VARCHAR" />
+    <result column="pay_key" property="payKey" jdbcType="VARCHAR" />
+    <result column="ogp_game_id" property="ogpGameId" jdbcType="VARCHAR" />
+    <result column="ogp_game_key" property="ogpGameKey" jdbcType="VARCHAR" />
+  </resultMap>
+  <sql id="Base_Column_List" >
+    id, app_code, merchant_code, merchant_name, app_name, status, regist_callback_url,
+    test_regist_callback_url, login_callback_url, test_login_callback_url, pay_callback_url, 
+    test_pay_callback_url, game_url, test_game_url,out_public_rsakey, out_private_rsakey, app_key, login_key,
+    pay_key, ogp_game_id, ogp_game_key
+  </sql>
+  <select id="isGameExist" resultType="int">
+    select count(1) from sdk_new_open_game_info where app_code = #{appCode,jdbcType=VARCHAR}
+  </select>
+
+  <select id="selectByAppCode" resultMap="BaseResultMap" parameterType="java.lang.String" >
+    select 
+    <include refid="Base_Column_List" />
+    from sdk_new_open_game_info
+    where app_code = #{appCode,jdbcType=VARCHAR}
+  </select>
+  <insert id="insertSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity" >
+    insert into sdk_new_open_game_info
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="appCode != null" >
+        app_code,
+      </if>
+      <if test="merchantCode != null" >
+        merchant_code,
+      </if>
+      <if test="merchantName != null" >
+        merchant_name,
+      </if>
+      <if test="appName != null" >
+        app_name,
+      </if>
+      <if test="status != null" >
+        status,
+      </if>
+      <if test="registCallBackUrl != null" >
+        regist_callback_url,
+      </if>
+      <if test="testRegistCallBackUrl != null" >
+        test_regist_callback_url,
+      </if>
+      <if test="loginCallBackUrl != null" >
+        login_callback_url,
+      </if>
+      <if test="testLoginCallBackUrl != null" >
+        test_login_callback_url,
+      </if>
+      <if test="payNotifyUrl != null" >
+        pay_callback_url,
+      </if>
+      <if test="testPayNotifyUrl != null" >
+        test_pay_callback_url,
+      </if>
+      <if test="gameUrl != null">
+        game_url,
+      </if>
+      <if test="testGameUrl != null">
+        test_game_url,
+      </if>
+      <if test="outPublicRsaKey != null" >
+        out_public_rsakey,
+      </if>
+      <if test="outPrivateRsaKey != null" >
+        out_private_rsakey,
+      </if>
+      <if test="appKey != null" >
+        app_key,
+      </if>
+      <if test="loginKey != null" >
+        login_key,
+      </if>
+      <if test="payKey != null" >
+        pay_key,
+      </if>
+      <if test="ogpGameId != null" >
+        ogp_game_id,
+      </if>
+      <if test="ogpGameKey != null" >
+        ogp_game_key,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="appCode != null" >
+        #{appCode,jdbcType=VARCHAR},
+      </if>
+      <if test="merchantCode != null" >
+        #{merchantCode,jdbcType=VARCHAR},
+      </if>
+      <if test="merchantName != null" >
+        #{merchantName,jdbcType=VARCHAR},
+      </if>
+      <if test="appName != null" >
+        #{appName,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null" >
+        #{status,jdbcType=TINYINT},
+      </if>
+      <if test="registCallBackUrl != null" >
+        #{registCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testRegistCallBackUrl != null" >
+        #{testRegistCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="loginCallBackUrl != null" >
+        #{loginCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testLoginCallBackUrl != null" >
+        #{testLoginCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="payNotifyUrl != null" >
+        #{payNotifyUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testPayNotifyUrl != null" >
+        #{testPayNotifyUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="gameUrl != null">
+        #{gameUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testGameUrl != null">
+        #{testGameUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="outPublicRsaKey != null" >
+        #{outPublicRsaKey,jdbcType=VARCHAR},
+      </if>
+      <if test="outPrivateRsaKey != null" >
+        #{outPrivateRsaKey,jdbcType=VARCHAR},
+      </if>
+      <if test="appKey != null" >
+        #{appKey,jdbcType=VARCHAR},
+      </if>
+      <if test="loginKey != null" >
+        #{loginKey,jdbcType=VARCHAR},
+      </if>
+      <if test="payKey != null" >
+        #{payKey,jdbcType=VARCHAR},
+      </if>
+      <if test="ogpGameId != null" >
+        #{ogpGameId,jdbcType=VARCHAR},
+      </if>
+      <if test="ogpGameKey != null" >
+        #{ogpGameKey,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByAppCodeSelective" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity" >
+    update sdk_new_open_game_info
+    <set >
+      <if test="merchantCode != null" >
+        merchant_code = #{merchantCode,jdbcType=VARCHAR},
+      </if>
+      <if test="merchantName != null" >
+        merchant_name = #{merchantName,jdbcType=VARCHAR},
+      </if>
+      <if test="appName != null" >
+        app_name = #{appName,jdbcType=VARCHAR},
+      </if>
+      <if test="status != null" >
+        status = #{status,jdbcType=TINYINT},
+      </if>
+      <if test="registCallBackUrl != null" >
+        regist_callback_url = #{registCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testRegistCallBackUrl != null" >
+        test_regist_callback_url = #{testRegistCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="loginCallBackUrl != null" >
+        login_callback_url = #{loginCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testLoginCallBackUrl != null" >
+        test_login_callback_url = #{testLoginCallBackUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="payNotifyUrl != null" >
+        pay_callback_url = #{payNotifyUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testPayNotifyUrl != null" >
+        test_pay_callback_url = #{testPayNotifyUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="gameUrl != null">
+        game_url = #{gameUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="testGameUrl != null">
+        test_game_url = #{testGameUrl,jdbcType=VARCHAR},
+      </if>
+      <if test="outPublicRsaKey != null" >
+        out_public_rsakey = #{outPublicRsaKey,jdbcType=VARCHAR},
+      </if>
+      <if test="outPrivateRsaKey != null" >
+        out_private_rsakey = #{outPrivateRsaKey,jdbcType=VARCHAR},
+      </if>
+      <if test="appKey != null" >
+        app_key = #{appKey,jdbcType=VARCHAR},
+      </if>
+      <if test="loginKey != null" >
+        login_key = #{loginKey,jdbcType=VARCHAR},
+      </if>
+      <if test="payKey != null" >
+        pay_key = #{payKey,jdbcType=VARCHAR},
+      </if>
+      <if test="ogpGameId != null" >
+        ogp_game_id = #{ogpGameId,jdbcType=VARCHAR},
+      </if>
+      <if test="ogpGameKey != null" >
+        ogp_game_key = #{ogpGameKey,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where app_code = #{appCode,jdbcType=VARCHAR}
+  </update>
+
+</mapper>

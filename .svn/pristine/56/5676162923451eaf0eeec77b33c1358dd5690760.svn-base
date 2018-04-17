@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.BqChargePointMapper">
+	<resultMap type="com.dome.sdkserver.metadata.entity.bq.pay.BqChargePointInfo" id="resultMap">
+		<id property="chargePointId" jdbcType="INTEGER" column="charging_point_id" />
+		<result property="chargePointCode" jdbcType="VARCHAR" column="charging_point_code" />
+		<result property="chargePointName" jdbcType="VARCHAR" column="charging_point_name" />
+		<result property="chargePointAmount" jdbcType="DECIMAL" column="charging_point_amount" />
+		<result property="desc" jdbcType="VARCHAR" column="description" />
+	</resultMap>
+	
+	<select id="getChargePointInfoByCode" resultMap="resultMap">	
+		SELECT 
+			charging_point_id,
+			charging_point_code,
+			charging_point_name,
+			charging_point_amount,
+			description
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		   charging_point_code = #{chargePointCode} and app_code = #{appCode} and status = 20
+	</select>
+	
+	<select id="getChargePointInfoByCode2" resultMap="resultMap">	
+		SELECT 
+			charging_point_id,
+			charging_point_code,
+			charging_point_name,
+			charging_point_amount,
+			description
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		   charging_point_code = #{chargePointCode} and app_code = #{appCode} and status =70 order by charging_point_id desc limit 1
+	</select>
+	
+	<select id="selectByAppCode" resultMap="resultMap">	
+		SELECT 
+			charging_point_id,
+			charging_point_code,
+			charging_point_name,
+			charging_point_amount,
+			description
+		FROM 
+			domesdk_charging_point 
+		WHERE 
+		   app_code = #{appCode} and status = 20
+	</select>
+</mapper>

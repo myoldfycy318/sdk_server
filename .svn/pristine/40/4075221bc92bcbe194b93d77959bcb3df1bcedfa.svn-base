@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="二级渠道申请">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../../dist/css/application.css">
+    <link rel="stylesheet" href="../../dist/css/jquery-ui.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus cur">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+
+<div class="channel-nac-content">
+    <div class="channel-area-address">
+        <a href="javascript:void(0);">首页</a>
+        <em>&gt;</em>
+        <label>二级渠道申请</label>
+    </div>
+
+    <div class="chan-nav">
+         <div class="nav-box">
+    <dl>
+        <dt class="icon1">渠道管理</dt>
+        <dd class="@@applygametips"><a href="channelmanage-applygame.html">渠道包申请（游戏）</a></dd>
+        <dd class="@@downloadgametips"><a href="channelmanage-downloadgame.html">渠道包下载（游戏）</a></dd>
+        <dd class="@@downloadapptips"><a href="channelmanage-downloadapp.html">渠道包下载（APP）</a></dd>
+        <dd class="@@searchchanneltips"><a href="channelmanage-searchchannel.html">查询渠道</a></dd>
+        <dd class="selected two-menu-box"><a href="channelmanage-applychannel.html">二级渠道申请</a></dd>
+        <dd class="@@searchdatatips"><a href="channelmanage-searchdata.html">数据查询</a></dd>
+    </dl>
+
+    <dl>
+        <dt class="icon2">用户中心</dt>
+        <dd class="@@informationtips"><a href="channelmanage-information.html">基本信息</a></dd>
+    </dl>
+
+    <dl class="two-menu-box">
+        <dt class="icon3">财务管理</dt>
+        <dd class="@@applyrestips"><a href="channelmanage-applyrecord.html">申请结算</a></dd>
+        <dd class="@@resulttips"><a href="channelmanage-resultrecord.html">结算记录</a></dd>
+    </dl>    
+</div>
+    </div>
+
+
+    <div class="chan-right">
+        <h1>二级渠道申请</h1>
+
+        <div class="chan-right-content">
+            <div class="crc-line">
+                <em><span class="red">*</span>渠道名称：</em>
+
+                <div class="crc-line-right">
+                    <input id="channelname" type="text" class="channel-default-text required" placeholder="最多支持中文10个字，最少2个字"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>合作方式：</em>
+
+                <div class="crc-line-right" id="channeltype">
+                    <label>
+                        <input type="radio" name="channel_radio" data_name="1" checked="checked"/>CPA
+                    </label>
+
+                    <label>
+                        <input type="radio" name="channel_radio" data_name="2"/>CPS
+                    </label>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>邮箱：</em>
+
+                <div class="crc-line-right">
+                    <input id="channelemail" type="text" class="channel-default-text required"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>手机号：</em>
+
+                <div class="crc-line-right">
+                    <input onkeyup="this.value=this.value.replace(/\D/g,'')" id="channelphone" type="text" class="channel-default-text required"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>QQ号：</em>
+
+                <div class="crc-line-right">
+                    <input id="channelqq" type="text" class="channel-default-text required"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>负责人：</em>
+
+                <div class="crc-line-right">
+                    <input placeholder="最多支持中文5个字" id="channelcontact" type="text" class="channel-default-text required"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em><span class="red">*</span>联系地址：</em>
+
+                <div class="crc-line-right">
+                    <input id="channeladdress" type="text" class="channel-default-text required"/>
+                </div>
+            </div>
+
+            <div class="crc-line">
+                <em>&nbsp;</em>
+
+                <div class="crc-line-right">
+                    <a id="newchannel" href="javascript:void(0);" class="channel-button blue-button">新建渠道</a>
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+</div>
+
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../../dist/js/channelmanage-subapplychannel.js"
+        data-url="../../lib/">
+</script>

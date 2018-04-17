@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fields>
+	<field attr="merchantRegType">
+		<text>商户类型</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20035</code>
+		</check-null>
+		<check-length>
+			<max-length>2</max-length>
+			<code>20036</code>
+		</check-length>
+	</field>
+	
+	<field attr="merchantFullName">
+		<text>公司全称</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20001</code>
+		</check-null>
+		<check-length>
+			<max-length>36</max-length>
+			<code>20002</code>
+		</check-length>
+	</field>
+	
+	<field attr="merchantUrl">
+		<text>公司网址</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20003</code>
+		</check-null>
+		<check-length>
+			<max-length>250</max-length>
+			<code>20004</code>
+		</check-length>
+	</field>
+	
+	<field attr="phoneAreaNum">
+		<text>公司电话(区号)</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20005</code>
+		</check-null>
+		<check-length>
+			<max-length>8</max-length>
+			<code>20006</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20006</code>
+		</check-exp>
+	</field>
+	
+	<field attr="phoneNum">
+		<text>公司电话</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20007</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>20008</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20008</code>
+		</check-exp>
+	</field>
+	
+	<field attr="orgNum">
+		<text>组织机构代码</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20009</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20010</code>
+		</check-length>
+	</field>
+	
+	<field attr="orgImageUrl">
+		<text>组织机构代码图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20011</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20012</code>
+		</check-length>
+	</field>
+	
+	<field attr="licenceNum">
+		<text>公司营业执照</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20013</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20014</code>
+		</check-length>
+	</field>
+	
+	<field attr="licenceImageUrl">
+		<text>公司营业执照图片</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20015</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20016</code>
+		</check-length>
+	</field>
+	
+	<field attr="legalName">
+		<text>法人代表姓名</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20017</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20018</code>
+		</check-length>
+	</field>
+	
+	<field attr="legalImageUrl">
+		<text>法人代表姓名图片</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20019</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>20020</code>
+		</check-length>
+	</field>
+	
+	<field attr="registAmount">
+		<text>注册资金</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20021</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>20022</code>
+		</check-length>
+		<check-exp>
+			<exp>^([0-9]*\.?[0-9]+|[0-9]+\.?[0-9]*)([0-9]+)?$</exp>
+			<code>20022</code>
+		</check-exp>
+	</field>
+	
+	<field attr="merchantType">
+		<text>公司性质</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20023</code>
+		</check-null>
+		<check-length>
+			<max-length>2</max-length>
+			<code>20024</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20024</code>
+		</check-exp>
+	</field>
+	
+	<field attr="isListed">
+		<text>公司上市情况</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20025</code>
+		</check-null>
+		<check-length>
+			<max-length>1</max-length>
+			<code>20026</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20026</code>
+		</check-exp>
+	</field>
+	
+	<field attr="merchantIntro">
+		<text>公司介绍</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20027</code>
+		</check-null>
+		<check-length>
+			<max-length>200</max-length>
+			<code>20028</code>
+		</check-length>
+	</field>
+	
+	<field attr="contacts">
+		<text>联系人</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20029</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>20030</code>
+		</check-length>
+	</field>
+	
+	<field attr="qqNum">
+		<text>联系人QQ</text>
+		<check-null>
+			<allow-null>0</allow-null>
+			<code>20031</code>
+		</check-null>
+		<check-length>
+			<max-length>60</max-length>
+			<code>20032</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20032</code>
+		</check-exp>
+	</field>
+	
+	<field attr="mobilePhoneNum">
+		<text>手机号</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>20033</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>20034</code>
+		</check-length>
+		<check-exp>
+			<exp>^[0-9]\d*$</exp>
+			<code>20034</code>
+		</check-exp>
+	</field>
+</fields>

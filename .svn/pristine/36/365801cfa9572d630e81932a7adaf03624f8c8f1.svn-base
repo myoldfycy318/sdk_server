@@ -1,0 +1,7 @@
+#key
+ACCESS_KEY=K0qtnxHFdJTp9Wjy3Gi9dyWQIZfqZR4Ow__F724L
+SECRET_KEY=TqJyenJSN8T4N4Er41Kei4G2pULzQJSbZVZjXTzF
+BUCKET_NAME=store
+#QINIU_URL=http://7xjf1e.com1.z0.glb.clouddn.com
+QINIU_URL=https://qn-store.qbcdn.com
+

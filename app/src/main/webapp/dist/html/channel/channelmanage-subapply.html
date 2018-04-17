@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="提交申请">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../../dist/css/application.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus cur">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+<div class="contentBox channel-con">
+    <div class="channel-top-process">
+        <dl class="selected">
+            <dt>1</dt>
+            <dd>提交申请</dd>
+        </dl>
+
+        <p class="selected">&nbsp;</p>
+
+        <p>&nbsp;</p>
+
+        <dl>
+            <dt>2</dt>
+            <dd>等待审核</dd>
+        </dl>
+
+        <p>&nbsp;</p>
+
+        <p>&nbsp;</p>
+
+        <dl>
+            <dt>3</dt>
+            <dd>审核结果</dd>
+        </dl>
+    </div>
+
+    <div class="conBox">
+        
+        <div class="fromBox">
+            <div class="tit">企业信息<p>&nbsp;</p></div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    公司全称
+                </label>
+                <input data-name="companyName" class="text_con required" type="text"/>
+                <!--<span class="tips">文字符内，英文字符不超过36个</span>-->
+                <span class="error red">最多20位中文</span>
+
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    公司网址
+                </label>
+                <input onkeyup="this.value=this.value.replace(/[\u4E00-\u9FA5\uF900-\uFA2D]/g,'')" data-name="companyUrl" class="text_con required" type="text" value="http://"/>
+                <span class="error red">请输入正确的网址以http://或者https://开头</span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    公司电话
+                </label>
+                <input onkeyup="this.value=this.value.replace(/[^\d]/g,'')" data-name="zoneCode" type="text"
+                       class="p_head required"/>
+                <span class="p_center">-</span>
+                <input onkeyup="this.value=this.value.replace(/[^\d]/g,'')" data-name="telephone" class="p_foot required"
+                       type="text"/>
+                <span class="error red">必填项</span>
+            </div>
+
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    ICP备案号
+                </label>
+                <input data-name="icpRecord" class="text_con" type="text"/>
+                <span class="error red"></span>
+            </div>
+
+            <!--组织机构代码-->
+            <div class="boxInput">
+                <label class="f_lab">
+                    增值证号
+                </label>
+                <input data-name="vatNo" class="text_con" type="text"/>
+
+                <div class="fileBox">
+                    <input data-name="vatPicUrl" type="hidden" class="imgUrl"/>
+
+                    <div class="btn_file text-c">扫描件上传</div>
+                </div>
+                <div class="fileBox legalImageUrl" style="width: 200px;display: none;">
+                    <div class="hidden ">
+                        <img src="" alt="" class="file_img"/>
+                        <span class="file_ck file_text">查看</span>
+                        <span class="file_del file_text">删除</span>
+                    </div>
+                </div>
+                <span class="error red"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    公司营业执照
+                </label>
+                <input data-name="licenceNum" class="text_con" type="text" placeholder="请填写公司营业执照编号"/>
+
+                <div class="fileBox">
+                    <input id="licenceImageUrl" data-name="licenceImageUrl" type="hidden" class="imgUrl"/>
+
+                    <div class="btn_file text-c">扫描件上传</div>
+                </div>
+                <div class="fileBox legalImageUrl" style="width: 200px;display: none;">
+                    <div class="hidden ">
+                        <img src="" alt="" class="file_img required"/>
+                        <span class="file_ck file_text">查看</span>
+                        <span class="file_del file_text">删除</span>
+                    </div>
+                </div>
+                <span class="error red"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    法人代表姓名
+                </label>
+                <input data-name="legalName" class="text_con" type="text" placeholder="请填写法人代表姓名"/>
+
+                <div class="fileBox">
+                    <input data-name="legalImageUrl" type="hidden" class="imgUrl"/>
+
+                    <div class="btn_file text-c">扫描件上传</div>
+                </div>
+                <div class="fileBox legalImageUrl" style="width: 200px;display: none;">
+                    <div class="hidden ">
+                        <img src="" alt="" class="file_img required"/>
+                        <span class="file_ck file_text">查看</span>
+                        <span class="file_del file_text">删除</span>
+                    </div>
+                </div>
+                <span class="error red"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    税务登记证号
+                </label>
+                <input data-name="taxRegistNo" class="text_con" type="text" placeholder="请填写税务登记证号"/>
+
+                <div class="fileBox">
+                    <input data-name="taxRegistUrl" type="hidden" class="imgUrl"/>
+
+                    <div class="btn_file text-c">扫描件上传</div>
+                </div>
+                <div class="fileBox legalImageUrl" style="width: 200px;display: none;">
+                    <div class="hidden ">
+                        <img src="" alt="" class="file_img required"/>
+                        <span class="file_ck file_text">查看</span>
+                        <span class="file_del file_text">删除</span>
+                    </div>
+                </div>
+                <span class="error red"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    网络文化经营许可证号
+                </label>
+                <input data-name="networkCultureNo" class="text_con" type="text" placeholder="请填写网络文化经营许可证"/>
+
+                <div class="fileBox">
+                    <input data-name="networkCultureUrl" type="hidden" class="imgUrl"/>
+
+                    <div class="btn_file text-c">扫描件上传</div>
+                </div>
+                <div class="fileBox legalImageUrl" style="width: 200px;display: none;">
+                    <div class="hidden ">
+                        <img src="" alt="" class="file_img required"/>
+                        <span class="file_ck file_text">查看</span>
+                        <span class="file_del file_text">删除</span>
+                    </div>
+                </div>
+                <span class="error"></span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    开户行
+                </label>
+                <input data-name="bankName" class="text_con required" type="text"/>
+
+                
+                <span class="error red"></span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    开户账号
+                </label>
+                <input onkeyup="this.value=this.value.replace(/[^\d]/g,'')" data-name="bankAccount" class="text_con required" type="text"/>
+
+                
+                <span class="error red"></span>
+            </div>
+
+            
+            <div class="boxInput">
+                <label class="f_lab">
+                    注册资金
+                </label>
+                <input onkeyup="this.value=this.value.replace(/[^\d]/g,'')" data-name="registAmount" class="text_con util-digVail" type="text" placeholder=""/>
+                <span class="file_bz">万元</span>
+                <span class="error"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab s_lab">
+                    公司性质
+                </label>
+                <select data-name="companyType" class="sel_box">
+                    <option value="10">国有企业</option>
+                    <option value="20">私营企业</option>
+                    <option value="30">台资</option>
+                    <option value="40">外企</option>
+                </select>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab s_lab">
+                    公司上市情况
+                </label>
+
+                <div class="iCheck">
+                    <input value="1" class="iradio_square" type="radio" name="isListed" checked/>
+                    <span class="text">是</span>
+                </div>
+                <div class="iCheck">
+                    <input value="0" class="iradio_square" type="radio" name="isListed"/>
+                    <span class="text">否</span>
+                </div>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab s_lab">
+                    <span class="red">*</span>
+                    公司介绍
+                </label>
+
+                <div class="textarea">
+                    <textarea class="required" data-name="companyIntro" cols="30" rows="10"></textarea>
+                </div>
+                <span class="error red">必填项</span>
+            </div>
+            <!--业务信息-->
+            <div class="tit">业务信息<p>&nbsp;</p></div>
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    渠道名称
+                </label>
+                <input data-name="name" class="text_con required" type="text" placeholder=""/>
+                <span class="error red">最多20位中文</span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab s_lab">
+                    <span class="red">*</span>
+                    合作方式
+                </label>
+
+                <div class="iCheck">
+                    <input value="1" class="iradio_square" type="radio" name="cooperType" checked/>
+                    <span class="text">CPA</span>
+                </div>
+                <div class="iCheck">
+                    <input value="2" class="iradio_square" type="radio" name="cooperType"/>
+                    <span class="text">CPS</span>
+                </div>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    联系人
+                </label>
+                <input data-name="contact" class="text_con required" type="text" placeholder="请填写联系人"/>
+                <span class="error red">必填项</span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    QQ
+                </label>
+                <input data-name="qq" class="text_con required" type="text" placeholder=""/>
+                <span class="error red"></span>
+            </div>
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    手机号
+                </label>
+
+                <div class="phoneBox">
+                    <input onkeyup="this.value=this.value.replace(/[^\d]/g,'')" data-name="mobilePhone"
+                           class="text_con required" type="text" placeholder="请填写可以联系到您的电话"/>
+
+                    <div class="qz">+86</div>
+                </div>
+                <span class="error red">必填项</span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab">
+                    <span class="red">*</span>
+                    联系人邮箱
+                </label>
+                <input data-name="email" class="text_con required util-emailVail" type="text" placeholder="请填写有效邮箱，用于接收平台审核通知等重要信息"/>
+                <span class="error red">请输入正确的邮箱格式</span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab s_lab">
+                    <span class="red">*</span>
+                    联系地址
+                </label>
+
+                <div class="textarea">
+                    <textarea class="required" data-name="address" cols="30" rows="10" placeholder="请填写有效联系地址，用于接收邮件等重要信息"></textarea>
+                </div>
+                <span class="error red">必填项</span>
+            </div>
+
+            <div class="boxInput">
+                <label class="f_lab"></label>
+
+                <div class="btn_sub sub_cur">提交申请</div>
+                <a href="index.html" class="btn_cencal">取消</a>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../../dist/js/channelmanage-subapply.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

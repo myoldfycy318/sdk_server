@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.sdkversion.SdkVersionMapper">
+
+
+    <resultMap type="com.dome.sdkserver.bo.sdkversion.SdkVersionInfo" id="resultMap">
+        <id property="id" jdbcType="INTEGER" column="id"/>
+        <result property="versionName" jdbcType="VARCHAR" column="version_name"/>
+        <result property="versionNum" jdbcType="VARCHAR" column="version_num"/>
+        <result property="needUpdateVersion" jdbcType="VARCHAR" column="need_update_version"/>
+        <result property="needUpdateGame" jdbcType="VARCHAR" column="need_update_game"/>
+        <result property="sdkPath" jdbcType="VARCHAR" column="sdk_path"/>
+        <result property="versionDesc" jdbcType="CHAR" column="version_desc"/>
+        <result property="isRelease" jdbcType="INTEGER" column="is_release"/>
+        <result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+        <result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+        <result property="releaseTime" jdbcType="TIMESTAMP" column="release_time"/>
+        <result property="sdkUploadTime" jdbcType="TIMESTAMP" column="sdk_upload_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+         id,
+        version_name,
+        version_num,
+        need_update_version,
+        need_update_game,
+        sdk_path,
+        version_desc,
+        is_release,
+        create_time,
+        update_time,
+        release_time,
+        sdk_upload_time
+	  </sql>
+
+
+    <select id="querySdkVersionList" resultMap="resultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM
+        domesdk_sdk_version_info
+        WHERE 1=1
+        <if test="id !=null ">
+           and id = #{id}
+        </if>
+        <if test="versionNum !=null ">
+            and version_num like concat('%',#{versionNum},'%')
+        </if>
+        <if test="sdkUploadStartTime !=null ">
+            and sdk_upload_time &gt;= concat(DATE_FORMAT(#{sdkUploadStartTime}, '%Y-%m-%d'),' 00:00:00')
+        </if>
+        <if test="sdkUploadEndTime !=null ">
+            and sdk_upload_time &lt;=  concat(DATE_FORMAT(#{sdkUploadEndTime}, '%Y-%m-%d'),' 23:59:59')
+        </if>
+        <if test="isRelease !=null ">
+           and  is_release = #{isRelease}
+        </if>
+        order by version_num asc
+    </select>
+
+    <insert id="insertSdkVersion" parameterType="com.dome.sdkserver.bo.sdkversion.SdkVersionInfo">
+        insert into domesdk_sdk_version_info(
+        version_name,
+        version_num,
+        need_update_version,
+        need_update_game,
+        sdk_path,
+        version_desc,
+        is_release,
+        create_time,
+        update_time,
+        sdk_upload_time
+        ) values (
+         #{versionName}
+        ,#{versionNum}
+        ,#{needUpdateVersion}
+        ,#{needUpdateGame}
+        ,#{sdkPath}
+        ,#{versionDesc}
+        ,#{isRelease}
+        ,now()
+        ,now()
+        ,now()
+        )
+    </insert>
+
+    <update id="updateSdkVersionById" parameterType="com.dome.sdkserver.bo.sdkversion.SdkVersionInfo">
+        update
+        domesdk_sdk_version_info
+        set
+        update_time=now()
+        <if test="versionName != null">
+            ,version_name = #{versionName}
+        </if>
+        <if test="versionNum != null">
+            ,version_num = #{versionNum}
+        </if>
+        <if test="needUpdateVersion != null">
+            ,need_update_version = #{needUpdateVersion}
+        </if>
+        <if test="needUpdateGame != null">
+            ,need_update_game = #{needUpdateGame}
+        </if>
+        <if test="sdkPath != null">
+            ,sdk_path = #{sdkPath}
+        </if>
+        <if test="versionDesc != null">
+            ,version_desc = #{versionDesc}
+        </if>
+        <if test="isRelease != null">
+            ,is_release = #{isRelease}
+        </if>
+        <if test="releaseTime != null">
+            ,release_time = now()
+        </if>
+        <if test="sdkUploadTime != null">
+            ,sdk_upload_time = now()
+        </if>
+        where  id= #{id}
+    </update>
+
+</mapper>

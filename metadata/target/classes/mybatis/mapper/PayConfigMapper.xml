@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ <mapper namespace="com.dome.sdkserver.metadata.dao.mapper.PayConfigMapper">
+ 	<resultMap type="com.dome.sdkserver.bo.PayConfigInfo" id="ResultMap">
+ 		<id property="configId" jdbcType="INTEGER" column="config_id"/>
+ 		<result property="merchantFullName" jdbcType="VARCHAR" column="merchant_full_name" />
+		<result property="merchantCode" jdbcType="VARCHAR" column="merchant_code" />
+		<result property="appName" jdbcType="VARCHAR" column="app_name" />
+		<result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+		<result property="qbbFlag" jdbcType="TINYINT" column="qbb_flag"/>
+		<result property="bqFlag" jdbcType="TINYINT" column="bq_flag"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="certifiedStatus" jdbcType="TINYINT" column="certified_status"/>
+		<result property="settlePeriod" jdbcType="TINYINT" column="settle_period"/>
+		<result property="qbbRate" jdbcType="DECIMAL" column="qbb_rate"/>
+		<result property="bqRate" jdbcType="DECIMAL" column="bq_rate"/>
+		<result property="effectDate" jdbcType="VARCHAR" column="effect_date"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+ 	</resultMap>
+ 	
+ 	
+ 	<sql id="Base_Column_List">
+ 		con.config_id,
+		mer.merchant_full_name,
+		mer.merchant_code,
+		app.app_name,
+		app.app_code,
+		con.qbb_flag,
+		con.bq_flag,
+		con.del_flag,
+		con.certified_status,
+		con.settle_period,
+		con.qbb_rate,
+		con.bq_rate,
+		con.effect_date,
+		con.create_time,
+		con.update_time,
+		con.remark
+	</sql>
+	
+	<sql id="Pay_Config_Column">
+		pay.app_code,
+		pay.qbb_flag,
+		pay.bq_flag,
+		pay.del_flag,
+		pay.certified_status,
+		pay.settle_period,
+		pay.qbb_rate,
+		pay.bq_rate,
+		pay.remark
+	</sql>
+	
+	<!-- 根据查询条件获得配置信息 -->
+ 	<select id="getPayConfigListByCondition" resultMap="ResultMap">
+		SELECT 
+			<include refid="Base_Column_List"/>
+		FROM 
+			domesdk_pay_config con,domesdk_app_info app,domesdk_merchant_info mer
+		WHERE
+			con.del_flag = 0
+			and con.app_code = app.app_code
+			and app.merchant_info_id = mer.merchant_info_id
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mer.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.merchantCode != null and entity.merchantCode != ''">
+			and mer.merchant_code = #{entity.merchantCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.appName != null and entity.appName != ''">
+			and app.app_name like concat('%',#{entity.appName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.appCode != null and entity.appCode != ''">
+			and app.app_code = #{entity.appCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.qbbFlag != null and entity.qbbFlag != ''">
+			and con.qbb_flag = #{entity.qbbFlag, jdbcType=TINYINT}
+		</if>
+		<if test="entity.bqFlag != null and entity.bqFlag != ''">
+			and bq_flag = #{entity.bqFlag, jdbcType=TINYINT}
+		</if>		
+		order by con.update_time desc
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<!-- 根据配置条件得到查询总数 -->
+	<select id="getPayConfigCountByCondition" resultType="java.lang.Integer">
+		SELECT 
+			count(1)
+		FROM 
+			domesdk_pay_config con,domesdk_app_info app,domesdk_merchant_info mer
+		WHERE
+			con.del_flag = 0
+			and con.app_code = app.app_code
+			and app.merchant_info_id = mer.merchant_info_id
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mer.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.merchantCode != null and entity.merchantCode != ''">
+			and mer.merchant_code = #{entity.merchantCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.appName != null and entity.appName != ''">
+			and app.app_name like concat('%',#{entity.appName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.appCode != null and entity.appCode != ''">
+			and app.app_code = #{entity.appCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.qbbFlag != null and entity.qbbFlag != ''">
+			and con.qbb_flag = #{entity.qbbFlag, jdbcType=TINYINT}
+		</if>
+		<if test="entity.bqFlag != null and entity.bqFlag != ''">
+			and con.bq_flag = #{entity.bqFlag, jdbcType=TINYINT}
+		</if>		
+	</select>
+ 
+ 
+ 	<!-- 根据id查找配置信息 -->
+ 	<select id="getPayConfigById" resultMap="ResultMap">
+		SELECT 
+			<include refid="Base_Column_List"/>
+		FROM 
+			domesdk_pay_config con, domesdk_app_info app, domesdk_merchant_info mer
+		WHERE
+			con.del_flag = 0
+		and 
+			con.app_code = app.app_code
+		and 
+			app.merchant_info_id = mer.merchant_info_id
+		and
+			con.config_id = #{configId, jdbcType=INTEGER}
+	</select>	
+	
+	<!-- 根据id修改配置信息 -->
+ 	<update id="editPayConfigById">
+ 		UPDATE 
+ 			domesdk_pay_config con
+		SET  
+			  con.config_id= con.config_id
+			, con.qbb_flag = #{entity.qbbFlag, jdbcType=TINYINT}
+			, con.bq_flag = #{entity.bqFlag, jdbcType=TINYINT}
+			, con.certified_status = #{entity.certifiedStatus, jdbcType=TINYINT}
+			, con.settle_period = #{entity.settlePeriod, jdbcType=TINYINT}
+		 WHERE con.config_id = #{entity.configId, jdbcType=INTEGER}
+ 	
+ 	
+ 	</update>
+ 	
+ 	<select id="queryByAppCode" parameterType="string" resultMap="ResultMap">
+ 		select
+ 			<include refid="Pay_Config_Column" />
+ 		from domesdk_pay_config pay
+ 		where 
+ 				del_flag=0 
+ 			and app_code=#{appCode}
+ 	</select>
+ 
+ 	<!-- 新增支付配置信息  -->
+ 	<insert id="addPayConfigInfo" parameterType="com.dome.sdkserver.bo.PayConfigInfo">
+ 		insert into domesdk_pay_config(
+ 			app_code,
+ 			qbb_flag,
+ 			bq_flag,
+ 			del_flag,
+ 			certified_status,
+ 			settle_period,
+ 			qbb_rate,
+ 			bq_rate,
+ 			remark
+ 		) 
+ 		values(
+ 			#{entity.appCode},
+ 			#{entity.qbbFlag},
+ 			#{entity.bqFlag},
+ 			#{entity.delFlag},
+ 			#{entity.certifiedStatus},
+ 			#{entity.settlePeriod},
+ 			#{entity.qbbRate},
+ 			#{entity.bqRate},
+ 			#{entity.remark}
+ 		)
+ 	</insert>
+ 
+ </mapper>

@@ -1,0 +1,90 @@
+package com.dome.sdkserver.biz.executor;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.entity.DomeRequestEntity;
+import com.dome.sdkserver.util.ApiConnector;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * MerchantPayNotifyThread
+ *
+ * @author Zhang ShanMin
+ * @date 2016/7/8
+ * @time 15:43
+ */
+public class MerchantPayNotifyThread implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(MerchantPayNotifyThread.class);
+
+    private DomeRequestEntity entity;
+
+    public MerchantPayNotifyThread(DomeRequestEntity entity) {
+        this.entity = entity;
+    }
+
+    @Override
+    public void run() {
+        Boolean result = false;
+        try {
+            List<NameValuePair> pairs = new ArrayList<NameValuePair>();
+            pairs.add(new BasicNameValuePair("responseCode", entity.getResponseCode()));
+            pairs.add(new BasicNameValuePair("errorCode", entity.getErrorCode()));
+            pairs.add(new BasicNameValuePair("errorMsg", entity.getErrorMsg()));
+            pairs.add(new BasicNameValuePair("data", JSONObject.toJSONString(entity.getData())));
+
+            pairs.add(new BasicNameValuePair("signCode", entity.getSignCode()));
+
+            int maxTryTimes = entity.getMaxTryTimes();
+            int sleep = entity.getSleepTime();
+            String res = null;
+            JSONObject json = null;
+            for (int i = 0; i < maxTryTimes; i++) {
+                res = ApiConnector.post(entity.getPayNotifyUrl(), pairs);
+                logger.info("支付通知,请求url:{},请求参数:{},响应结果:{}", entity.getPayNotifyUrl(), pairs, res);
+                if (!StringUtils.isBlank(res) && (json = JSONObject.parseObject(res)) != null && json.getBoolean("isSuccess") != null && json.getBoolean("isSuccess")) {
+                    result = true;
+                    break;
+                } else {
+                    Thread.sleep(sleep);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("MerchantPayNotifyThread.error:{}", e);
+        }
+        logger.info(">>>>>>>>>>>>>>>发送异步通知给游戏服务端结果:" + result + ",orderNo = " + entity.getOrderNo() + ",sdkflowId=" + entity.getSdkflowId());
+    }
+
+    public static void main(String[] args) throws Exception {
+        DomeRequestEntity entity = new DomeRequestEntity();
+        entity.setResponseCode("1000");
+        entity.setSdkflowId("201609091456250236910");
+        entity.setOrderNo("S3-33542912001561");
+
+        DomeRequestEntity requestEntity = new DomeRequestEntity();
+        Map<String, String> data = new HashMap<String, String>();
+        data.put("orderNo", "S3-33542912001561");
+        data.put("sdkflowId", "201609091456250236910");
+        requestEntity.setResponseCode("1000");
+        requestEntity.setErrorCode(null);
+        requestEntity.setErrorMsg(null);
+        requestEntity.setOrderNo("S3-33542912001561");
+        requestEntity.setSdkflowId("201609091456250236910");
+//        requestEntity.setPayNotifyUrl(entity.getCallbackUrl());
+        requestEntity.setData(data);
+//        requestEntity.setPrivateKey("MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAMgC3m75p2NYiLuFUD2koYaM1Ao0V7JoOAbn2vBQAA1ESTORgm1GuPlO2KpQrL7r3lAB9yjBG/S7TZBNPDUUFO5tXGQRvZo6YdphZX4obvdl9wDc91yBy6gP9Ohbnsma00Ll/5005MlbOlorxZnOhSyFUiLl05R7W4WdmJfHd711AgMBAAECgYBweiSKdfzrAmPKSJsqP0XSu6mWn37dxnwTbhmSYPrWextLU73sJARrtypjBQFQUKZxidlrYsWM6DQjPTvpgYSO3ebEx+tZezQlH97PHBDma9HwRWBD/nxXRcfIJ2kTbugMJB1BjqNj8Nk7UmmxuXxRMiyQQTYCM5aA3m6JZPGCYQJBAOq2f7HAQKZ+BjhXhnmKho1yhXHFHxg5shsrt1Z7+zNc7TXWKJFYzY4/ShG64cnnehaJX6vqfW1Dsm9T5gDln9kCQQDaJqz9FSiTZj2BY5tLHjAIhRCgaCrKoFHzNXDKjryJ7r7oOnnXnY2lq9rZH4WEshJ+lNgbndbzsV2+J6IL2GT9AkB2+/M54dMkU8jFcSFbpezV8dNSPHKp7j2q5nt3nTxX6mjaHOnN3O2/ibf7yvhBSVYr7JISbboN1P60zxxPIhjpAkEAobk0W3b5GrUb+bUnJjwd7eL/3Xr75jWOK1g94tyIZ1UoEC9xrmft35kU6AvXRvVggpjD0U1lUkn2LgdhuZhV3QJAHjjYfgmskF5QOHjtvsEC+36CAX153Py/foiby4q4XifE/w7CTLBqZjBgPrH56itci1AZacY2yIw0oJasq1j1VA==");
+        requestEntity.setPrivateKey("MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAIBuXPAZLNwfaAygyKKQ2Q9hF5ddp7P3096QZh/HmsESONxyBrDugp2G1XEIGo3sWdsP6rhCxIRhlXx/O6Bo+HoWmt9YnqdiEtJDrwyP0cHkv6zwCC6lgtljhoX2j/iDobdRW4XIBSgvyiJ9eLBBIe+EQdgfVdKNj3SpgGU4q7l7AgMBAAECgYA+ZmDdfz3ejZveVthks//iiwgNUUHEHSthvcMAudik6headARwPtJTe0mFK6zLPATEfM1MTZRxxX/+B0uPOrFO4B1opdH7qRfpz5E4ebj3iBkwUle1a4drTtq+oBSdHlam9XbohO8tPwG1Q8VkkdUVKQ+rJeQegck7jQ9jLB1BIQJBALpA4GaVEtzV71ey0Scw8kSmd3/tn1I0R7koGuMk1RRB15RqBNpa5VJi69TKzlY0SVT0cXbYOa1rlPF9UKeA+EkCQQCwhl5uW7OoV7MW/Ubhvh0aeRIZYykEtD+T+EUjT6INeAwFD33oHsFDc49v+l6SRPPIYzgUZ8IWeXhHGFHAzoujAkEAtqTmKVJok+yq75ooJkGGYjHIH8haoxcnenfMnhBBb8L9b8njhmj6Vqcw0pQqcTiG7Otk1QFG1jwYbBPSYuBDGQJAErFn9o/HaqA+2sRfaTBUrKT9gaq6gUEFKooz6BVat8pqm26UiqwXEyl9mwIMWbjrh+DZ429JYk/iqMSug5hbuQJBAIRT7/6OnfL3feNqAmtD21L1sdpGMGObKFkxBEYgJDi6y96nvqNz5GFoo7pcGTQspdLduf3Kg5zJje6AA+yP0tw=");
+        requestEntity.setMaxTryTimes(1);
+        requestEntity.setSleepTime(1);
+        System.out.println("\r\n"+ requestEntity.getSignCode());
+
+    }
+}

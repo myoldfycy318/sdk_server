@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.domesdk.server</groupId>
+    <artifactId>parent</artifactId>
+    <version>1.0</version>
+  </parent>
+
+  <artifactId>common</artifactId>
+  <packaging>jar</packaging>
+  <name>common</name>
+
+  <dependencies>
+  	<dependency>
+        <groupId>org.apache.directory.studio</groupId>
+        <artifactId>org.dom4j.dom4j</artifactId>
+        <version>1.6.1</version>
+    </dependency>
+  	<!-- jaxen至1.1.4或更高版本后不再依赖icu4j-2.6.1.jar 
+  		org.apache.catalina.startup.ContextConfig processAnnotationsJar
+		SEVERE: Unable to process Jar entry [com/ibm/icu/impl/data/LocaleElements_zh__PINYIN.class] from Jar [jar:file:/Data/WEB_APP/sop/ROOT/WEB-INF/lib/icu4j-2.6.1.jar!/] for annotations
+		org.apache.tomcat.util.bcel.classfile.ClassFormatException: Invalid byte tag in constant pool: 60 -->
+  	<dependency>
+        <groupId>jaxen</groupId>
+        <artifactId>jaxen</artifactId>
+        <version>1.1.4</version>
+        <exclusions>
+         	<exclusion>        
+                <groupId>xerces</groupId>            
+                <artifactId>xercesImpl</artifactId>    
+           </exclusion>  
+        </exclusions>
+    </dependency>
+  	
+  	
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.belerweb</groupId>
+      <artifactId>pinyin4j</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient-cache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpmime</artifactId>
+    </dependency>
+    
+   <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>spring-context</artifactId>
+          <groupId>org.springframework</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+	
+		<dependency>
+			<groupId>com.qiniu</groupId>
+			<artifactId>sdk</artifactId>
+			<version>6.1.7</version>
+		</dependency>
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>fastjson</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+    </dependency>
+	<dependency>
+      <groupId>org.springframework.data</groupId>
+      <artifactId>spring-data-redis</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>spring-context-support</artifactId>
+          <groupId>org.springframework</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>spring-context</artifactId>
+          <groupId>org.springframework</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+      <dependency>
+          <groupId>javax.servlet</groupId>
+          <artifactId>javax.servlet-api</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>javax.activation</groupId>
+          <artifactId>activation</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>javax.mail</groupId>
+          <artifactId>mail</artifactId>
+      </dependency>
+    <dependency>
+      <groupId>commons-fileupload</groupId>
+      <artifactId>commons-fileupload</artifactId>
+    </dependency>
+    <dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-beans</artifactId>
+	</dependency>
+	<!-- 解析APK包 -->
+    <dependency>
+        <groupId>net.dongliu</groupId>
+        <artifactId>apk-parser</artifactId>
+        <version>2.0.12</version>
+    </dependency>
+    <dependency>
+        <groupId>brut.androlib</groupId>
+        <artifactId>apktool</artifactId>
+        <version>2.2.0</version>
+    </dependency>
+    <!-- xml解压缩 -->
+<!--     <dependency>
+        <groupId>android.axmlprinter</groupId>
+        <artifactId>axmlprinter</artifactId>
+        <version>1.0.0</version>
+    </dependency> -->
+    <dependency>
+	  <groupId>com.qianbao.framework</groupId>
+	  <artifactId>qianbao-datasource</artifactId>
+	  <version>0.1.0</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/commons-net/commons-net -->
+	<dependency>
+	    <groupId>commons-net</groupId>
+	    <artifactId>commons-net</artifactId>
+	    <version>3.4</version>
+	</dependency>
+	<dependency>
+	    <groupId>commons-collections</groupId>
+	    <artifactId>commons-collections</artifactId>
+	    <version>3.2.2</version>
+	</dependency>
+	<dependency>
+	    <groupId>com.belerweb</groupId>
+	    <artifactId>pinyin4j</artifactId>
+	    <version>2.5.0</version>
+	</dependency>
+	<dependency>
+       	<groupId>com.dome.store</groupId>
+       	<artifactId>auth-api</artifactId>
+       	<version>1.0-SNAPSHOT</version>
+ 	</dependency>
+      <dependency>
+          <groupId>cn.domestore</groupId>
+          <artifactId>datautil</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>commons-httpclient</groupId>
+          <artifactId>commons-httpclient</artifactId>
+          <version>3.1</version>
+      </dependency>
+      <dependency>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcprov-ext-jdk14</artifactId>
+          <version>1.50</version>
+      </dependency>
+      <dependency>
+          <groupId>cn.domestore</groupId>
+          <artifactId>zhconverter</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>javax.validation</groupId>
+          <artifactId>validation-api</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>org.hibernate</groupId>
+          <artifactId>hibernate-validator</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>joda-time</groupId>
+          <artifactId>joda-time</artifactId>
+      </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+          <encoding>UTF-8</encoding>
+          <compilerArguments>
+                <extdirs>src\lib</extdirs>
+           </compilerArguments>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  
+</project>

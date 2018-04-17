@@ -1,0 +1,250 @@
+package com.dome.sdkserver.metadata.entity.bq.ogp;
+
+import com.alibaba.fastjson.JSON;
+import com.dome.sdkserver.bq.util.MapUtil;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.hibernate.validator.constraints.NotEmpty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by hunsy on 2017/9/15.
+ */
+public class CpPayEntity {
+
+    /**
+     * 应用码
+     */
+    @NotEmpty
+    private String app_code;
+    @NotEmpty
+    private String game_name;
+    @NotEmpty
+    private String zone_id;
+    @NotEmpty
+    private String zone_name;
+    private String role_id;
+    @NotEmpty
+    private String user_id;
+    private String ts;
+    @NotEmpty
+    private String content;
+    private String detail;
+    private String attach;
+    @NotEmpty
+    private String cp_trade_no;
+    @NotEmpty
+    private String cp_order_time;
+    private String currency = "CNY";
+    @NotEmpty
+    private int total_fee = 0;
+    private String sign;
+
+
+    public String getApp_code() {
+        return app_code;
+    }
+
+    public void setApp_code(String app_code) {
+        this.app_code = app_code;
+    }
+
+    public String getGame_name() {
+        return game_name;
+    }
+
+    public void setGame_name(String game_name) {
+        this.game_name = game_name;
+    }
+
+    public String getZone_id() {
+        return zone_id;
+    }
+
+    public void setZone_id(String zone_id) {
+        this.zone_id = zone_id;
+    }
+
+    public String getZone_name() {
+        return zone_name;
+    }
+
+    public void setZone_name(String zone_name) {
+        this.zone_name = zone_name;
+    }
+
+    public String getRole_id() {
+        return role_id;
+    }
+
+    public void setRole_id(String role_id) {
+        this.role_id = role_id;
+    }
+
+    public String getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
+    }
+
+    public String getTs() {
+        return ts;
+    }
+
+    public void setTs(String ts) {
+        this.ts = ts;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getDetail() {
+        return detail;
+    }
+
+    public void setDetail(String detail) {
+        this.detail = detail;
+    }
+
+    public String getAttach() {
+        return attach;
+    }
+
+    public void setAttach(String attach) {
+        this.attach = attach;
+    }
+
+    public String getCp_trade_no() {
+        return cp_trade_no;
+    }
+
+    public void setCp_trade_no(String cp_trade_no) {
+        this.cp_trade_no = cp_trade_no;
+    }
+
+
+    public String getCp_order_time() {
+        return cp_order_time;
+    }
+
+    public void setCp_order_time(String cp_order_time) {
+        this.cp_order_time = cp_order_time;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public int getTotal_fee() {
+        return total_fee;
+    }
+
+    public void setTotal_fee(int total_fee) {
+        this.total_fee = total_fee;
+    }
+
+    public String getSign() {
+        return sign;
+    }
+
+    public void setSign(String sign) {
+        this.sign = sign;
+    }
+
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    /**
+     * @param payKey 支付key
+     * @return
+     */
+    public String cpSign(String payKey) {
+        String str = JSON.toJSONString(this);
+        Map<String, String> map = JSON.parseObject(str, Map.class);
+        map.remove("currency");
+        map.remove("total_fee");
+        map.remove("sign");
+        Iterator<String> ite = map.keySet().iterator();
+        List<String> rmKeys = new ArrayList<>();
+        while (ite.hasNext()) {
+            String key = ite.next();
+            if (StringUtils.isEmpty(map.get(key))) {
+                rmKeys.add(key);
+            }
+        }
+        if (!rmKeys.isEmpty()) {
+            for (String mkey : rmKeys) {
+                map.remove(mkey);
+            }
+        }
+        String signBf = MapUtil.createLinkString(map) + "&pay_key=" + payKey;
+        logger.info("cp签名前:{}", signBf);
+        String sign = DigestUtils.md5Hex(signBf).toUpperCase();
+        logger.info("cp签名后:{}", sign);
+        return sign;
+    }
+
+    public boolean validate() {
+        boolean flag = true;
+        if (StringUtils.isEmpty(app_code)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(content)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(cp_trade_no)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(cp_order_time)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(game_name)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(role_id)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(sign)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(ts)) {
+            flag = false;
+        }
+
+        if (StringUtils.isEmpty(user_id)) {
+            flag = false;
+        }
+        if (StringUtils.isEmpty(zone_id)) {
+            flag = false;
+        }
+        if (StringUtils.isEmpty(zone_name)) {
+            flag = false;
+        }
+
+        return flag;
+    }
+}

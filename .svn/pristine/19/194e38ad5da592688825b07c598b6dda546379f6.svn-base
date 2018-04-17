@@ -1,0 +1,32 @@
+package com.dome.sdkserver.service.login;
+
+/**
+ * 
+ * @author pc
+ *
+ */
+public interface LoginResultNotifyService {
+
+	/**
+	 * 启动支付异步通知服务
+	 * 
+	 * @param userId
+	 * @param bizId
+	 * @param bizType
+	 * @param notifyUrl
+	 * @param result
+	 */
+	void startNotify(String userId, String key, String clientId, String notifyUrl);
+
+	/**
+	 * 启动注册异步通知服务
+	 * 
+	 * @param userId
+	 * @param bizId
+	 * @param bizType
+	 * @param notifyUrl
+	 * @param result
+	 */
+	void startNotify(String userId, String clientId, String notifyUrl);
+
+}

@@ -1,0 +1,833 @@
+/**
+ *
+ */
+package com.dome.sdkserver.service.impl.pay.qbao;
+
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.constants.PayResEnum;
+import com.dome.sdkserver.bq.constants.SignConstants;
+import com.dome.sdkserver.bq.constants.SignTypeEnum;
+import com.dome.sdkserver.bq.constants.TransStatusEnum;
+import com.dome.sdkserver.bq.enumeration.PaySource2BiEnum;
+import com.dome.sdkserver.bq.enumeration.PayType2BiEnum;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.constants.BusinessType;
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.BqChargePointMapper;
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.NewOpenChargePointMapper;
+import com.dome.sdkserver.metadata.dao.mapper.qbao.PayAsyncNoticeMapper;
+import com.dome.sdkserver.metadata.dao.mapper.qbao.PayTransMapper;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.BqChargePointInfo;
+import com.dome.sdkserver.metadata.entity.bq.pay.NewOpenChargePoint;
+import com.dome.sdkserver.metadata.entity.bq.pay.PayRecordSync;
+import com.dome.sdkserver.metadata.entity.qbao.CurrencyEntity;
+import com.dome.sdkserver.metadata.entity.qbao.PayTransEntity;
+import com.dome.sdkserver.service.game.GameService;
+import com.dome.sdkserver.service.impl.pay.PayBaseService;
+import com.dome.sdkserver.service.login.ThridRequestService;
+import com.dome.sdkserver.service.pay.PayOptionsService;
+import com.dome.sdkserver.service.pay.qbao.SdkPayService;
+import com.dome.sdkserver.service.pay.qbao.bo.*;
+import com.dome.sdkserver.service.redis.RedisService;
+import com.dome.sdkserver.shangsu.TradeResponse;
+import com.dome.sdkserver.util.ApiConnector;
+import com.dome.sdkserver.util.PriceUtil;
+import com.dome.sdkserver.util.RSACoder;
+import com.dome.sdkserver.util.shangsu.RSAUtil;
+import com.dome.sdkserver.util.shangsu.YanSuCommonUtil;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.math.BigDecimal;
+import java.util.*;
+
+/**
+ * SDK支付服务接口
+ */
+@Service("sdkPayService")
+public class SdkPayServiceImpl extends PayBaseService implements SdkPayService {
+
+    @Resource
+    private PayTransMapper payTransMapper;
+
+    @Resource
+    private PayAsyncNoticeMapper payAsyncNoticeMapper;
+
+    @Resource
+    private BqChargePointMapper bqChargePointMapper;
+
+    @Resource
+    RedisService redisService;
+    @Autowired
+    private CurrencyEntity currency;
+
+    @Resource(name = "gameService")
+    private GameService gameService;
+
+    @Resource(name = "payOptionsService")
+    private PayOptionsService payOptionsService;
+    @Autowired
+    private ThridRequestService thridRequestService;
+    //获得钱宝流水id前缀
+    static final String SDK_FLOWID = "sdkServer:paying_";
+
+    /**
+     * 应用市场VIP等级
+     */
+    public static final String SDK_STORE_VIP = "SdkServer:Store:Vip";
+
+    public static final String SDK_PAY_TRANS_QUEUE_KEY = "sdk_pay_trans_queue_key";
+
+    /**
+     * 钱宝支付单位是分,数据库中存的是元,需要*100
+     */
+    public static final int hundred = 100;
+
+    @Resource
+    private NewOpenChargePointMapper newOpenChargePointMapper;
+
+    @Override
+    public SdkPayResponse dealWithPayRequest(SdkPayRequest payRequest) {
+        String status = "";
+        String appCode = payRequest.getAppCode();
+        AppInfoEntity app = gameService.getAppInfo(appCode);
+        if (app == null) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.APP_CODE_NO_EXISTS.getCode()
+                    , PayResEnum.APP_CODE_NO_EXISTS.getMsg(), null);
+        }
+        Date now = new Date();
+        //签名校验
+        boolean signCodeFlag = false;
+        if (SignTypeEnum.SIGN_RSA.getValue().equals(payRequest.getSignType())) {//RSA
+            String sign = this.appendParam(payRequest);
+            String signCode = payRequest.getSignCode();
+            String outPublicRsaKey = app.getOutPublicRsaKey();
+            //RSA公钥验签
+            try {
+                signCodeFlag = RSACoder.verify(sign.getBytes(), outPublicRsaKey, signCode);
+            } catch (Exception e) {
+                logger.error("签名校验异常:{}", e);
+            }
+        }
+       if (!signCodeFlag) {
+            //签名信息不合法
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.SIGN_CODE_ILLEGAL.getCode()
+                    , PayResEnum.SIGN_CODE_ILLEGAL.getMsg()
+                    , null);
+        }
+        //查询计费点
+        BqChargePointInfo chargePoint = bqChargePointMapper.getChargePointInfoByCode(payRequest.getBillingCode(), appCode);
+        if (chargePoint == null) {//老平台没有查询到查询新开放平台
+            NewOpenChargePoint newOpenChargePoint = newOpenChargePointMapper.selectByParam(new NewOpenChargePoint(appCode, payRequest.getBillingCode()));
+            BqChargePointInfo bqChargePointInfo = new BqChargePointInfo();
+            BeanUtils.copyProperties(newOpenChargePoint, bqChargePointInfo);
+            bqChargePointInfo.setChargePointId(newOpenChargePoint.getId());
+            //bigDecimal转换为double类型
+            double chargePointAmount = newOpenChargePoint.getChargePointAmount().doubleValue();
+            bqChargePointInfo.setChargePointAmount(chargePointAmount);
+            chargePoint = bqChargePointInfo;
+        }
+        if (chargePoint == null) {
+            chargePoint = bqChargePointMapper.getChargePointInfoByCode2(payRequest.getBillingCode(), appCode);
+            if (chargePoint == null) {
+                logger.error("该计费点不存在，计费点ID：{},应用编码：{}", payRequest.getBillingCode(), payRequest.getAppCode());
+                return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                        , PayResEnum.CHARGE_POINT_NO_EXISTS.getCode()
+                        , PayResEnum.CHARGE_POINT_NO_EXISTS.getMsg()
+                        , null);
+            }
+        }
+        //判断是否存在该用户
+        UserInfo userInfo = loadUserInfo(payRequest.getUserId());
+        if (null == userInfo) {
+            logger.error("用户中心返回结果：不存在该用户,用户ID：{}", payRequest.getUserId());
+            //不存在该用户
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.USE_NOT_EXIST.getCode()
+                    , PayResEnum.USE_NOT_EXIST.getMsg(), null);
+        }
+        //校验通过,支付请求受理成功
+        status = TransStatusEnum.PAY_TRANS_ACCEPT_SUCCESS.getStatus();
+        BigDecimal chargeAmount = new BigDecimal(chargePoint.getChargePointAmount()); //单位：元
+        if (StringUtils.isBlank(payRequest.getTransIntro())) {
+            payRequest.setTransIntro(chargePoint.getChargePointName());
+        }
+        PayTransEntity payTransEntity = this.addPayTrans(payRequest, status, userInfo.getUsername(), chargeAmount, app.getMerchantId(), now);
+        //支付通知地址，sdk线上环境,默认是线上环境
+        handleNotifyUrl(app, payTransEntity);
+        if (StringUtils.isBlank(payTransEntity.getCallbackUrl()))
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.PARAM_BLANK.getCode()
+                    , "游戏支付通知地址为空");
+        String msgFlag = "0";
+        Long bqAmount = queryUserVoucher(payTransEntity.getPayUserId());
+        if (bqAmount == null) {
+            logger.error("支付调用宝券系统查询宝券余额异常,支付用户ID：{}", payTransEntity.getPayUserId());
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.VOUCHER_QUERY_ERROR.getCode()
+                    , PayResEnum.VOUCHER_QUERY_ERROR.getMsg(), null);
+        }
+        //获取用户可用宝币余额
+        Long qbAmount = queryUserBalance(payTransEntity.getPayUserId());
+        if (qbAmount == null) {
+            logger.error("支付调用账户系统查询可用宝币余额异常,支付用户ID：{}", payTransEntity.getPayUserId());
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.ACCOUNT_QUERY_ERROR.getCode()
+                    , PayResEnum.ACCOUNT_QUERY_ERROR.getMsg(), null);
+        }
+        //入库
+        String suffix = DateUtils.toDateText(now, "yyyyMM");
+        SdkPayResponse sdkPayResponse = this.mergePayTransRequest(payTransEntity, suffix);
+        if (!sdkPayResponse.getResponseCode().equals("1000"))
+            return sdkPayResponse;
+        SdkPayRequestData bo = new SdkPayRequestData();
+        bo.setSdkflowId(payTransEntity.getPayTransId().toString());
+        bo.setBqAmount(bqAmount);
+        bo.setQbAmount(qbAmount);
+        bo.setMsgFlag(Integer.parseInt(msgFlag));
+        //bo.setUseBqFlag(payOptionsService.isSupportBq(appCode) ? 1 : 0);// 1:支付宝劵支持，0:不支持宝劵支付
+        bo.setUseBqFlag(0);// 0:不支持钱宝宝劵支付，2017-4-10
+        bo.setTransDate(payTransEntity.getTransDate());
+        bo.setPropName(chargePoint.getChargePointName());
+        bo.setPropPrice(chargePoint.getChargePointAmount());
+        bo.setCurrency(currency);
+        return new SdkPayResponse(PayResEnum.SUCCESS_CODE.getCode(), "", "", bo);
+    }
+
+    /**
+     * 创建页游/H5订单
+     *
+     * @param
+     * @return
+     */
+    @Override
+    public SdkPayResponse createWebGameOrder(final SdkPayRequest payRequest, AppInfoEntity appInfoEntity) {
+        //判断是否存在该用户
+        UserInfo userInfo = thridRequestService.loadUserInfo(payRequest.getUserId());
+        if (null == userInfo) {
+            logger.error("用户中心返回结果：不存在该用户,用户ID：{}", payRequest.getUserId());
+            return SdkPayResponse.failed(PayResEnum.USE_NOT_EXIST.getCode(), PayResEnum.USE_NOT_EXIST.getMsg());
+        }
+        //校验通过,支付请求受理成功
+        String status = TransStatusEnum.PAY_TRANS_ACCEPT_SUCCESS.getStatus();
+        Date now = new Date();
+        BigDecimal chargeAmount = new BigDecimal(payRequest.getChargePointAmount()); //单位：元
+        if (StringUtils.isBlank(payRequest.getTransIntro())) {
+            payRequest.setTransIntro(payRequest.getChargePointName());
+        }
+        payRequest.setOrderNo(payRequest.getOutOrderNo());
+        PayTransEntity payTransEntity = this.addPayTrans(payRequest, status, userInfo.getUsername(), chargeAmount, appInfoEntity.getMerchantId(), now);
+        payTransEntity.setZoneId(payRequest.getZoneId());
+        payTransEntity.setZoneName(payRequest.getZoneName());
+        //设置通知地址
+        handleNotifyUrl(appInfoEntity, payTransEntity);
+        //处理钱宝支付拓展字段
+        handleExtraField(payRequest, payTransEntity);
+        String msgFlag = "0";
+        Long bqAmount = queryUserVoucher(payTransEntity.getPayUserId());
+        if (bqAmount == null) {
+            logger.error("支付调用宝券系统查询宝券余额异常,支付用户ID：{}", payTransEntity.getPayUserId());
+            return SdkPayResponse.failed(PayResEnum.VOUCHER_QUERY_ERROR.getCode()
+                    , PayResEnum.VOUCHER_QUERY_ERROR.getMsg());
+        }
+        //获取用户可用宝币余额
+        Long rmbAmount = queryUserBalance(payTransEntity.getPayUserId());
+        if (rmbAmount == null) {
+            logger.error("支付调用账户系统查询可用宝币余额异常,支付用户ID：{}", payTransEntity.getPayUserId());
+            return SdkPayResponse.failed(PayResEnum.ACCOUNT_QUERY_ERROR.getCode(), PayResEnum.ACCOUNT_QUERY_ERROR.getMsg());
+        }
+        //入库
+        String suffix = DateUtils.toDateText(now, "yyyyMM");
+        payTransEntity.setPayTransId(Long.valueOf(com.dome.sdkserver.bq.util.GenOrderCode.next("")));
+        boolean result = payTransMapper.addPayTransRequest(payTransEntity, suffix);
+        if (!result)
+            return SdkPayResponse.failed("系统异常");
+        syncQbaoInsertPayData2BI(payTransEntity);//同步钱宝支付流水到Bi报表  2017-9-28
+        SdkPayRequestData bo = new SdkPayRequestData();
+        bo.setSdkflowId(payTransEntity.getPayTransId().toString());
+        bo.setBqAmount(bqAmount);
+        bo.setQbAmount(rmbAmount);
+        bo.setMsgFlag(Integer.parseInt(msgFlag));
+//        bo.setUseBqFlag(payOptionsService.isSupportBq(appInfoEntity.getAppCode()) ? 1 : 0);// 1:支付宝劵支持，0:不支持宝劵支付
+        bo.setUseBqFlag(0);// 0:不支持钱宝宝劵支付，2017-4-10
+        bo.setTransDate(payTransEntity.getTransDate());
+        bo.setPropName(payRequest.getChargePointName());
+        bo.setPropPrice(payRequest.getChargePointAmount());
+        bo.setCurrency(currency);
+        return SdkPayResponse.success(bo);
+    }
+
+    /**
+     * 处理钱宝支付拓展字段
+     *
+     * @param payRequest
+     * @param payTransEntity
+     */
+    private void handleExtraField(SdkPayRequest payRequest, PayTransEntity payTransEntity) {
+        Map<String, String> extraFieldMap = new HashMap<>(3);
+        extraFieldMap.put("zoneId", payRequest.getZoneId());
+        if (StringUtils.isNotBlank(payRequest.getP1())) {
+            extraFieldMap.put("p1", payRequest.getP1());
+        }
+        if (StringUtils.isNotBlank(payRequest.getP2())) {
+            extraFieldMap.put("p2", payRequest.getP2());
+        }
+        payTransEntity.setExtraField(JSON.toJSONString(extraFieldMap));
+        if ("pc".equals(payRequest.getPayOrigin())) { //页游拓展字段设置为游戏区服Id
+            payTransEntity.setExtraField2(payRequest.getZoneId());
+        }
+    }
+
+    /**
+     * 支付通知地址，sdk线上环境,默认是线上环境
+     *
+     * @param appInfoEntity
+     * @param payTransEntity
+     */
+    private void handleNotifyUrl(AppInfoEntity appInfoEntity, PayTransEntity payTransEntity) {
+        if ("1".equals(payConfig.getString("sdk.notify.environment", "1"))) {
+            payTransEntity.setCallbackUrl(appInfoEntity.getPayNotifyUrl());
+        } else {
+            payTransEntity.setCallbackUrl(appInfoEntity.getTestPayNotifyUrl());
+        }
+    }
+
+
+    /**
+     * @param payTransEntity
+     * @param suffix
+     * @return
+     */
+    public SdkPayResponse mergePayTransRequest(PayTransEntity payTransEntity, String suffix) {
+        //根据appcode和bizcode确定该流水是否存在
+        PayTransEntity entity = payTransMapper.getPayTransReqByMertCodeTransCode(payTransEntity.getAppCode(), payTransEntity.getBizCode(), suffix);
+        if (entity == null) {
+            payTransEntity.setPayTransId(Long.valueOf(com.dome.sdkserver.bq.util.GenOrderCode.next("")));
+            payTransMapper.addPayTransRequest(payTransEntity, suffix);
+            syncQbaoInsertPayData2BI(payTransEntity);//同步钱宝支付流水到Bi报表
+        } else {
+            if (!TransStatusEnum.PAY_TRANS_SUCCESS.getStatus().equals(entity.getStatus())) {
+                payTransEntity.setPayTransCode(entity.getPayTransCode());
+                payTransEntity.setPayTransId(entity.getPayTransId());
+                payTransEntity.setStatus(entity.getStatus());
+                payTransMapper.updatePayTransByPayTransId(payTransEntity, suffix);
+            } else {
+                return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                        , PayResEnum.PAY_EXIST.getCode()
+                        , PayResEnum.PAY_EXIST.getMsg(), null);
+            }
+        }
+        return new SdkPayResponse(PayResEnum.SUCCESS_CODE.getCode(), "", "", null);
+    }
+
+    /**
+     * 同步钱宝支付流水到Bi报表
+     *
+     * @param payTransEntity
+     */
+    public void syncQbaoInsertPayData2BI(PayTransEntity payTransEntity) {
+        PayRecordSync syncEntity = new PayRecordSync();
+        BeanUtils.copyProperties(payTransEntity, syncEntity);
+        syncEntity.setOrderNo(payTransEntity.getPayTransId() + "");
+        syncEntity.setCpOrderNo(payTransEntity.getBizCode());
+        syncEntity.setPaySources(PaySource2BiEnum.qbaopay.name());
+        syncEntity.setPayType(PayType2BiEnum.qbao.name());
+        syncEntity.setUserId(payTransEntity.getBqUserId());
+        Integer orderStatus = "10".equals(payTransEntity.getStatus()) ? 0 : ("30".equals(payTransEntity.getStatus()) ? 1 : 0);
+        syncEntity.setOrderStatus(orderStatus);
+        syncEntity.setChargePointCode(payTransEntity.getChargingPointCode());
+        syncEntity.setChargePointAmount(payTransEntity.getTransAmount());
+        rabbitMqService.syncInsertPayData2Bi(syncEntity);
+    }
+
+
+    @Override
+    public SdkPayResponse dopay(SdkDopayRequest sdkDopayBo) {
+        /*参数非空校验*/
+        if (isBlank(sdkDopayBo)) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PARAM_BLANK.getCode(), PayResEnum.PARAM_BLANK.getMsg());
+        }
+        //判断商户是否存在
+        String appCode = sdkDopayBo.getAppCode();
+        AppInfoEntity app = gameService.getAppInfo(appCode);
+        if (app == null) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.APP_CODE_NO_EXISTS.getCode()
+                    , PayResEnum.APP_CODE_NO_EXISTS.getMsg(), null);
+        }
+        SdkPayResponse sdkPayResponse = analyzeTradeInfo(sdkDopayBo);
+        if (!SdkPayResponse.isSuccess(sdkPayResponse)) {
+            return sdkPayResponse;
+        }
+        Map<String, String> tradeMap = (Map<String, String>) sdkPayResponse.getData();
+        String sdkflowId = tradeMap.get("sdkflowId"); //流水id
+        String password = tradeMap.get("password");  //交易密码
+        String transDate = tradeMap.get("transDate"); //接单日期
+        String suffix = transDate.substring(0, 6);
+        /*根据流水id查询流水信息*/
+        PayTransEntity entity = queryEntityById(sdkflowId, suffix);
+        if (entity == null) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.TRANS_NO_EXISTS.getCode(), PayResEnum.TRANS_NO_EXISTS.getMsg());
+        }
+        // 支付信息超时验证
+        if (!valAuthTime(new Date(), entity.getCreateTime(), AUTH_TIME_OUT)) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.TIMESTAMP_ILLEGAL.getCode(), PayResEnum.TIMESTAMP_ILLEGAL.getMsg());
+        }
+        long payUserId = entity.getPayUserId();  //用户id
+        String bqFlag = sdkDopayBo.getUseBqFlag();
+        bqFlag = "0";// 0:不支持钱宝宝劵支付，2017-4-10
+        Long voucher = null;
+        if (bqFlag.equals("1")) {
+            voucher = queryUserVoucher(payUserId); //宝券余额
+        }
+        /********设置交易密码校验*********/
+        if (!existTradePwd(payUserId)) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PAY_PSW_NO_EXISTS.getCode(), PayResEnum.PAY_PSW_NO_EXISTS.getMsg());
+        }
+        /*******交易密码校验*********/
+        Integer pwdCode = checkPwd(payUserId, password, entity.getLoginName());
+        if (pwdCode == null) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PWD_CHECK_NET_ERROR.getCode(), PayResEnum.PWD_CHECK_NET_ERROR.getMsg());
+        } else if (0 == pwdCode) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PWD_CHECK_ERROR.getCode(), PayResEnum.PWD_CHECK_ERROR.getMsg());
+        } else if (2 == pwdCode) {
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PWD_CHECK_DEADLINE.getCode(), PayResEnum.PWD_CHECK_DEADLINE.getMsg());
+        }
+        if (pwdCode != 1) {  //返回code只有1才是成功
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.PWD_CHECK_UNKNOW.getCode(), PayResEnum.PWD_CHECK_UNKNOW.getMsg());
+        }
+        String sdkflowIdJson = redisUtil.get(SDK_FLOWID + sdkflowId);
+        /*******查询该笔交易是否正在支付中**********/
+        if (StringUtils.isNotBlank(sdkflowIdJson))
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(), PayResEnum.SDKFLOWID_IS_EXIST.getCode(), PayResEnum.SDKFLOWID_IS_EXIST.getMsg());
+        //放入缓存
+        redisUtil.setex(SDK_FLOWID + sdkflowId, 30, "正在支付中......");
+        /** 校验结束,进行支付**/
+        SdkPayResponse response = dopayBiz(entity, voucher, suffix);
+        redisUtil.del(SDK_FLOWID + sdkflowId);
+        //hadoop记录日志
+        //qbPayLog.info(LogUtil.obj2String(entity, response));
+        //钱宝支付异步通知
+        payNotifyService.handleQbaoPayNotify(entity, response);
+        return response;
+
+    }
+
+
+    /**
+     * 参数解密，解密结果为流水id、交易密码、交易日期
+     *
+     * @param sdkDopayBo
+     * @return
+     */
+    private SdkPayResponse analyzeTradeInfo(SdkDopayRequest sdkDopayBo) {
+        String transPassWord = sdkDopayBo.getTransPassWord();
+        byte[] rsaData = null;
+        Map<String, String> map = new HashMap<String, String>(3);
+        if (StringUtils.isNotBlank(sdkDopayBo.getPayOrigin()) && sdkDopayBo.getPayOrigin().matches("^wap$|^pc$")) {
+            map.put("sdkflowId", sdkDopayBo.getSdkflowId());
+            map.put("password", transPassWord);
+            map.put("transDate", sdkDopayBo.getTransDate());
+            return SdkPayResponse.success(map);
+        }
+        String privateKey = payConfig.getString("client.private.key");
+        try {
+            rsaData = RSACoder.decryptByPrivateKey(RSACoder.decryptBASE64(transPassWord), privateKey);
+            String result = rsaData == null ? null : new String(rsaData);
+            String[] array = result.split(SignConstants.COMMA);
+            map.put("sdkflowId", array[0]);
+            map.put("password", array[1]);
+            map.put("transDate", array[2]);
+        } catch (Exception e) {
+            logger.error("参数{}解密异常", transPassWord, e);
+            return SdkPayResponse.failed(PayResEnum.PARAM_ILLEGAL.getCode(), PayResEnum.PARAM_ILLEGAL.getMsg());
+        }
+        return SdkPayResponse.success(map);
+    }
+
+
+    /**
+     * 调用宝券、账户系统进行扣减
+     *
+     * @param entity
+     * @param voucher
+     * @param suffix
+     * @return
+     */
+    private SdkPayResponse dopayBiz(PayTransEntity entity, Long voucher, String suffix) {
+        //声明支付返回结果
+        DopayResult data = new DopayResult(entity.getPayTransId(), entity.getBizCode());
+        String status = entity.getStatus(); // 支付状态
+        logger.info("当前流水的交易状态:" + status);
+        //流水已经支付成功
+        if (TransStatusEnum.PAY_TRANS_SUCCESS.getStatus().equals(status)) {
+            return new SdkPayResponse(PayResEnum.SUCCESS_CODE.getCode(), null, null, data);
+        }
+
+        //流水受理成功状态才能支付
+        if (TransStatusEnum.PAY_TRANS_ACCEPT_SUCCESS.getStatus().equals(status)) {
+            this.calculate(entity, voucher);
+            SdkPayResponse response = null;
+            TradeResponse tradeResponse = doTrade(entity);
+            status = TransStatusEnum.PAY_TRANS_FAILED.getStatus();
+            if (tradeResponse == null) {
+                response = new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                        PayResEnum.TRADE_NET_ERROR.getCode(), PayResEnum.TRADE_NET_ERROR.getMsg(), data);
+            } else {
+                if ("100000".equals(tradeResponse.getRespCode())) {
+                    entity.setAccountFlowId(tradeResponse.getPayTradeNo());
+                    status = TransStatusEnum.PAY_TRANS_SUCCESS.getStatus();
+                    response = new SdkPayResponse(PayResEnum.SUCCESS_CODE.getCode(), null, null, data);
+                } else {
+                    response = new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                            PayResEnum.TRADE_UNKNOW.getCode(), tradeResponse.getRespMsg(), data);
+                }
+            }
+            entity.setStatus(status);
+
+            if (response.getResponseCode() == PayResEnum.FAIL_CODE.getCode()) {
+                return response;
+            }
+
+            if (!updatePayTrans(entity, suffix)) { //更新流水状态失败
+                return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                        PayResEnum.UPDATE_TRANS_ERROR.getCode(), PayResEnum.UPDATE_TRANS_ERROR.getMsg());
+            }
+            //将成功的消费流水发送到mq队列
+            /*if(entity.getStatus().equals(TransStatusEnum.PAY_TRANS_SUCCESS.getStatus())){
+				try{
+					amqpTemplate.convertAndSend(SDK_PAY_TRANS_QUEUE_KEY,entity);
+				}catch(Exception e){
+					e.printStackTrace();
+				}
+			}*/
+            return response;
+        } else {
+            logger.error("流水状态异常:" + status);
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                    PayResEnum.STATUS_UNKNOW.getCode(), PayResEnum.STATUS_UNKNOW.getMsg());
+        }
+    }
+
+    /**
+     * 判断是否绑定手机号
+     *
+     * @param payUserId
+     * @return
+     */
+    private boolean isBindMobile(long payUserId) {
+        String requestUrl = payConfig.getString("bind.mobile.url") + payUserId;
+        logger.info("校验用户{}是否绑定手机号URL:{}", payUserId, requestUrl);
+        String responseBody = ApiConnector.get(requestUrl, null);
+        logger.info("校验用户{}是否绑定手机号返回结果:{}", payUserId, responseBody);
+
+        if (StringUtils.isBlank(responseBody)) {
+            return false;
+        }
+
+        JSONObject jObj = JSONObject.parseObject(responseBody);
+        String code = jObj.getString("code");
+        if ("1".equals(code)) {
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * 查询用户是否绑定银行卡号
+     *
+     * @param payUserId
+     * @return
+     */
+    private boolean isBindBankCard(long payUserId) {
+
+        List<NameValuePair> paramsList = new ArrayList<NameValuePair>();
+        paramsList.add(new BasicNameValuePair("userId", String.valueOf(payUserId)));
+
+        String requestUrl = payConfig.getString("bind.bankcard.url");
+        logger.info("查询用户{}是否绑定银行卡URL:{}", payUserId, requestUrl);
+        String responseBody = ApiConnector.post(requestUrl, paramsList);
+        logger.info("查询用户{}绑定银行卡返回信息:{}", payUserId, responseBody);
+
+        if (StringUtils.isBlank(responseBody)) {
+            return false;
+        }
+
+        JSONObject jObj = JSONObject.parseObject(responseBody);
+        return jObj.getBoolean("data");
+    }
+
+
+    /**
+     * 判断请求参数是否为空
+     *
+     * @param sdkDopayBo
+     * @return
+     */
+    private boolean isBlank(SdkDopayRequest sdkDopayBo) {
+        logger.info("SDK支付参数:{}", JSON.toJSONString(sdkDopayBo));
+        if (StringUtils.isBlank(sdkDopayBo.getUseBqFlag())
+                || StringUtils.isBlank(sdkDopayBo.getTransPassWord())
+                || StringUtils.isBlank(sdkDopayBo.getAppCode())) {
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * 调用商肃的交易类接口扣除人民币、宝券
+     *
+     * @param entity
+     * @return
+     */
+    private TradeResponse doTrade(final PayTransEntity entity) {
+        try {
+            final String tradeTime = DateUtils.getCurDateFormatStr("yyyyMMddHHmmss");
+            final String tradeDesc = Base64.encodeBase64URLSafeString("游戏充值".getBytes("UTF-8"));
+            //支付方式 0：组合支付，1：人民币，2：宝券
+            final String payType = YanSuCommonUtil.getPayType(entity.getAccountAmount(), entity.getBqAccountAmount());
+            Map<String, String> map = new HashMap<String, String>() {{
+                put("inputCharset", "UTF-8");
+                put("groupCode", "G009");
+                put("sellerId", entity.getMerchantUserId() + "");//卖家ID
+                put("buyerId", entity.getPayUserId() + "");//买家ID
+                put("busiType", BusinessType.GAME_RECHARGE.getType());
+                put("tradeTime", tradeTime);
+                put("outTradeNo", entity.getPayTransCode());
+                put("payType", payType); //0：组合支付，1：人民币，2：宝券
+                put("payTotalAmount", PriceUtil.convertToFenL(entity.getTransAmount()).longValue() + "");//交易总金额
+                put("rmbAmount", PriceUtil.convertToFenL(entity.getAccountAmount()).longValue() + "");//人民币金额
+                put("bqAmount", PriceUtil.convertToFenL(entity.getBqAccountAmount()).longValue() + "");//宝券金额
+                put("feeAmount", "0");
+                put("tradeDesc", tradeDesc);
+            }};
+            String map2Stirng = YanSuCommonUtil.map2String(map);
+            List<NameValuePair> paramsList = new ArrayList<NameValuePair>();
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                paramsList.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+            }
+            paramsList.add(new BasicNameValuePair("signType", "RSA"));
+            String domain = payConfig.getString("shangsu.person.pay.url");
+            logger.info("调用商肃的交易类接口url{},请求参数{}", domain, map2Stirng);
+            //MD5算法摘要
+            String md5Sign = YanSuCommonUtil.md5Sign(map2Stirng);
+            //使用RSA算法私钥加密
+            String signCode = RSAUtil.sign(md5Sign, RSAUtil.getPrivateKey(payConfig.getString("shangsu.rsa.private.key")));
+            paramsList.add(new BasicNameValuePair("signCode", signCode));
+            String responseBody = ApiConnector.post(domain, paramsList, 30000);//http超时时间设置为30s
+            logger.info("流水号{}调用商肃的交易类接口返回结果:{}", entity.getPayTransId(), responseBody);
+            if (StringUtils.isBlank(responseBody))
+                return null;
+            return JSON.parseObject(responseBody, TradeResponse.class);
+        } catch (Exception e) {
+            logger.error("doTrade error", e);
+            return null;
+        }
+    }
+
+
+    /**
+     * 根据流水id查询流水
+     *
+     * @param sdkflowId
+     */
+    private PayTransEntity queryEntityById(String sdkflowId, String suffix) {
+        PayTransEntity entity = null;
+        try {
+            entity = payTransMapper.getPayTransReqById(Long.valueOf(sdkflowId), suffix);
+        } catch (Exception e) {
+            logger.error("根据流水{}查询异常:{}", sdkflowId, e);
+        }
+        logger.info("流水{}查询结果为:{}", sdkflowId, JSON.toJSONString(entity));
+        return entity;
+    }
+
+    /**
+     * 计算需使用宝劵、宝币并转为分为单位
+     *
+     * @param entity
+     * @param voucher
+     * @return
+     */
+    private PayTransEntity calculate(PayTransEntity entity, Long voucher) {
+        voucher = voucher == null ? 0 : voucher;  //null时 不支持宝券，设置为0
+        BigDecimal bqTotal = new BigDecimal(Long.toString(voucher));
+        BigDecimal transAmount = PriceUtil.convertToFenL(entity.getTransAmount());//转为分
+        if (bqTotal.compareTo(transAmount) != -1) {
+            entity.setBqAccountAmount(entity.getTransAmount());
+            entity.setAccountAmount(new BigDecimal(0));
+        } else {
+            entity.setAccountAmount(PriceUtil.convert2YuanD(transAmount.subtract(bqTotal)));//转为元
+            entity.setBqAccountAmount(PriceUtil.convert2YuanD(bqTotal));//转为元
+        }
+        return entity;
+    }
+
+    /**
+     * 更新流水
+     *
+     * @param entity
+     */
+    public boolean updatePayTrans(PayTransEntity entity, String suffix) {
+        try {
+            boolean flag = payTransMapper.updatePayTransByPayTransId(entity, suffix);
+            //同步钱宝支付变更数据到bi报表
+            syncQbaoPayUpdate2Bi(entity);
+            return flag;
+        } catch (Exception e) {
+            logger.error("SDK流水号{}修改状态失败:{}", entity.getPayTransId(), e);
+            return false;
+        }
+    }
+
+    /**
+     * 同步钱宝支付变更数据到bi报表
+     *
+     * @param payTransEntity
+     */
+    private void syncQbaoPayUpdate2Bi(PayTransEntity payTransEntity) {
+        try {
+            PayRecordSync syncEntity = new PayRecordSync();
+            BeanUtils.copyProperties(payTransEntity, syncEntity);
+            syncEntity.setOrderNo(payTransEntity.getPayTransId() + "");
+            syncEntity.setCpOrderNo(payTransEntity.getBizCode());
+            syncEntity.setChannelOrderNo(payTransEntity.getAccountChildflowId());
+            Integer orderStatus = "10".equals(payTransEntity.getStatus()) ? 0 : ("30".equals(payTransEntity.getStatus()) ? 1 : 0);
+            syncEntity.setOrderStatus(orderStatus);
+            rabbitMqService.syncUpdatePayData2Bi(syncEntity);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 钱宝混合支付
+     *
+     * @param payRequest
+     * @return
+     */
+    @Override
+    public SdkPayResponse qbBlendPay(SdkPayRequest payRequest) {
+        Map<String, String> resultMap = new HashMap<String, String>(1);
+        SdkPayResponse response = null;
+        //判断是否存在该用户
+        UserInfo userInfo = null;
+        for (int i = 0; i < 3; i++) { //尝试3次去获取用户信息，
+            if (null == userInfo) {
+                userInfo = thridRequestService.loadUserInfo(payRequest.getUserId());
+            }
+        }
+        if (null == userInfo) {
+            logger.error("用户中心返回结果：不存在该用户,用户ID：{}", payRequest.getUserId());
+            return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode()
+                    , PayResEnum.USE_NOT_EXIST.getCode()
+                    , PayResEnum.USE_NOT_EXIST.getMsg(), null);
+        }
+        if (1 == payRequest.getIsNeedPw()) { //是否需要密码支付,1:需要支付密码
+            //设置交易密码校验
+            if (!existTradePwd(payRequest.getUserId())) {
+                return new SdkPayResponse(PayResEnum.FAIL_CODE.getCode(),
+                        PayResEnum.PAY_PSW_NO_EXISTS.getCode(), PayResEnum.PAY_PSW_NO_EXISTS.getMsg());
+            }
+            //验证支付密码
+            response = checkTradePwd(userInfo, payRequest);
+            if (!SdkPayResponse.isSuccess(response))
+                return response;
+        }
+        //验证交易金额
+        response = checkTradeAmount(payRequest);
+        if (!SdkPayResponse.isSuccess(response))
+            return response;
+        Date now = new Date();
+        //钱宝混合支付类型转化
+        PayTransEntity payTransEntity = qbBlendPayConvert(payRequest, userInfo, now);
+        String suffix = DateUtils.toDateText(now, "yyyyMM");
+        //调商肃支付
+        boolean fanJuanResult = qbBlendPay(payRequest, payTransEntity);
+        try {
+            resultMap.put("sdkOrderNo", String.valueOf(payTransEntity.getPayTransId()));
+            //记录交易流水
+            payTransMapper.saveTPPayTransRequest(payTransEntity, suffix);
+        } catch (Exception e) {
+            //flume记录商肃支付成功但冰穹sdk入库保存失败的场景
+            recordPayFail(payRequest, String.valueOf(payTransEntity.getPayTransId()), fanJuanResult);
+            logger.error("用户userId:{},订单号:{},第三方订单号:{}，返劵结果:{},支付流水入库异常"
+                    , payTransEntity.getPayUserId(), payTransEntity.getPayTransId(), payTransEntity.getBizCode(), fanJuanResult, e);
+        }
+        //支付成功后触发异步通知
+        if (fanJuanResult && StringUtils.isNotBlank(payTransEntity.getCallbackUrl())) {
+            payNotifyService.handleQbaoPayNotify(payTransEntity, null);
+        }
+        return fanJuanResult ? SdkPayResponse.success(resultMap) : SdkPayResponse.failed("支付失败");
+    }
+
+    /**
+     * 查询用户可用余额
+     *
+     * @param payRequest
+     * @return
+     */
+    @Override
+    public Long queryAvailableBalance(SdkPayRequest payRequest) {
+        return queryUserBalance(payRequest.getUserId());
+    }
+
+
+    /**
+     * 授权时间超时校验
+     *
+     * @param now
+     * @param createTime
+     * @param timeoutSecond 超时时间（秒）
+     * @return 当前时间>=授权时间+超时时间 false;当前时间<授权时间+超时时间 true
+     */
+    private boolean valAuthTime(Date now, Date createTime, int timeoutSecond) {
+        //授权时间+超时时间
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(createTime);
+        calendar.add(Calendar.SECOND, timeoutSecond);
+        Date afterGrantDate = calendar.getTime();
+        //当前时间>=授权时间+超时时间 false;当前时间<授权时间+超时时间 true
+        return DateUtils.compareCurrDateToDate(now, afterGrantDate);
+    }
+
+    /**
+     * 签名参数组装
+     *
+     * @param //签名规则：appCode+"&"+bizCode +"&"+billingCode+"&"+payCallbackUrl
+     * @return
+     */
+    private String appendParam(SdkPayRequest payRequest) {
+        StringBuffer sb = new StringBuffer();
+        String appCode = payRequest.getAppCode();
+        String bizCode = payRequest.getOrderNo();
+        String chargingPointCode = payRequest.getBillingCode();
+        String callbackUrl = payRequest.getPayCallbackUrl();
+
+        sb.append("appCode=").append(appCode).append(SignConstants.AND)
+                .append("orderNo=").append(bizCode).append(SignConstants.AND)
+                .append("payCode=").append(chargingPointCode).append(SignConstants.AND)
+                .append("payNotifyUrl=").append(callbackUrl);
+        return sb.toString();
+    }
+}

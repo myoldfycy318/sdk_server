@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.h5.H5GameMapper">
+	<resultMap type="com.dome.sdkserver.metadata.entity.AbstractGame" id="gameMap">
+		<id property="appId" jdbcType="INTEGER" column="game_id"/>
+		<result property="appCode" jdbcType="VARCHAR" column="game_code"/>
+		<result property="appName" jdbcType="VARCHAR" column="game_name"/>
+		<result property="appDesc" jdbcType="VARCHAR" column="game_desc"/>
+		<result property="appIcon" jdbcType="VARCHAR" column="game_icon"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="userId" jdbcType="INTEGER" column="user_id"/>
+		<result property="merchantInfoId" jdbcType="INTEGER" column="merchant_user_id"/>
+		<result property="merchantFullName" jdbcType="VARCHAR" column="merchant_full_name" />
+		<result property="payCallBackUrl" jdbcType="VARCHAR" column="pay_callback_url"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	<resultMap type="com.dome.sdkserver.metadata.entity.h5.H5Game" id="h5Map" extends="gameMap">
+		
+		<result property="appUrl" jdbcType="VARCHAR" column="game_url"/>
+		<result property="copyRightFlag" jdbcType="TINYINT" column="game_copyright_flag"/>
+		<result property="compareSoftwareUrl" jdbcType="VARCHAR" column="compare_software_url"/>
+		<result property="developers" jdbcType="VARCHAR" column="developers"/>
+		<result property="gameType" jdbcType="VARCHAR" column="game_type"/>
+		<result property="loginKey" jdbcType="VARCHAR" column="login_key"/>
+		<result property="payKey" jdbcType="VARCHAR" column="pay_key"/>
+		<result property="appKey" jdbcType="VARCHAR" column="app_key"/>
+		
+	</resultMap>
+	
+	<insert id="insert">
+		insert into domesdk_h5_game (game_name, game_icon, game_url, game_desc, status, del_flag, create_time, update_time
+			<if test="t.compareSoftwareUrl !=null and t.compareSoftwareUrl!=''">
+				,compare_software_url
+			</if>
+			<if test="t.copyRightFlag!=null and t.copyRightFlag!=0">
+				,game_copyright_flag
+			</if>
+			<if test="t.developers!=null and t.developers!=''">
+				,developers
+			</if>
+			,user_id, game_type
+		)
+		
+		values (#{t.appName}, #{t.appIcon}, #{t.appUrl}, #{t.appDesc}, #{t.status}, 0, now(), now()
+			<if test="t.compareSoftwareUrl !=null and t.compareSoftwareUrl!=''">
+				,#{t.compareSoftwareUrl}
+			</if>
+			<if test="t.copyRightFlag!=null and t.copyRightFlag!=0">
+				,#{t.copyRightFlag}
+			</if>
+			<if test="t.developers!=null and t.developers!=''">
+				,#{t.developers}
+			</if>
+			,#{t.userId}, #{t.gameType}
+		);
+		<selectKey resultType="int" keyProperty="t.appId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+	  	</selectKey>
+	</insert>
+	
+	<update id="update">
+		update domesdk_h5_game set update_time=now()
+			<if test="t.appName !=null and t.appName!=''">
+				, game_name=#{t.appName}
+			</if>
+			<if test="t.appIcon!=null and t.appIcon!=''">
+				,game_icon=#{t.appIcon}
+			</if>
+			<if test="t.appUrl !=null and t.appUrl!=''">
+				,game_url=#{t.appUrl}
+			</if>
+			<if test="t.appDesc!=null and t.appDesc!=''">
+				,game_desc=#{t.appDesc}
+			</if>
+			<if test="t.compareSoftwareUrl !=null and t.compareSoftwareUrl!=''">
+				,compare_software_url=#{t.compareSoftwareUrl}
+			</if>
+			<if test="t.copyRightFlag!=null and t.copyRightFlag!=0">
+				,game_copyright_flag=#{t.copyRightFlag}
+			</if>
+			<if test="t.developers!=null and t.developers!=''">
+				,developers=#{t.developers}
+			</if>
+			<choose>
+				<when test="t.remark !=null and t.remark!=''">  <!-- 游戏审批驳回 -->
+					,remark=#{t.remark}, status=#{t.status} <!-- 驳回 -->
+				</when>
+				<when test="t.status!=null and t.status!=0">
+					,status=#{t.status} <!-- 驳回编辑操作 -->
+				</when>
+			</choose>
+			
+		where del_flag=0 
+			<if test="t.appCode !=null and t.appCode!=''">
+				and game_code=#{t.appCode}
+			</if>
+			<if test="t.appId!=null and t.appId!=0">
+				and game_id=#{t.appId}
+			</if>
+	</update>
+	
+	<update id="updateStatus">
+		update domesdk_h5_game set update_time=now(), status=#{status}, remark=null <!-- 重置驳回理由字段 -->
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<update id="updateCode">
+		update domesdk_h5_game set game_code=#{code}
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<update id="delele">
+		update domesdk_h5_game set update_time=now(), del_flag=1
+			where del_flag=0 and game_id=#{id};
+	</update>
+	
+	<select id="select" resultMap="h5Map">
+		SELECT g.*, k.*, m.merchant_info_id, m.merchant_full_name FROM domesdk_h5_game g left join domesdk_h5_key k on g.game_id=k.game_id left join domesdk_merchant_info m on g.user_id=m.merchant_user_id where g.del_flag=0 and (k.del_flag=0 or k.del_flag is null)
+		and m.del_flag=0
+		and g.game_code=#{code};
+	</select>
+	
+	<select id="selectByName" resultMap="h5Map">
+		select * from domesdk_h5_game where del_flag=0 and game_name=#{name};
+	</select>
+	
+	<select id="selectH5ByName" resultMap="h5Map">
+		select * from domesdk_h5_game where del_flag=0 and game_name=#{name}
+			and game_code like #{appCodePrefix};
+	</select>
+		
+	<select id="selectList" resultMap="h5Map">
+		select * from domesdk_h5_game where del_flag=0 and user_id=#{userId} order by update_time desc;
+	</select>
+	
+	<insert id="insertKey">
+		insert into domesdk_h5_key (game_id, login_key, pay_key, app_key, del_flag, create_time, update_time)
+			values (#{t.appId}, #{t.loginKey}, #{t.payKey}, #{t.appKey}, 0, now(), now());
+	</insert>
+	
+	<select id="selectKey" resultType="int">
+		select count(*) from domesdk_h5_key where del_flag=0 and game_id=#{gameId};
+	</select>
+	
+	<update id="updatePayCallBackUrl">
+		update domesdk_h5_game set pay_callback_url=#{url} where del_flag=0 and game_code=#{code};
+	</update>
+</mapper>

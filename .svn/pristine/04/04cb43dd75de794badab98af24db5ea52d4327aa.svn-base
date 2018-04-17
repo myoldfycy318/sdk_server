@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta name="description" content="注册界面">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../dist/css/login.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus @@channelnav">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+<div class="loginBox registered">
+    <div class="liu_c"></div>
+    <div class="logView">
+        <div class="title clearfix">
+            <div class="tab cur">手机号码注册</div>
+            <div class="border_r"></div>
+            <div class="tab">邮箱注册</div>
+        </div>
+        <div  class="tab1 show_all">
+            <div class="inpbox">
+                <input onkeyup="this.value=this.value.replace(/\D/g,'')" type="text" placeholder="手机号码"/>
+            </div>
+        </div>
+        <div class="tab2">
+            <div class="inpbox">
+                <input type="text" placeholder="邮箱"/>
+            </div>
+        </div>
+        <div class="inpbox clearfix yzm_box">
+            <input class="yzm" type="text" placeholder="验证码"/>
+            <div class="hq_yzm reg_hq_yzm">获取验证码</div>
+        </div>
+        <div class="xie_box">
+            <input id="confirm" type="checkbox" class="agreed-util-to"/>
+            <span class="ti_s">同意 <span id="sub_user_xy" class="hei">冰穹用户协议</span></span>
+        </div>
+        <div class="logSub  nextSub">下一步</div>
+    </div>
+</div>
+
+<div class="xie_yi_box">
+    <div class="overHide"></div>
+    <div class="xie_box">
+        <div class="clone"></div>
+        <div class="title">用户协议</div>
+        <div class="xie_nr">
+            <p class="nr">
+                本协议为冰穹开放平台用户（以下更多的称“您”）与冰穹开放平台（以下称本平台）所有者上海冰穹网络科技有限公司之间所订立的契约，若您点击”我已经阅读并同意遵守《用户注册协议》”按钮后，本协议对您与本平台具有法律约束力，请您仔细阅读本协议并审慎决定是否同意本协议。</p>
+
+            <p class="tit">一、本协议内容、生效、变更：</p>
+
+            <p class="nr">1.本平台是上海冰穹网络科技有限公司旗下提供软件/应用上传、更新、数据查询于一体的开放平台。</p>
+
+            <p class="nr">
+                2.本协议内容包括协议正文及所有本平台已经发布的或将来可能发布的各类规则。所有规则为本协议不可分割的组成部分，本协议发布之前制定的其他文件与本协议内容不一致的，以本协议为准；本协议发布之后制定的其他文件与本协议内容不一致的，后发布文件具有效力优先性。除另行明确声明外，您接受本平台及其关联公司提供的服务均受本协议及已发布、将发布的各类协议的约束，如您不接受其中任何一项协议的约束，请停止使用本平台，否则即视为您接受与使用本平台相关的一切协议。</p>
+
+            <p class="nr">
+                3.您应当在注册本平台用户之前认真阅读全部协议内容。您在同意本协议所有条款并完成注册程序后，才能成为本平台的正式用户，您点击“我已经阅读并同意遵守《冰穹开放平台用户注册协议》”按钮后，本协议即生效，对双方产生法律约束力。</p>
+
+            <p class="nr">4.只要您使用本平台服务，则本协议即对您产生约束，届时您无法以未阅读本协议的内容或者未获得本平台对您问询的解答等理由，主张本协议全部或部分内容无效，或要求撤销本协议全部或部分内容。</p>
+
+            <p class="nr">5.您承诺接受并遵守本协议的约定。如果您不同意本协议的约定，您应立即停止注册程序并停止使用本平台。</p>
+
+            <p class="nr">
+                6.本平台有权根据需要不定期地制订、修改本协议及/或各类规则，并在本平台公示，不再另行单独通知您。变更后的协议和规则一经本平台网站公布，立即生效。如您不同意相关变更，应当立即停止使用本平台。您继续使用本平台的，即表明您接受修订后的协议和规则。</p>
+
+            <p class="nr">
+                7、本平台有权面向用户制定有关收费项目和收费标准或对本平台商品进行定价、变更定价，具体以本平台网站公布信息为准，您若不接受相关收费项目或收费标准、定价价格，您可以选择不使用该收费服务项目，若您继续使用有关收费项目的，视为您对本平台收费规则的知悉和同意。</p>
+
+            <p class="tit">二、注册：</p>
+
+            <p class="nr">
+                1.注册资格：注册本平台用户的个人、法人或其他组织须具有完全民事权利能力和行为能力，能够独立承担法律责任。您完成注册程序或其他本平台同意的方式实际使用本平台服务时，即视为您确认自己具备主体资格，能够独立承担法律责任。若因您不具备主体资格，而导致的一切后果，由您及您的监护人自行承担。如您为个人且具有下列情形之一的，请停止注册行为：</p>
+
+            <p class="nr">（1）未满10周岁；</p>
+
+            <p class="nr">（2）已满10周岁但未满18周岁，未经您监护人同意；</p>
+
+            <p class="nr">（3）已满16周岁但未满18周岁，且未以自己的劳动收入为主要生活来源；</p>
+
+            <p class="nr">（4）已满18周岁，但具有其他导致民事行为能力行使有障碍的情况。</p>
+
+            <p class="tit">2.注册资料：</p>
+
+            <p class="nr">
+                2.1您应本着诚实信用原则，按照本平台注册流程要求提供相关注册资料并保证注册资料真实、准确、完整、合法有效，您注册资料如有变动的，应及时更新已变动的注册资料。如果您提供的注册资料不合法、不真实、不准确、不详尽的，您需承担因此引起的相应责任及后果，并且本平台保留终止您使用各项服务的权利。</p>
+
+            <p class="nr">
+                2.2您在本平台进行浏览、下载、上传、更新、配置信息、下载等活动时，涉及您隐私信息的，本平台将予以严格保密，除非得到您的授权、本协议另有约定或国家法律另有规定，不会向外界披露您的隐私信息。</p>
+
+            <p class="nr">2.3 您应当为您个人注册账户下的一切行为负责，因您的行为而导致的您自身或其他任何第三方的任何损失或损害，本平台不承担责任。</p>
+
+            <p class="nr">2.4 您不得以任何方式注册多个本平台账号或者使用他人信息在本平台注册账号，否则本平台有权关闭您的全部账号。</p>
+
+
+            <p class="tit"> 三、使用：</p>
+
+            <p class="nr">
+                1.您一旦注册成功成为会员，将得到一个账号和密码，您需要对自己在帐户中的所有活动和事件负责。如果由于您故意或过失导致您的帐号和密码脱离控制，则由此导致的针对您、或任何第三方造成的损害，您将承担全部责任。您应妥善保存账号、密码，避免以任何脱离您控制的形式交由他人使用。如您发现自己账号遭他人非法使用，应立即与本平台客服人员联系。因黑客行为或您的保管疏忽导致账号、密码遭他人非法使用，本平台不承担任何责任。</p>
+
+            <p class="nr">
+                2.您理解并接受本平台提供的相关网络服务，除此之外与相关网络服务有关的设备（如个人电脑、手机、及其他与接入互联网或移动互联网有关的装置）及所需的费用（如为接入互联网而支付的电话费及上网费、为使用移动网而支付的手机费）均应由您自行负担。</p>
+
+            <p class="nr">3.您理解并接受本平台提供的服务中可能包括活动及产品推广，您同意在使用过程中显示本平台和第三方供应商、合作伙伴提供的广告。</p>
+
+            <p class="nr">4.您在使用本平台服务过程中，必须遵循以下原则：</p>
+
+            <p class="nr">4.1 遵守中国有关的法律和法规；</p>
+
+            <p class="nr">4.2 遵守所有与网络服务有关的网络协议、规定和程序；</p>
+
+            <p class="nr">4.3 不得为任何非法目的而使用网络服务系统；</p>
+
+            <p class="nr">4.4 不得利用本平台网络服务系统进行任何可能对互联网或移动网正常运转造成不利影响的行为；</p>
+
+            <p class="nr">4.5 不得利用本平台提供的网络服务上传、展示或传播任何虚假的、骚扰性的、中伤他人的、辱骂性的、恐吓性的、庸俗淫秽的或其他任何非法的信息资料；</p>
+
+            <p class="nr">4.6 不得侵犯本平台和其他任何第三方的专利权、著作权、商标权、名誉权或其他任何合法权益；</p>
+
+            <p class="nr">4.7 不得利用本平台网络服务系统进行任何不利于本平台的行为；</p>
+
+            <p class="nr">4.8 如发现任何非法使用您账号或帐号出现安全漏洞的情况，应立即与本平台客服人员联系。</p>
+
+            <p class="nr">
+                5.如您在使用网络服务时违反任何上述规定，本平台或授权的人有权要求您改正或直接采取一切必要的措施（包括但不限于更改或删除您收藏的内容等、暂停或终止您使用网络服务的权利）以减轻您不当行为造成的影响且不构成违约。</p>
+
+            <p class="tit">四、服务变更、中断或终止</p>
+
+            <p class="nr">1. 鉴于网络服务的特殊性，您同意本平台有权根据业务发展情况随时变更、中断或终止部分或全部的网络服务而无需提前通知您，也无需对任何您或任何第三方承担任何责任；</p>
+
+            <p class="nr">2. 您理解并接受本平台需要定期或不定期地对提供网络服务的平台、产品进行更新维护，如因此造成网络服务在合理时间内的中断，本平台无需为此承担任何责任，但本平台应尽可能事先进行通告。</p>
+
+            <p class="tit">五、知识产权</p>
+
+            <p class="nr">
+                1.本平台提供的网络服务中包含的任何文本、图片、图形、音频和/或视频资料均受版权、商标和/或其它财产所有权法律的保护，未经相关权利人同意，您均不得将上述资料用于任何商业目的，您不得侵犯相关权利人的知识产权。</p>
+
+            <p class="nr">
+                2.本平台为提供网络服务而使用的任何软件（包括但不限于软件中所含的任何图像、照片、动画、录像、录音、音乐、文字和附加程序、随附的帮助材料）的一切权利均属于该软件的著作权人，未经该软件的著作权人许可，您不得对该软件进行反向工程（reverse
+                engineer）、反向编译（decompile）或反汇编（disassemble）。</p>
+
+            <p class="tit">六、隐私保护</p>
+
+            <p class="nr">1.保护您隐私是本平台的一项基本原则，本平台保证不对外公开或向第三方提供单个用户的注册资料及您在使用网络服务时存储在本平台的非公开内容，但下列情况除外：</p>
+            <p class="nr">1.1 事先获得您的明确授权；</p>
+            <p class="nr"> 1.2 根据有关的法律法规要求；</p>
+            <p class="nr">1.3 按照相关政府主管部门的要求；</p>
+            <p class="nr">1.4 为维护社会公众的利益；</p>
+            <p class="nr">1.5 为维护本平台的合法权益。</p>
+            <p class="nr">2.本平台可能会与第三方合作向您提供相关的网络服务，在此情况下，如该第三方同意承担与本平台同等的保护您隐私的责任，则本平台有权将您的注册资料等提供给该第三方。</p>
+            <p class="nr">3.在不透露单个用户隐私资料的前提下，本平台有权对整个用户数据库进行分析并对用户数据库进行商业上的利用。</p>
+            <p class="tit">4.本平台制定了以下四项隐私权保护原则，指导如何来处理产品中涉及到您隐私权和用户信息等方面的问题：</p>
+            <p class="nr">（1）利用我们收集的信息为您提供有价值的产品和服务。</p>
+            <p class="nr">（2）开发符合隐私权标准和隐私权惯例的产品。</p>
+            <p class="nr">（3）将个人信息的收集透明化，并由权威第三方监督。</p>
+            <p class="nr">（4）尽最大的努力保护我们掌握的信息。</p>
+
+            <p class="tit">七、免责声明</p>
+            <p class="nr">1.本平台不担保本平台所提供的网络服务一定能满足您的要求，也不担保网络服务不会中断，对网络服务的及时性、安全性、准确性均不作担保。</p>
+            <p class="nr">2.本平台不保证为向您提供便利而设置的外部链接的准确性和完整性，同时，对于该等外部链接指向的不由本平台实际控制的任何网页上的内容，本平台不承担任何责任。</p>
+            <p class="nr">3.对于因电信系统或互联网网络故障、计算机故障或病毒、信息损坏或丢失、计算机系统问题或其它任何不可抗力原因而产生损失，本平台不承担任何责任，但将尽力减少因此而给您造成的损失和影响。</p>
+            <p class="nr">4.如因您违反本协议相关条文或本平台其他条款、国家相关规定、恶意使用本平台产品或发现其他本平台认为应当终止/中止您会员资格的情况，本平台有权终止/中止向您提供任何服务。</p>
+
+            <p class="tit">八、法律及争议解决</p>
+            <p class="nr">1.本协议适用中华人民共和国法律。</p>
+            <p class="nr">2.因本协议引起的或与本协议有关的任何争议，各方应友好协商解决；协商不成的，任何一方均可将有关争议提交至本平台所有者上海冰穹网络科技有限公司所在地有管辖权的人民法院裁决。</p>
+
+            <p class="tit">九、其他条款</p>
+            <p class="nr">1.如果本协议中的任何条款无论因何种原因全部或部分无效或不具有执行力，或违反任何现行有效的法律规定，则该条款无效，但本协议的其余条款仍应有效并且有约束力。</p>
+            <p class="nr">2.本平台有权随时根据有关法律、法规的变化以及公司经营状况和经营策略的调整等修改本协议，而无需另行单独通知您。您可随时通过网站浏览最新服务协议条款。当发生有关争议时，以最新的协议文本为准。如不同意本平台对本协议相关条款所做的修改，您有权停止使用该产品。如果您继续使用，则视为您接受本平台对本协议相关条款所做的修改。</p>
+            <p class="nr">3.本平台在法律允许最大范围对本协议拥有解释权。</p>
+        </div>
+        <div class="agreed agreed-to">同意</div>
+    </div>
+</div>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../dist/js/login.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.channel.BalanceAmountEntityMapper">
+  <resultMap id="BaseResultMap" type="com.dome.sdkserver.metadata.entity.bq.channel.BalanceAmountEntity">
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="channel_id" jdbcType="INTEGER" property="channelId" />
+    <result column="cooper_type" jdbcType="TINYINT" property="cooperType" />
+    <result column="channel_name" jdbcType="VARCHAR" property="channelName" />
+    <result column="active_unit_price" jdbcType="DECIMAL" property="activityUnitPrice" />
+    <result column="app_code" jdbcType="VARCHAR" property="appCode" />
+    <result column="app_name" jdbcType="VARCHAR" property="appName" />
+    <result column="activate_user_count" jdbcType="INTEGER" property="activateUserCount" />
+    <result column="deduct_activate_user_count" jdbcType="INTEGER" property="deductActivateUserCount" />
+    <result column="pay_user_count" jdbcType="INTEGER" property="payUserCount" />
+    <result column="deduct_pay_user_count" jdbcType="INTEGER" property="deductPayUserCount" />
+    <result column="charge_amount" jdbcType="DECIMAL" property="chargeAmount" />
+    <result column="deduct_charge_amount" jdbcType="DECIMAL" property="deductChargeAmount" />
+    <result column="settle_amount" jdbcType="DECIMAL" property="settleAmount" />
+    <result column="deduct_settle_amount" jdbcType="DECIMAL" property="deductSettleAmount" />
+    <result column="date" jdbcType="DATE" property="date" />
+  </resultMap>
+  
+  <select id="selectCount" resultType="int" >
+  	select count(distinct a.channel_id)
+	from domesdk_balance_amount a, domesdk_second_channel s
+	where a.channel_id=s.id  and s.del_flag=0 and s.status=2  <!-- 渠道暂停的不展示 -->
+    <if test="channelId != null" >
+      and (s.parent_id = #{channelId, jdbcType=INTEGER} or s.id = #{channelId, jdbcType=INTEGER})
+    </if >
+	<if test="channelName != null and channelName != ''" >
+     and  binary s.name like CONCAT('%', #{channelName, jdbcType=VARCHAR}, '%') 
+    </if >
+    <if test="cooperationType != null" >
+     and  s.cooper_type = #{cooperationType, jdbcType=INTEGER}
+    </if >
+     <![CDATA[ and  a.date >= CONVERT(#{beginDate, jdbcType=TIMESTAMP},DATE) and a.date <= CONVERT(#{endDate, jdbcType=TIMESTAMP},DATE)  ]]>
+	  ;
+  </select>
+  
+  <select id="select" resultMap="BaseResultMap" >
+	select a.id, a.channel_id, s.name as channel_name, a.active_unit_price,   s.cooper_type,
+	sum(a.pay_user_count) AS pay_user_count,  sum(a.deduct_pay_user_count) AS deduct_pay_user_count, 
+  	sum(a.activate_user_count) AS activate_user_count, sum(a.deduct_activate_user_count) AS deduct_activate_user_count, 
+  	sum(a.charge_amount) AS charge_amount, sum(a.deduct_charge_amount) AS deduct_charge_amount, 
+  	sum(a.settle_amount) AS settle_amount, sum(a.deduct_settle_amount) AS deduct_settle_amount
+	from domesdk_balance_amount a, domesdk_second_channel s
+	where a.channel_id=s.id  and s.del_flag=0 and s.status=2  <!--渠道暂停的不展示 -->
+    <if test="channelId != null" >
+      and (s.parent_id = #{channelId, jdbcType=INTEGER} or s.id = #{channelId, jdbcType=INTEGER})
+    </if >
+	<if test="channelName != null and channelName != ''" >
+     and  binary s.name like CONCAT('%', #{channelName, jdbcType=VARCHAR}, '%') 
+    </if >
+    <if test="cooperationType != null" >
+     and  s.cooper_type = #{cooperationType, jdbcType=INTEGER}
+    </if >
+     <![CDATA[ and  a.date >= CONVERT(#{beginDate, jdbcType=TIMESTAMP},DATE) and a.date <= CONVERT(#{endDate, jdbcType=TIMESTAMP},DATE)  ]]>
+	 group by a.channel_id order by a.channel_id
+	  <if test="p.start!=-1">limit #{p.start}, #{p.pageSize}</if>
+    ;
+  </select>
+  
+  
+  <select id="selectDetailCount" resultType="java.lang.Integer" >
+  	select count(*) 
+  	from domesdk_balance_amount a,  domesdk_second_channel b 
+    where a.channel_id = #{channelId, jdbcType=INTEGER} 
+     and a.channel_id = b.id and b.del_flag=0 and b.status=2<![CDATA[ and  a.date >= CONVERT(#{beginDate, jdbcType=TIMESTAMP},DATE) and a.date <= CONVERT(#{endDate, jdbcType=TIMESTAMP},DATE)  ]]>
+  </select>
+  
+  <select id="selectDetail" resultMap="BaseResultMap" >
+	select a.*
+	from domesdk_balance_amount a,  domesdk_second_channel b 
+    where a.channel_id = #{channelId, jdbcType=INTEGER}
+     and a.channel_id = b.id and b.del_flag=0 and b.status=2<![CDATA[ and  a.date >= CONVERT(#{beginDate, jdbcType=TIMESTAMP},DATE) and a.date <= CONVERT(#{endDate, jdbcType=TIMESTAMP},DATE)  ]]>
+    order by a.date desc, a.app_code 
+    <if test="p.start!=-1">limit #{p.start}, #{p.pageSize}</if>
+    ;
+  </select>
+  
+  <select id="selectSettleAmount" resultMap="BaseResultMap" >
+	select sum(a.deduct_settle_amount) as settle_amount
+	from domesdk_balance_amount a, domesdk_second_channel b
+	where a.channel_id = b.id and (b.parent_id = #{channelId, jdbcType=INTEGER} or b.id = #{channelId, jdbcType=INTEGER})
+	and b.status=2
+	<![CDATA[ and a.date >= CONVERT(#{beginDate, jdbcType=TIMESTAMP},DATE) and a.date <= CONVERT(#{endDate, jdbcType=TIMESTAMP},DATE) ]]>
+	and b.del_flag=0;
+  </select>
+  
+  <select id="selectMaxTjDate" resultType="java.lang.String">
+  	select max(date) from domesdk_balance_amount;
+  </select>
+  
+  <select id="selectChannelCodeList" resultType="java.lang.String">
+  	select channel_code from agg_daily_domesdk_channel where trans_date=#{tjDate};
+  </select>
+  <insert id="batchSynTjData">
+  	insert into domesdk_balance_amount (channel_id, channel_name, app_code, app_name, activate_user_count, deduct_activate_user_count, pay_user_count, deduct_pay_user_count,
+	charge_amount, deduct_charge_amount, settle_amount, deduct_settle_amount, date, active_unit_price)
+
+	(
+	select a.channel_id, a.channel_name, '' as app_code, '' as app_name, a.activity_count as activate_user_count,
+	case WHEN a.activity_count>=#{d.activeThreshold} then a.activity_count*(1-#{d.discount}/100) else a.activity_count END as deduct_activate_user_count,
+	0 as pay_user_count, 0 as deduct_pay_user_count,
+	0.0 as charge_amount, 0.0 as  deduct_charge_amount, a.balance_amount as settle_amount,
+	case WHEN a.activity_count>=#{d.activeThreshold} then a.balance_amount*(1-#{d.discount}/100) else a.balance_amount END as deduct_settle_amount, a.trans_date as date,
+	a.active_unit_price
+	from agg_daily_domesdk_channel a where a.channel_mode='CPA' and a.channel_code=#{d.channelCode}
+	and a.trans_date=#{tjDate} 
+	)
+	UNION
+	
+	(select a.channel_id, a.channel_name, app_code, app_name, a.activity_count as activate_user_count,
+	case WHEN a.trans_amount>=#{d.payingThreshold} then a.activity_count*(1-#{d.discount}/100) else a.activity_count END as deduct_activate_user_count,
+	a.pay_user_count as pay_user_count,
+	case WHEN a.trans_amount>=#{d.payingThreshold} then a.pay_user_count*(1-#{d.payingUserDiscount}/100) else a.pay_user_count END as deduct_pay_user_count,
+	a.trans_amount as charge_amount,
+	case WHEN a.trans_amount>=#{d.payingThreshold} then a.trans_amount*(1-#{d.rechargeAmountDiscount}/100) else a.trans_amount END as  deduct_charge_amount,
+	 a.balance_amount as settle_amount,
+	case WHEN a.trans_amount>=#{d.payingThreshold} then a.balance_amount*(1-#{d.rechargeAmountDiscount}/100) else a.balance_amount END as deduct_settle_amount, a.trans_date as date,
+	a.active_unit_price 
+	from agg_daily_domesdk_channel a where a.channel_mode='CPS' and a.channel_code=#{d.channelCode}
+	and a.trans_date=#{tjDate}  
+	);
+  </insert>
+</mapper>

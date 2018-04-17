@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.RealNameMapper">
+
+    <resultMap type="com.dome.sdkserver.bo.RealName" id="resultMap">
+        <id property="id" jdbcType="INTEGER" column="id"/>
+        <result property="status" jdbcType="INTEGER" column="status"/>
+        <result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+    </resultMap>
+
+
+    <select id="query" resultMap="resultMap">
+        SELECT id,status,update_time FROM domesdk_real_name where id=1
+    </select>
+
+    <update id="update">
+        UPDATE domesdk_real_name SET status=#{status}, update_time=now()
+        WHERE id = 1
+    </update>
+
+</mapper>

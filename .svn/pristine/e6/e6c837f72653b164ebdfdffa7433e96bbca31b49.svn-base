@@ -1,0 +1,448 @@
+package com.dome.sdkserver.controller.webgame;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.util.HttpsUtil;
+import com.dome.sdkserver.metadata.entity.bq.ogp.OgpNotify;
+import com.dome.sdkserver.metadata.entity.bq.ogp.OgpPayEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.game.GameService;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.util.PropertiesUtil;
+import com.dome.sdkserver.util.RedisUtil;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.exceptions.JedisException;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.*;
+
+/**
+ * Created by hunsy on 2017/8/1.
+ */
+@Controller
+@RequestMapping(value = "ogp")
+public class OgpController {
+
+    @Autowired
+    private GameService gameService;
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    protected PropertiesUtil domainConfig;
+
+    private Logger logger = LoggerFactory.getLogger(OgpController.class);
+
+    @Autowired
+    protected RedisUtil redisUtil;
+
+    /**
+     * 支付
+     */
+    @RequestMapping(value = "pay")
+    public String pay(OgpPayEntity entity, Model model) {
+        try {
+
+            if (StringUtils.isEmpty(entity.getCpTradeNo())) {
+                model.addAttribute("err", "缺少参数");
+                logger.error("缺少参数cpTradeNo");
+                return "/msg";
+            }
+            //订单是否存在
+            if (sismember("sdkServer:ogp:cpTradeNo", entity.getCpTradeNo())) {
+                model.addAttribute("err", "订单已存在");
+                logger.error("cpTradeNo已经存在");
+                return "/msg";
+            }
+
+            if (entity.getUserId() == null) {
+                model.addAttribute("err", "缺少参数");
+                logger.error("缺少参数userId");
+                return "/msg";
+            }
+
+            if (entity.getAppCode() == null) {
+                model.addAttribute("err", "缺少参数");
+                logger.error("缺少参数appCode");
+                return "/msg";
+            }
+
+            if (StringUtils.isEmpty(entity.getContent())) {
+                model.addAttribute("err", "缺少参数");
+                logger.error("缺少参数appCode");
+                return "/msg";
+            }
+            //从uc获取用户信息
+            JSONObject user = getOgpUser(entity.getUserId());
+            if (user == null) {
+                model.addAttribute("err", "用户不存在");
+                logger.error("用户不存在");
+                return "/msg";
+            }
+            //获取游戏信息
+            AppInfoEntity appInfoEntity = gameService.getAppInfo(entity.getAppCode());
+            if (appInfoEntity == null) {
+                model.addAttribute("err", "找不到游戏信息");
+                logger.error("找不到游戏");
+                return "/msg";
+            }
+
+            if (StringUtils.isEmpty(entity.getSign())){
+                model.addAttribute("err", "签名不能为null");
+                logger.error("签名不能为空");
+                return "/msg";
+            }
+
+            String sdkSign = entity.generateSign();
+            String cpSign = entity.getSign();
+            logger.info("sdk sign:{},cp sign:{}",sdkSign,cpSign);
+
+            //验证是否过于频繁
+            if (redisUtil.get("sdkServer:ogp:user:" + entity.getUserId()) != null){
+                model.addAttribute("err", "请求过于频繁");
+                logger.error("请求过于频繁");
+                return "/msg";
+            }
+
+            //验证签名
+            if (!sdkSign.equals(cpSign)) {
+                model.addAttribute("err", "签名错误");
+                logger.error("签名错误");
+                return "/msg";
+            }
+
+            //没有金额，转发到金额选择页面
+            if (entity.getTotalFee() == 0) {
+
+                if (StringUtils.isEmpty(entity.getGameName())) {
+                    model.addAttribute("err", "游戏名称不能为空");
+                    logger.error("游戏名称不能为空");
+                    return "/msg";
+                }
+                if (StringUtils.isEmpty(entity.getZoneName())) {
+                    model.addAttribute("err", "区服名称不能为空");
+                    logger.error("区服名称不能为空");
+                    return "/msg";
+                }
+                //获取计费点
+                JSONArray arr = payListRequest();
+                List<Object> ls = new ArrayList<>();
+                for (int i = 0; i < arr.size(); i++) {
+                    JSONObject obj = arr.getJSONObject(i);
+                    ls.add(obj.get("chargePoint"));
+                }
+                model.addAttribute("ls", ls);
+                model.addAttribute("prepareEntity", entity);
+                return "/preparePay";
+            }
+
+
+            //防刷，10s
+            //在确定不是跳转后，加上时间限制，防止联系请求
+            redisUtil.setex("sdkServer:ogp:user"+entity.getUserId(),10,entity.getUserId());
+
+            entity.setGameId(appInfoEntity.getOgpGameId());
+            String notifyUrl = domainConfig.getString("ogp.payNotifyUrl");
+            //sdk支付完成通知接口
+            entity.setCpNotifyUrl(notifyUrl);
+            //生成sdk的订单号
+            String sdkTradeNo = getTradeNo();
+
+            //本地持久化
+            OrderEntity poe = new OrderEntity();
+            poe.setAppCode(appInfoEntity.getAppCode()); //游戏AppCode
+            poe.setAppName(appInfoEntity.getAppName()); //app名称
+            poe.setChargePointAmount(entity.getTotalFee()); //金额
+            poe.setBuyerId(entity.getUserId());         //用户id,uc的userId
+            poe.setOrderNo(sdkTradeNo);                 //订单号
+            poe.setGameOrderNo(entity.getCpTradeNo());  //游戏方订单号
+            poe.setPayNotifyUrl(appInfoEntity.getPayNotifyUrl());   //支付成功后通知cp的地址
+            poe.setCurMonth(DateTime.now().toString("yyyyMM"));     //表后缀
+            //extra
+            Map<String, String> map = new HashMap<>();
+            map.put("zoneId", entity.getZoneId());
+            map.put("zoneName", entity.getZoneName());
+            map.put("gameName", entity.getGameName());
+            poe.setExtraField(JSON.toJSONString(map));
+            //保存本地订单
+            orderService.insertThirdOrder2(poe);
+            sadd("sdkServer:ogp:cpTradeNo",entity.getCpTradeNo());
+            //设置ogp的用户id
+            String ogpUserId = user.getString("openId");
+            entity.setUserId(ogpUserId);
+            //本地持久化后，将cp的TradeNo更换为Sdk的订单
+            entity.setCpTradeNo(sdkTradeNo);
+            entity.setKey(appInfoEntity.getOgpGameKey());
+            //ogp请求的参数
+            Map<String, String> params = entity.getParams();
+            //请求ogp
+            JSONObject retObj = HttpsUtil.postJson(domainConfig.getString("ogp.payurl"), JSONObject.parseObject(JSON.toJSONString(params)));
+            logger.info("ret:{}",retObj.toJSONString());
+            if (retObj.getString("return_code").equals("SUCCESS")) {
+                OrderEntity uoe = new OrderEntity();
+                //预支付页面
+                String prepay_url = retObj.getString("prepay_url");
+                uoe.setTradeNo(retObj.getString("ogp_trade_no"));   //ogp的交易号
+                uoe.setOrderNo(poe.getOrderNo());
+                uoe.setCurMonth(poe.getCurMonth());
+                // 更新支付信息 ogp_trade_no
+                orderService.updateThirdOrder(uoe);
+                //跳转回调
+                return "redirect:" + prepay_url;
+            } else {
+                //支付失败
+                OrderEntity uoe = new OrderEntity();
+                uoe.setOrderNo(poe.getOrderNo());
+                uoe.setOrderStatus(2);
+                uoe.setCurMonth(poe.getCurMonth());
+                // 更新支付信息 ogp_trade_no
+                orderService.updateThirdOrder(uoe);
+                model.addAttribute("err", "支付失败");
+                return "/msg";
+            }
+        } catch (Exception e) {
+            logger.error("{}", e);
+            model.addAttribute("err", "支付失败");
+            return "/msg";
+        }
+    }
+
+    /**
+     * 通知地址
+     */
+    @RequestMapping(value = "notify")
+    @ResponseBody
+    public String notify(@RequestBody OgpNotify notify) {
+        try {
+            logger.info("notify:{}", JSON.toJSONString(notify));
+            String sign = notify.generateSign();
+            logger.info("sdk sign:{}", sign);
+            if (!sign.equals(notify.generateSign())) {
+                return "FAIL";
+            }
+            OrderEntity orderEntity = new OrderEntity();
+            orderEntity.setCurMonth(DateTime.now().toString("yyyyMM"));
+            orderEntity.setOrderNo(notify.getCp_trade_no());
+            orderEntity = orderService.queryThirdOrder(orderEntity);
+            if (orderEntity == null) {
+                logger.error("订单不存在");
+                return "FAIL";
+            }
+
+            AppInfoEntity appInfoEntity = gameService.getAppInfo(orderEntity.getAppCode());
+            String tradeCode = notify.getTrade_status();
+            int orderStatus = tradeCode.equals("SUCCESS") ? 1 : 2;
+            //交易成功
+            orderEntity.setOrderStatus(orderStatus);
+            orderEntity.setCurMonth(DateTime.now().toString("yyyyMM"));
+            logger.info(JSON.toJSONString(orderEntity));
+            //更新交易状态
+            orderService.updateThirdOrder(orderEntity);
+            //通知cp，下发道具
+            String url = appInfoEntity.getPayNotifyUrl();
+
+            if (StringUtils.isNotEmpty(url)) {
+                Map<String, String> params = new HashMap<>();
+                params.put("appCode", appInfoEntity.getAppCode() + "");
+                params.put("tradeStatus", orderStatus + "");
+                params.put("cpTradeNo", orderEntity.getGameOrderNo() + "");
+                params.put("orderNo", orderEntity.getOrderNo() + "");
+                params.put("userId", orderEntity.getBuyerId() + "");
+                params.put("totalFee", orderEntity.getChargePointAmount() + "");
+                String ts = System.currentTimeMillis() + "";
+                params.put("ts", ts);
+                StringBuffer sb = new StringBuffer();
+                sb.append("appCode=").append(appInfoEntity.getAppCode())
+                        .append("&cpTradeNo=").append(orderEntity.getGameOrderNo())
+                        .append("&orderNo=").append(orderEntity.getOrderNo())
+                        .append("&totalFee").append(orderEntity.getChargePointAmount())
+                        .append("&tradeStatus").append(orderEntity.getOrderStatus())
+                        .append("&ts").append(ts)
+                        .append("&userId").append(orderEntity.getBuyerId());
+                params.put("sign", DigestUtils.md5Hex(sb.toString()).toUpperCase());
+                String str = doPost(url, params);
+                String str1 = "FAIL";
+                if (StringUtils.isEmpty(str)) {
+                    str = str1;
+                }
+                logger.info("通知cp结果:{}", str);
+                return str;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+    /**
+     * 通过uc的userId获取ogp的userId
+     *
+     * @param domeUserId
+     * @return uc返回的用户信息
+     */
+//    @RequestMapping(value = "user")
+//    @ResponseBody
+    private JSONObject getOgpUser(String domeUserId) {
+        //请求uc，获取OgpUserId。
+        String url = domainConfig.getString("uc.getUserById");
+        url += "?userId=" + domeUserId;
+        JSONObject object = doGet(url);
+        if (object.getIntValue("code") == 0) {
+            return object.getJSONObject("data");
+        }
+        return null;
+    }
+
+    /**
+     * 获取订单id
+     *
+     * @return 获取sdk的订单号.日期 + 6位随机数
+     */
+    private String getTradeNo() {
+
+        return DateTime.now().toString("yyyyMMddHHmmsss") + RandomStringUtils.randomAlphanumeric(6);
+    }
+
+    /**
+     * 请求ogp支付金额列表
+     *
+     * @return 获取开发平台配置的金额列表
+     */
+    @RequestMapping("paylist")
+    @ResponseBody
+    public JSONArray payListRequest() {
+
+        String ogpPayUrl = domainConfig.getString("publish.chargePoints");
+        JSONObject object = doGet(ogpPayUrl);
+        if (object.getIntValue("responseCode") == 1000) {
+            return object.getJSONObject("data").getJSONArray("list");
+        }
+        return null;
+    }
+
+    private JSONObject doGet(String url) {
+
+        CloseableHttpClient client = getClient();
+        HttpGet get = new HttpGet(url);
+        get.setHeader("Content-Type", "application/json;charset=utf-8");
+        CloseableHttpResponse response = null;
+        try {
+            response = client.execute(get);
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                return JSON.parseObject(EntityUtils.toString(response.getEntity()));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                response.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    private String doPost(String url, Map<String, String> params) {
+        try {
+            CloseableHttpClient client = getClient();
+            HttpPost post = new HttpPost(url);
+
+            if (params != null && params.keySet().size() > 0) {
+                List<NameValuePair> lps = new ArrayList<>();
+                Iterator<String> ite = params.keySet().iterator();
+                while (ite.hasNext()) {
+                    String key = ite.next();
+                    String val = params.get(key);
+                    lps.add(new BasicNameValuePair(key, val));
+                }
+                UrlEncodedFormEntity ue = new UrlEncodedFormEntity(lps, Charset.forName("utf-8"));
+                post.setEntity(ue);
+            }
+            CloseableHttpResponse response = client.execute(post);
+            int code = response.getStatusLine().getStatusCode();
+            logger.info("response code:{}", code);
+            if (code == HttpStatus.SC_OK) {
+                return EntityUtils.toString(response.getEntity());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private CloseableHttpClient getClient() {
+
+        CloseableHttpClient client = HttpClients.createDefault();
+        return client;
+    }
+
+
+    private boolean sismember(String key, String member) {
+        Jedis jedis = null;
+        JedisPool pool = redisUtil.getPool();
+        try {
+            jedis = pool.getResource();
+            boolean flag = jedis.sismember(key, member);
+            return flag;
+        } catch (Exception e) {
+            logger.error("{}", e);
+            if (jedis != null) {
+                pool.returnBrokenResource(jedis);
+            }
+            throw new JedisException(e);
+        } finally {
+            if (pool != null) {
+                pool.returnResource(jedis);
+            }
+        }
+    }
+
+
+    private void sadd(String key, String member) {
+        Jedis jedis = null;
+        JedisPool pool = redisUtil.getPool();
+        try {
+            jedis = pool.getResource();
+            jedis.sadd(key, member);
+        } catch (Exception e) {
+            logger.error("{}", e);
+            if (jedis != null) {
+                pool.returnBrokenResource(jedis);
+            }
+            throw new JedisException(e);
+        } finally {
+            if (pool != null) {
+                pool.returnResource(jedis);
+            }
+        }
+    }
+
+
+}

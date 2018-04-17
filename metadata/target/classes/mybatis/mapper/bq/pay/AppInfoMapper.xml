@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.pay.AppInfoMapper">
+
+    <!--开放app信息-->
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity" id="AppInfoResultMap">
+        <result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="loginCallBackUrl" jdbcType="VARCHAR" column="login_callback_url"/>
+        <result property="testLoginCallBackUrl" jdbcType="VARCHAR" column="test_login_callback_url"/>
+        <result property="outPublicRsaKey" jdbcType="VARCHAR" column="out_public_rsakey"/>
+        <result property="merchantId" jdbcType="VARCHAR" column="merchant_info_id"/>
+        <result property="payNotifyUrl" jdbcType="VARCHAR" column="pay_callback_url"/>
+        <result property="testPayNotifyUrl" jdbcType="VARCHAR" column="test_pay_callback_url"/>
+        <result property="loginKey" jdbcType="VARCHAR" column="login_key"/>
+        <result property="payKey" jdbcType="VARCHAR" column="pay_key"/>
+        <result property="appKey" jdbcType="VARCHAR" column="app_key"/>
+        <result property="gameUrl" jdbcType="VARCHAR" column="game_url"/>
+        <result property="channelCode" jdbcType="VARCHAR" column="channel_code"/>
+        <result property="status" jdbcType="INTEGER" column="status"/>
+        <result property="registCallBackUrl" jdbcType="VARCHAR" column="regist_callback_url"/>
+        <result property="testRegistCallBackUrl" jdbcType="VARCHAR" column="test_regist_callback_url"/>
+        <result property="ogpGameId" jdbcType="VARCHAR" column="ogp_game_id"/>
+        <result property="ogpGameKey" jdbcType="VARCHAR" column="ogp_game_key"/>
+    </resultMap>
+
+    <!--获取开放平台app信息-->
+    <select id="getAppInfoByAppCode" resultMap="AppInfoResultMap">
+        SELECT
+        app_code,
+        app_name,
+        login_callback_url,
+        test_login_callback_url,
+        out_public_rsakey,
+        merchant_info_id,
+        pay_callback_url,
+		test_pay_callback_url,
+        regist_callback_url,
+        test_regist_callback_url
+        FROM
+        domesdk_app_info
+        WHERE
+        app_code = #{appCode,jdbcType=VARCHAR} and del_flag=0 and status != 10 and status != 11
+    </select>
+
+    <select id="queryAppGame" resultMap="AppInfoResultMap">
+		SELECT
+        app_code,
+        app_name,
+        login_callback_url,
+        test_login_callback_url,
+        out_public_rsakey,
+        merchant_info_id,
+        pay_callback_url,
+        test_pay_callback_url,
+        regist_callback_url,
+        test_regist_callback_url
+		FROM 
+			sdk_app_game
+		WHERE
+			app_code = #{appCode,jdbcType=VARCHAR} and status = 1
+	</select>
+
+    <select id="queryWebGame" resultMap="AppInfoResultMap">
+       SELECT game_code AS app_code, game_name AS app_name,pay_callback_url, merchant_info_id,channel_code
+        ,login_callback_url
+        ,app_key
+        ,login_key
+        ,pay_key
+        ,ogp_game_id
+        ,ogp_game_key
+       from sdk_web_game where status =1 and  game_code = #{appCode}
+    </select>
+
+
+    <select id="queryBwH5Game" resultMap="AppInfoResultMap">
+      SELECT game_code AS app_code, game_name AS app_name, pay_callback_url, merchant_info_id, game_url, login_key, pay_key, app_key, channel_code
+       FROM sdk_bw_h5_game where status =1 and  game_code = #{appCode}
+    </select>
+
+    <select id="queryBH5Game" resultMap="AppInfoResultMap">
+        SELECT game_code AS app_code, game_name AS app_name, pay_callback_url, merchant_info_id, game_url, login_key, pay_key, app_key, channel_code
+        FROM sdk_bq_h5_game where status =1 and  game_code = #{appCode}
+    </select>
+
+    <select id="isExistAppGame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity"
+            resultType="INTEGER">
+        select count(1) from sdk_app_game where app_code = #{appCode}
+    </select>
+
+    <select id="isExistWebGame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity"
+            resultType="INTEGER">
+         select count(1) from sdk_web_game where game_code = #{appCode}
+    </select>
+
+    <select id="isExistBwH5Game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity"
+            resultType="INTEGER">
+        select count(1) from sdk_bw_h5_game where game_code = #{appCode}
+    </select>
+
+    <select id="isExistBQH5Game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity"
+            resultType="INTEGER">
+        select count(1) from sdk_bq_h5_game where game_code = #{appCode}
+    </select>
+
+    <insert id="insertwebgame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        insert into sdk_web_game
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                game_code,
+            </if>
+            <if test="appName != null and appName !=''">
+                game_name,
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id,
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url,
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url,
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                login_callback_url,
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key,
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key,
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key,
+            </if>
+            <if test="ogpGameId != null and ogpGameId != ''">
+                ogp_game_id,
+            </if>
+            <if test="ogpGameKey != null and ogpGameKey != ''">
+                ogp_game_key,
+            </if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                #{appCode},
+            </if>
+            <if test="appName != null and appName !=''">
+                #{appName},
+            </if>
+            <if test="merchantId != null">
+                #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                #{channelCode},
+            </if>
+            <if test="status != null">
+                #{status},
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                #{loginCallBackUrl},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                #{appKey},
+            </if>
+            <if test="ogpGameId != null and ogpGameId != ''">
+                #{ogpGameId},
+            </if>
+            <if test="ogpGameKey != null and ogpGameKey != ''">
+                #{ogpGameKey},
+            </if>
+            now(),
+            now()
+        </trim>
+    </insert>
+
+    <update id="updatewebgame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        update sdk_web_game
+        <set>
+            <if test="appName != null and appName !=''">
+                game_name = #{appName},
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id = #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url = #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url = #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code = #{channelCode},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                login_callback_url = #{loginCallBackUrl},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key = #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key = #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key = #{appKey},
+            </if>
+            <if test="ogpGameId != null and ogpGameId != ''">
+                ogp_game_id = #{ogpGameId},
+            </if>
+            <if test="ogpGameKey != null and ogpGameKey != ''">
+                ogp_game_key = #{ogpGameKey},
+            </if>
+            update_time = now()
+        </set>
+        WHERE game_code = #{appCode}
+    </update>
+    
+    <delete id="deleteBwH5game" parameterType="java.lang.String">
+    	delete from sdk_bw_h5_game where game_code = #{appCode}
+    </delete>
+    
+    <delete id="deleteBqH5game" parameterType="java.lang.String">
+    	delete from sdk_bq_h5_game where game_code = #{appCode}
+    </delete>
+
+    <insert id="insertBwH5game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        insert into sdk_bw_h5_game
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                game_code,
+            </if>
+            <if test="appName != null and appName !=''">
+                game_name,
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                game_url,
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id,
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url,
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url,
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code,
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key,
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key,
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                #{appCode},
+            </if>
+            <if test="appName != null and appName !=''">
+                #{appName},
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                #{gameUrl},
+            </if>
+            <if test="merchantId != null">
+                #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                #{channelCode},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                #{appKey},
+            </if>
+            <if test="status != null">
+                #{status},
+            </if>
+            now(),
+            now()
+        </trim>
+    </insert>
+
+    <update id="updateBwH5game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        UPDATE sdk_bw_h5_game
+        <set>
+            <if test="appName != null and appName !=''">
+                game_name = #{appName},
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id = #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url = #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url = #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code = #{channelCode},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key = #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key = #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key = #{appKey},
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                game_url = #{gameUrl},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            update_time = now()
+        </set>
+        WHERE game_code = #{appCode}
+    </update>
+
+    <insert id="insertBqH5game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        insert into sdk_bq_h5_game
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                game_code,
+            </if>
+            <if test="appName != null and appName !=''">
+                game_name,
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                game_url,
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id,
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url,
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url,
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code,
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key,
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key,
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                #{appCode},
+            </if>
+            <if test="appName != null and appName !=''">
+                #{appName},
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                #{gameUrl},
+            </if>
+            <if test="merchantId != null">
+                #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                #{channelCode},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                #{appKey},
+            </if>
+            <if test="status != null">
+                #{status},
+            </if>
+            now(),
+            now()
+        </trim>
+    </insert>
+
+    <update id="updateBq5game" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        UPDATE sdk_bq_h5_game
+        <set>
+            <if test="appName != null and appName !=''">
+                game_name = #{appName},
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id = #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url = #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url = #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code = #{channelCode},
+            </if>
+            <if test="loginKey != null and loginKey != ''">
+                login_key = #{loginKey},
+            </if>
+            <if test="payKey != null and payKey != ''">
+                pay_key = #{payKey},
+            </if>
+            <if test="appKey != null and appKey != ''">
+                app_key = #{appKey},
+            </if>
+            <if test="gameUrl != null and gameUrl !=''">
+                game_url = #{gameUrl},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            update_time = now()
+        </set>
+        WHERE game_code = #{appCode}
+    </update>
+
+    <insert id="insertAppGame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        insert into sdk_app_game
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                app_code,
+            </if>
+            <if test="appName != null and appName !=''">
+                app_name,
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id,
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url,
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url,
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code,
+            </if>
+            <if test="outPublicRsaKey != null and outPublicRsaKey != ''">
+                out_public_rsakey,
+            </if>
+            <if test="outPrivateRsaKey != null and outPrivateRsaKey != ''">
+                out_private_rsakey,
+            </if>
+            <if test="testOutPublicRsaKey != null and testOutPublicRsaKey != ''">
+                test_out_public_rsakey,
+            </if>
+            <if test="testOutPrivateRsaKey != null and testOutPrivateRsaKey != ''">
+                test_out_private_rsakey,
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                login_callback_url,
+            </if>
+            <if test="testLoginCallBackUrl != null and testLoginCallBackUrl != ''">
+                test_login_callback_url,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            <if test="registCallBackUrl != null and registCallBackUrl !=''">
+                regist_callback_url,
+            </if>
+            <if test="testRegistCallBackUrl != null and testRegistCallBackUrl !=''">
+                test_regist_callback_url,
+            </if>
+            create_time,
+            update_time
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="appCode != null and appCode !=''">
+                #{appCode},
+            </if>
+            <if test="appName != null and appName !=''">
+                #{appName},
+            </if>
+            <if test="merchantId != null">
+                #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                #{channelCode},
+            </if>
+            <if test="outPublicRsaKey != null and outPublicRsaKey != ''">
+                #{outPublicRsaKey},
+            </if>
+            <if test="outPrivateRsaKey != null and outPrivateRsaKey != ''">
+                #{outPrivateRsaKey},
+            </if>
+            <if test="testOutPublicRsaKey != null and testOutPublicRsaKey != ''">
+                #{testOutPublicRsaKey},
+            </if>
+            <if test="testOutPrivateRsaKey != null and testOutPrivateRsaKey != ''">
+                #{testOutPrivateRsaKey},
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                #{loginCallBackUrl},
+            </if>
+            <if test="testLoginCallBackUrl != null and testLoginCallBackUrl != ''">
+                #{testLoginCallBackUrl},
+            </if>
+            <if test="status != null">
+                #{status},
+            </if>
+            <if test="registCallBackUrl != null and registCallBackUrl !=''">
+                #{registCallBackUrl},
+            </if>
+            <if test="testRegistCallBackUrl != null and testRegistCallBackUrl !=''">
+                #{testRegistCallBackUrl},
+            </if>
+            now(),
+            now()
+        </trim>
+    </insert>
+
+    <update id="updateAppGame" parameterType="com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity">
+        UPDATE sdk_app_game
+        <set>
+            <if test="appCode != null and appCode !=''">
+                app_code = #{appCode},
+            </if>
+            <if test="appName != null and appName !=''">
+                app_name = #{appName},
+            </if>
+            <if test="merchantId != null">
+                merchant_info_id = #{merchantId},
+            </if>
+            <if test="payNotifyUrl != null and payNotifyUrl !=''">
+                pay_callback_url = #{payNotifyUrl},
+            </if>
+            <if test="testPayNotifyUrl != null and testPayNotifyUrl !=''">
+                test_pay_callback_url = #{testPayNotifyUrl},
+            </if>
+            <if test="channelCode != null and channelCode != ''">
+                channel_code = #{channelCode},
+            </if>
+            <if test="outPublicRsaKey != null and outPublicRsaKey != ''">
+                out_public_rsakey = #{outPublicRsaKey},
+            </if>
+            <if test="outPrivateRsaKey != null and outPrivateRsaKey != ''">
+                out_private_rsakey = #{outPrivateRsaKey},
+            </if>
+            <if test="testOutPublicRsaKey != null and testOutPublicRsaKey != ''">
+                test_out_public_rsakey = #{testOutPublicRsaKey},
+            </if>
+            <if test="testOutPrivateRsaKey != null and testOutPrivateRsaKey != ''">
+                test_out_private_rsakey = #{testOutPrivateRsaKey},
+            </if>
+            <if test="loginCallBackUrl != null and loginCallBackUrl != ''">
+                login_callback_url = #{loginCallBackUrl},
+            </if>
+            <if test="testLoginCallBackUrl != null and testLoginCallBackUrl != ''">
+                test_login_callback_url = #{testLoginCallBackUrl},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="registCallBackUrl != null and registCallBackUrl !=''">
+                regist_callback_url = #{registCallBackUrl},
+            </if>
+            <if test="testRegistCallBackUrl != null and testRegistCallBackUrl !=''">
+                test_regist_callback_url = #{testRegistCallBackUrl},
+            </if>
+            update_time = now()
+        </set>
+        WHERE app_code = #{appCode}
+    </update>
+
+</mapper>

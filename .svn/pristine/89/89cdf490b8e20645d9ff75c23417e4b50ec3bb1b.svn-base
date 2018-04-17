@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"><meta name=apple-mobile-web-app-capable content=yes><meta name=apple-mobile-web-app-status-bar-style content=black><meta name=format-detection content="telephone=no"><meta name=x5-fullscreen content=true><title></title><meta name=keywords><meta name=description><link rel=stylesheet href=css/main-44be3ee9b7.css><script type=text/javascript>
+    	
+		function getParam(name) {
+			var result = (RegExp(name + '=' + '(.+?)(&|$)').exec(location.search) || [, null])[1];
+		
+			return decodeURIComponent(result);
+		}
+		setTimeout(function(){app_bridge.dismissPWViewController();},3000);
+    </script><script type=text/javascript src=js/response-310cb7ce67.js></script></head><body onload><section class=pay_result><p><img src=img/ok.png></p><p><script>
+			var sdkOrderNo = getParam('sdkOrderNo');
+			if (sdkOrderNo != 'null'){
+				document.write('您的订单号是：'+sdkOrderNo);	
+			}else{
+				document.write('订单处理中！');		
+			}
+		</script></p><div><a href=javascript:app_bridge.dismissPWViewController();>返回游戏</a></div></section></body></html>

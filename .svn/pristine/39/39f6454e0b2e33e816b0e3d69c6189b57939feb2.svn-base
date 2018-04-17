@@ -1,0 +1,39 @@
+package com.dome.sdkserver.service.rabbitmq;
+
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.PayRecordSync;
+import com.dome.sdkserver.metadata.entity.bq.pay.PublishOrderEntity;
+import com.dome.sdkserver.metadata.entity.qbao.PayTransEntity;
+import com.dome.sdkserver.service.pay.qbao.bo.ChargePointInfo;
+
+/**
+ * RabbitMqService
+ *
+ * @author Zhang ShanMin
+ * @date 2017/3/24
+ * @time 12:24
+ */
+public interface RabbitMqService {
+
+    /**
+     * 商肃支付状态队列
+     * @param entity
+     */
+    void shangSuPayStatusQueue(PayTransEntity entity);
+
+    void mGamePayQueue(PublishOrderEntity orderEntity);
+
+    void inlandMGamePayQueue(OrderEntity orderEntity);
+
+    void inlandMGameIosPayQueue(PublishOrderEntity orderEntity);
+
+    void  rechargeCentreQueue(OrderEntity orderEntity);
+
+    void syncChargePoint(ChargePointInfo chargePointInfo);
+
+    void syncInsertPayData2Bi(PayRecordSync payRecordSync);
+
+    void syncUpdatePayData2Bi(PayRecordSync payRecordSync);
+
+    void  webPayNotifyQueue(OrderEntity orderEntity);
+}

@@ -1,0 +1,79 @@
+package com.dome.sdkserver.metadata.entity.bq.pay;
+
+import java.util.Date;
+
+/**
+ * PayOptions
+ *
+ * @author Zhang ShanMin
+ * @date 2016/10/12
+ * @time 18:29
+ */
+public class PayOptions {
+
+    private Integer id;
+    private String appCode;
+    // 支付方式 1 支付宝 2 钱宝 3银联支付 4微信支付
+    private String payWay;
+    //是否支持宝券 0 支持 1 不支持
+    private Integer isSupportBq;
+    private String channelCode;
+    private Date createTime;
+    private Date updateTime;
+
+    public String getChannelCode() {
+        return channelCode;
+    }
+
+    public void setChannelCode(String channelCode) {
+        this.channelCode = channelCode;
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getAppCode() {
+        return appCode;
+    }
+
+    public void setAppCode(String appCode) {
+        this.appCode = appCode;
+    }
+
+    public String getPayWay() {
+        return payWay;
+    }
+
+    public void setPayWay(String payWay) {
+        this.payWay = payWay;
+    }
+
+    public Integer getIsSupportBq() {
+        return isSupportBq;
+    }
+
+    public void setIsSupportBq(Integer isSupportBq) {
+        this.isSupportBq = isSupportBq;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+}

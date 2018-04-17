@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.AppCheckintypeRelaMapper">
+	
+	<delete id="delAppRela">
+		delete from
+			domesdk_app_checkintype_rela
+		where
+			app_id =  #{appId,jdbcType=INTEGER}
+	</delete>
+	
+	<insert id="addAppRela">
+		insert into
+			domesdk_app_checkintype_rela(
+				 app_id
+				,checkin_type_code
+				,create_time
+				,update_time
+			) values (
+				 #{appId,jdbcType=INTEGER}
+				,#{checkinTypeCode,jdbcType=VARCHAR}
+			    ,now()
+			    ,now()
+			)
+	</insert>
+</mapper>

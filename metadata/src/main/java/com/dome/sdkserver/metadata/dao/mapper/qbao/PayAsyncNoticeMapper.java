@@ -1,0 +1,45 @@
+package com.dome.sdkserver.metadata.dao.mapper.qbao;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.ibatis.annotations.Param;
+
+import com.dome.sdkserver.metadata.dao.IBaseMapperDao;
+import com.dome.sdkserver.metadata.entity.qbao.PayAsyncNoticeEntity;
+import org.springframework.stereotype.Repository;
+
+/**
+ * 交易异步通知mapper
+ * @author liuxingyue
+ *
+ */
+@Repository
+public interface PayAsyncNoticeMapper  extends IBaseMapperDao<PayAsyncNoticeEntity, Long>{
+	/**
+	 * 添加支付交易异步通知信息
+	 * @param payAsyncNoticeEntity 支付异步通知实体类
+	 */
+	void addPayAsyncNotice(@Param("entity")PayAsyncNoticeEntity payAsyncNoticeEntity);
+	
+	/**
+	 * 修改支付交易异步通知信息
+	 * @param payAsyncNoticeEntity
+	 */
+	void updatePayAsyncNotice(@Param("entity")PayAsyncNoticeEntity payAsyncNoticeEntity);
+	
+	/**
+	 * 根据发送状态查找支付异步通知信息
+	 * @param status
+	 * @return
+	 */
+	List<PayAsyncNoticeEntity> getPayAsyncNoticeByStatus(@Param("currentDate")Date currentDate);
+	
+	/**
+	 * 批量修改发送状态
+	 * @param payAsyncNoticeEntities
+	 * @param status
+	 */
+	void updateStatus(@Param("entities")List<PayAsyncNoticeEntity> payAsyncNoticeEntities,@Param("status")String status);
+
+}

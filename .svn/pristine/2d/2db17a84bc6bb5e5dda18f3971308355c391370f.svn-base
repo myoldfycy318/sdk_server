@@ -1,0 +1,126 @@
+package com.dome.sdkserver.service.impl.pay.bq;
+
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.biz.executor.Executor;
+import com.dome.sdkserver.biz.executor.H5GameThridPartyPayNotifyThread;
+import com.dome.sdkserver.biz.utils.H5GameUtil;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.MapUtil;
+import com.dome.sdkserver.bq.util.PriceUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.bq.PayNotifyService;
+import com.dome.sdkserver.util.MD5;
+import com.dome.sdkserver.util.PropertiesUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+/**
+ * 钱宝有票支付通知处理类
+ * YouPiaoPayNotifyServiceImpl
+ *
+ * @author Zhang ShanMin
+ * @date 2016/11/11
+ * @time 14:24
+ */
+@Service("youPiaoPayNotifyService")
+public class YouPiaoPayNotifyServiceImpl implements PayNotifyService {
+
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    @Autowired
+    private PropertiesUtil domainConfig;
+    @Autowired
+    protected OrderService orderService;
+    @Resource(name = "executor")
+    private Executor executor;
+
+    /**
+     * 处理第三方支付通知
+     *
+     * @param requestParams
+     * @return
+     */
+    @Override
+    public SdkOauthResult handleThirdPayNotify(Map<String, String[]> requestParams) throws Exception {
+        Map<String, String> params = new HashMap<String, String>(requestParams.size());
+        for (Iterator iter = requestParams.keySet().iterator(); iter.hasNext(); ) {
+            String name = (String) iter.next();
+            String[] values = (String[]) requestParams.get(name);
+            String valueStr = "";
+            for (int i = 0; i < values.length; i++) {
+                valueStr = (i == values.length - 1) ? valueStr + values[i]
+                        : valueStr + values[i] + ",";
+            }
+            params.put(name, valueStr);
+        }
+        if (!validateSign(params)) {
+            logger.error("钱宝有票支付通知签名验证失败");
+            return SdkOauthResult.failed("钱宝有票支付通知签名验证失败");
+        }
+        String curMonth = DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT);
+        OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setCurMonth(curMonth);
+        orderEntity.setOrderNo(params.get("biz_order_no"));
+        orderEntity = orderService.queryThirdOrder(orderEntity);
+        if (orderEntity == null) {
+            logger.error("钱宝有票支付通知找不到对应订单号:{}", params.get("biz_order_no"));
+            return SdkOauthResult.failed();
+        }
+        orderEntity.setCurMonth(curMonth);
+        if (orderEntity.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+            logger.error("钱宝有票支付通知订单号:{}已支付", params.get("biz_order_no"));
+            return SdkOauthResult.success();
+        }
+        Double chargePointAmount = orderEntity.getChargePointAmount();//库中记录支付金额单位为元，有票支付金额单位为分
+        if (Long.valueOf(params.get("total_fee")).compareTo(PriceUtil.convertToFen(chargePointAmount.toString())) != 0) {
+            logger.error("钱宝有票支付通知订单号:{}支付金额不一致,冰趣金额:{}分,有票金额:{}分", params.get("biz_order_no"), chargePointAmount.intValue() * 100, params.get("total_fee"));
+            orderEntity.setOrderStatus(OrderStatusEnum.orderstatus_pay_faild.code);
+            return SdkOauthResult.failed();
+        }
+        if (!"1".equals(params.get("trade_status"))) {   //有票支付状态,1：支付成功
+            logger.error("钱宝有票支付通知订单号:{}支付失败,冰趣金额:{}分,有票金额:{}分", params.get("biz_order_no"), chargePointAmount.intValue() * 100, params.get("total_fee"));
+            orderEntity.setOrderStatus(OrderStatusEnum.orderstatus_pay_faild.code);
+            return SdkOauthResult.failed();
+        }
+        orderEntity.setOrderStatus(OrderStatusEnum.orderstatus_pay_sucess.code);
+        orderEntity.setPayChannel(params.get("channel"));//支付渠道
+        orderEntity.setTradeNo(params.get("pay_trade_no"));//有票订单号
+        if (!orderService.updateThirdOrder(orderEntity)) {
+            logger.error("钱宝有票支付通知订单号:{}更改订单状态失败", params.get("biz_order_no"));
+            return SdkOauthResult.failed();
+        }
+        //异步通知cp
+        executor.executor(new H5GameThridPartyPayNotifyThread(orderEntity, orderService));
+        return SdkOauthResult.success();
+    }
+
+    /**
+     * 验证支付通知签名
+     *
+     * @param params
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    private boolean validateSign(Map<String, String> params) throws Exception {
+        String youPiaoSign = params.get("sign");
+        params.remove("buyer_id");
+        params.remove("platformCode");
+        params.remove("sign");
+        String paramSignStr = H5GameUtil.createLinkString(MapUtil.delValParams(params));
+        //通讯密钥
+        String secKey = domainConfig.getString("youpiao.md5.sign.key");
+        secKey = "&md5Key=" + secKey;
+        //参数尾部加上通讯密钥进行加密，生成签名。
+        String targetSign = MD5.md5Encode(paramSignStr + secKey);
+        return youPiaoSign.equals(targetSign);
+    }
+}

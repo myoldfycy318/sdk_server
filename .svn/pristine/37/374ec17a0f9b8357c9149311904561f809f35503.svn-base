@@ -1,0 +1,95 @@
+package com.dome.sdkserver.controller.pay.order;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.utils.BizUtil;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * OrderController
+ *
+ * @author Zhang ShanMin
+ * @date 2017/10/31
+ * @time 13:33
+ */
+@Controller
+@RequestMapping("/order")
+public class OrderController extends PayBaseController {
+
+    @Resource(name = "payService")
+    private PayService payService;
+
+    @Resource(name = "orderService")
+    private OrderService orderService;
+
+    /**
+     * 创建订单
+     *
+     * @param orderReqInfo
+     * @return
+     */
+    @RequestMapping(value = "create", method = RequestMethod.POST)
+    @ResponseBody
+    public SdkOauthResult createOrder(HttpRequestOrderInfo orderReqInfo) {
+        SdkOauthResult result;
+        String redisKey = "";
+        try {
+            //验证请求参数
+            result = BizUtil.validateOrderCreateParams(orderReqInfo);
+            if (!result.isSuccess()) return result;
+            //验证签名
+            result = BizUtil.validateCreateOrderSign(orderReqInfo, domainConfig);
+            if (!result.isSuccess()) return result;
+            int lockTime = domainConfig.getInt("other.order.create.lock.time", "10");//秒
+            redisKey = RedisConstants.OTHER_ORDER_CREATE_LOCK + orderReqInfo.getPayOrigin() + ":" + orderReqInfo.getBuyerId();
+            //支付锁定
+            if (redisUtil.tryLock(redisKey, lockTime, "lock")) return SdkOauthResult.failed("请求过于频繁，请稍后重试");
+            OrderEntity _orderEntity = getOrderByOutOrderNo(orderReqInfo);
+            Map<String, Object> resultMap = new HashMap<>();
+            if (null != _orderEntity) {
+                resultMap.put("orderNo", _orderEntity.getOrderNo());
+                return SdkOauthResult.success(resultMap);
+            }
+            payService.createPreOrder(orderReqInfo);
+            redisUtil.del(redisKey);
+            resultMap.put("orderNo", orderReqInfo.getOrderNo());
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error("创建支付订单异常", e);
+            return SdkOauthResult.failed("系统异常，请稍后再试");
+        } finally {
+            log.info("创建支付订单请求参数:" + JSONObject.toJSONString(orderReqInfo));
+        }
+    }
+
+    /**
+     * 根据外部订单号获取冰穹支付流水
+     * @param orderReqInfo
+     * @return
+     */
+    private OrderEntity getOrderByOutOrderNo(HttpRequestOrderInfo orderReqInfo) {
+        OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setCurMonth(new DateTime().toString("yyyyMM"));
+        orderEntity.setGameOrderNo(orderReqInfo.getOutOrderNo());
+        orderEntity.setPayOrigin(orderReqInfo.getPayOrigin());
+        String appCode = StringUtils.isBlank(orderReqInfo.getAppCode()) ? BqSdkConstants.DEF_VAL : orderReqInfo.getAppCode();
+        orderEntity.setAppCode(appCode);
+        return orderService.queryOrderByOutOrderNo(orderEntity);
+    }
+}

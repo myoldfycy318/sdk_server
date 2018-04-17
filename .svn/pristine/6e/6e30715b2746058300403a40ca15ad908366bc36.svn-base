@@ -1,0 +1,149 @@
+package com.dome.sdkserver.biz.utils;
+
+import com.dome.sdkserver.util.MD5;
+import org.apache.commons.lang3.StringUtils;
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * Created by ym on 2017/8/21.
+ */
+public class WechatPayUtil {
+
+    /**
+     * 获取随机字符串 Nonce Str
+     *
+     * @return String 随机字符串
+     */
+    public static String generateNonceStr() {
+        return UUID.randomUUID().toString().replaceAll("-", "").substring(0, 32);
+    }
+
+    /**
+     * 时间戳
+     *
+     * @return
+     */
+    public static String getTimeStamp() {
+        return String.valueOf(System.currentTimeMillis() / 1000);
+    }
+
+    /**
+     * 获取客户端ip
+     *
+     * @param request
+     * @return
+     */
+    public static String getRemoteHost(HttpServletRequest request) {
+        String ip = request.getHeader("x-forwarded-for");
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        int index = ip.indexOf(",");
+        return ip.equals("0:0:0:0:0:0:0:1") ? "127.0.0.1" : index != -1  ? ip.substring(0,index) : ip;
+    }
+
+    /**
+     * 生成sign
+     *
+     * @param parameters
+     * @param signKey    key设置路径：微信商户平台(pay.weixin.qq.com)-->账户设置-->API安全-->密钥设置
+     * @return
+     */
+    public static String createSign(Map<String, String> parameters, String signKey) {
+        Set set = parameters.keySet();
+        String[] arr = new String[parameters.size()];
+        Iterator it = set.iterator();
+        int i = 0;
+        while (it.hasNext()) {
+            arr[i] = it.next().toString();
+            i++;
+        }
+        Arrays.sort(arr);
+        StringBuffer stringA = new StringBuffer();
+        boolean flag = false;
+        for (int j = 0; j < arr.length; j++) {
+            if (flag) {
+                stringA.append("&");
+            }
+            stringA.append(arr[j]).append("=").append(parameters.get(arr[j]));
+            flag = true;
+        }
+        String stringSignTemp = stringA + "&key=" + signKey;
+        String sign = MD5.md5Encode(stringSignTemp).toUpperCase();
+        parameters.put("sign", sign);
+        return sign;
+    }
+
+    //通过xml 发给微信消息
+    public static String setXml(String return_code, String return_msg) {
+        return "<xml><return_code><![CDATA[" + return_code + "]]>" +
+                "</return_code><return_msg><![CDATA[" + return_msg + "]]></return_msg></xml>";
+    }
+    /**
+     * 微信下单，map to xml
+     * @param params 参数
+     * @return String
+     */
+    public static String maptoXml(Map<String, String> params) {
+        StringBuilder xml = new StringBuilder();
+        xml.append("<xml>");
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String key   = entry.getKey();
+            String value = entry.getValue();
+            // 略过空值
+            if (StringUtils.isBlank(value)) continue;
+            xml.append("<").append(key).append(">");
+            xml.append(entry.getValue());
+            xml.append("</").append(key).append(">");
+        }
+        xml.append("</xml>");
+        return xml.toString();
+    }
+    public static Map xmltoMap(String xml) {
+        try {
+            Map map = new HashMap();
+            Document document = DocumentHelper.parseText(xml);
+            Element nodeElement = document.getRootElement();
+            List node = nodeElement.elements();
+            for (Iterator it = node.iterator(); it.hasNext(); ) {
+                Element elm = (Element) it.next();
+                map.put(elm.getName(), elm.getText());
+                elm = null;
+            }
+            node = null;
+            nodeElement = null;
+            document = null;
+            return map;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * 支付异步通知时校验sign
+     * @param params 参数
+     * @param paternerKey 支付密钥
+     * @return {boolean}
+     */
+    public static boolean verifyNotifySign(Map<String, String> params, String paternerKey){
+        String sign = params.get("sign");
+        params.remove("sign");
+        String localSign = WechatPayUtil.createSign(params, paternerKey);
+        return sign.equals(localSign);
+    }
+
+
+
+}

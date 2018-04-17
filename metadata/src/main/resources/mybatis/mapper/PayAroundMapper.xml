@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.PayAroundMapper">
+    <resultMap type="com.dome.sdkserver.bo.PayAround" id="ResultMap">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="app_code" jdbcType="VARCHAR" property="appCode"/>
+        <result column="app_name" jdbcType="VARCHAR" property="appName"/>
+        <result column="merchant_info_id" jdbcType="INTEGER" property="merchantInfoId"/>
+        <result column="merchant_full_name" jdbcType="VARCHAR" property="merchantFullName"/>
+        <result column="merchant_code" jdbcType="VARCHAR" property="merchantCode"/>
+        <result column="is_around" jdbcType="INTEGER" property="isAround"/>
+        <result column="pay_type" jdbcType="VARCHAR" property="payType"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+    id, app_code, app_name, merchant_info_id, merchant_full_name, merchant_code, is_around, pay_type, create_time, update_time
+    </sql>
+
+
+
+    <select id="queryPayAround" resultMap="ResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM dome_sdkserver.domesdk_pay_around
+        <where>
+            <if test="payAround.appCode != null and payAround.appCode != ''">
+                AND app_code = #{payAround.appCode}
+            </if>
+            <if test="payAround.appName != null and payAround.appName != ''">
+                AND app_name LIKE CONCAT('%', #{payAround.appName} ,'%')
+            </if>
+        </where>
+        ORDER BY update_time, create_time DESC
+    </select>
+
+
+    <select id="selectByAppCode" resultMap="ResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM dome_sdkserver.domesdk_pay_around
+        WHERE app_code = #{appCode}
+    </select>
+
+    <select id="selectAppInfo" resultType="com.dome.sdkserver.bo.MerchantAppInfo">
+        SELECT
+              m.merchant_full_name AS merchantFullName,
+              m.merchant_code AS merchantCode,
+              m.merchant_info_id AS merchantInfoId,
+              a.app_code AS appCode,
+              a.app_name AS appName
+        FROM dome_sdkserver.domesdk_merchant_info m LEFT JOIN dome_sdkserver.domesdk_app_info a
+        ON m.merchant_info_id = a.merchant_info_id
+        WHERE m.status = 2 AND m.del_flag = 0  AND a.del_flag = 0 AND a.status IN (0,1,2) AND a.run_platform = 30
+        <if test="appCode != null and appCode != ''">
+            AND a.app_code = #{appCode}
+        </if>
+        <if test="appName != null and appName != ''">
+            AND a.app_name LIKE CONCAT('%', #{appName} ,'%')
+        </if>
+        ORDER BY a.create_time DESC
+        <!--
+        AuditStatusEnum  AUDIT_PASS(2,"已通过"), 商户审核通过
+        AppStatusEnum  shelf_finish(1, "已上架"), shelf_off(0, "已下架"), hidden(2, "展示下线")
+        运行平台 IOS    run_platform  运行平台 10-pc, 20-Android, 30-ios, 40-平板
+        -->
+    </select>
+
+
+    <select id="selectById" resultMap="ResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from dome_sdkserver.domesdk_pay_around
+        WHERE id = #{id}
+    </select>
+
+    <insert id="addPayAround">
+        INSERT INTO dome_sdkserver.domesdk_pay_around
+        (
+        app_code,
+        app_name,
+        merchant_info_id,
+        merchant_full_name,
+        merchant_code,
+        is_around,
+        pay_type,
+        create_time
+        )
+        VALUES (
+        #{payAround.appCode},
+        #{payAround.appName},
+        #{payAround.merchantInfoId},
+        #{payAround.merchantFullName},
+        #{payAround.merchantCode},
+        #{payAround.isAround},
+        #{payAround.payType},
+        NOW()
+        )
+    </insert>
+
+    <update id="modifyPayAround">
+        update dome_sdkserver.domesdk_pay_around
+        set
+        <if test="payAround.appCode != null and payAround.appCode != ''">
+            app_code = #{payAround.appCode},
+        </if>
+        <if test="payAround.appName != null and payAround.appName != ''">
+            app_name = #{payAround.appName},
+        </if>
+        <if test="payAround.merchantInfoId != null">
+            merchant_info_id = #{payAround.merchantInfoId},
+        </if>
+        <if test="payAround.merchantFullName != null and payAround.merchantFullName != ''">
+            merchant_full_name = #{payAround.merchantFullName},
+        </if>
+        <if test="payAround.merchantCode != null and payAround.merchantCode != ''">
+            merchant_code = #{payAround.merchantCode},
+        </if>
+        <if test="payAround.isAround != null">
+            is_around = #{payAround.isAround},
+        </if>
+        <if test="payAround.payType != null">
+            pay_type = #{payAround.payType},
+        </if>
+        update_time = NOW()
+        where id = #{payAround.id}
+    </update>
+
+    <delete id="deletePayAround">
+        DELETE
+        FROM dome_sdkserver.domesdk_pay_around
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

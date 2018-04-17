@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="包体管理">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../dist/css/managenment.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus @@channelnav">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+<div class="contentBox management">
+    <div class="menuCrumbs">
+        <span class="m_wz">你当前的位置：</span>
+        <a href="/merchant/addservice.html" class="m_pre">管理控制台  > </a>
+        <a href="#" class="m_new">包体管理</a>
+    </div>
+    <div id="tpl_con" class="conBox">
+        <div class="addHead">
+            <div class="addCon">
+                <div class="tit"></div>
+                <div class="tis"></div>
+            </div>
+        </div>
+        <div class="content_con">
+            <div class="h3 dd">自有渠道包</div>
+            <div class="bt_box">
+                <div class="head_box">
+                    <span class="tit">钱宝应用市场</span>
+                    <i id="down-fold" class="down down_cur"></i>
+                </div>
+                <div class="down-folding">
+                    <div class="con_box">
+                        <div class="con_tit">原始包</div>
+                        <div class="nr_box">
+                            <div class="con1">
+                                <div class="con_nr">包体名称</div>
+                                <div class="con_nr">包体大小</div>
+                                <div class="con_nr con_nr2">上传时间</div>
+                                <div class="con_nr con_nr2">操作</div>
+                            </div>
+                            <div id="sc_bt" class="con1 bor-t">
+                                <div class="nr1 nr2" style="float:right">
+                                    <a class="a_btn managebtn" href="javascript:;">变更包体</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--<div class="con_box">
+                        <div class="con_tit">加固包</div>
+                        <div class="nr_box">
+                            <div class="con1">
+                                <div class="con_nr">包体名称</div>
+                                <div class="con_nr">包体大小</div>
+                                <div class="con_nr con_nr2">上传时间</div>
+                                <div class="con_nr con_nr2">操作</div>
+                            </div>
+                            <div id="xz_bt" class="con1 bor-t">
+
+                            </div>
+                        </div>
+                    </div>-->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert_box" id="file_success" style="display:none;">
+    <div class="overHide"></div>
+    <div class="alert-Box tips_success">
+        <div class="title">变更包体</div>
+        <div class="file_success"></div>
+        <div class="tips_text">上传成功</div>
+        <div class="suc_btn suc_complete">完成</div>
+        <div class="clone"></div>
+    </div>
+</div>
+
+<div class="alert_box" id="file_error" style="display:none;">
+    <div class="overHide"></div>
+    <div class="alert-Box tips_success">
+        <div class="title">变更包体</div>
+        <div class="file_error"></div>
+        <div class="tips_text">上传失败</div>
+        <div class="error_btn">重新上传</div>
+        <div class="clone"></div>
+    </div>
+</div>
+
+<div class="alert_box" id="file_change" style="display:none;">
+    <div class="overHide"></div>
+    <div class="alert-Box tips_success">
+        <div class="title">变更包体</div>
+        <div id="thelist" class="uploader-list"></div>
+        <div class="btns">
+            <div id="picker" class="suc_btn btns-file">上传包体</div>
+            <div class="ts_bz">上传包体格式zip、rar、apk</div>
+        </div>
+        <div class="clone"></div>
+    </div>
+</div>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+<script id="tpl_con_ma" type="text/html">
+     
+    <div class="content_con">
+        <div class="h3 dd">自有渠道包</div>
+        <div class="bt_box">
+        <div class="head_box">
+            <span class="tit">钱宝应用市场</span>
+            <i class="down down_cur"></i>
+        </div>
+        <div class="con_box">
+            <div class="con_tit">原始包</div>
+            <div class="nr_box">
+                <div class="con1">
+                   <div class="con_nr">包体名称</div>
+                   <div class="con_nr">包体大小</div>
+                   <div class="con_nr con_nr2">上传时间</div>
+                   <div class="con_nr con_nr2">操作</div>
+                </div>
+                <div class="con1 bor-t">
+                    <div class="nr1">{{name}}</div>
+                    <div class="nr1">{{fileSize}}</div>
+                    <div class="nr1 nr2">{{uploadTime}}</div>
+                    <div class="nr1 nr2 ">
+                        <a class="a_btn managebtn" href="javascript:;">变更包体</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="con_box">
+            <div class="con_tit">加固包</div>
+            <div class="nr_box">
+                <div class="con1">
+                    <div class="con_nr">包体名称</div>
+                    <div class="con_nr">包体大小</div>
+                    <div class="con_nr con_nr2">上传时间</div>
+                    <div class="con_nr con_nr2">操作</div>
+                </div>
+                <div class="con1 bor-t">
+                    <div class="nr1">{{name}}</div>
+                    <div class="nr1">{{jiaguFileSize}}</div>
+                    <div class="nr1 nr2">{{jiaguTime}}</div>
+                    <div class="nr1 nr2">
+                        <a class="a_btn" href="{{downloadUrl}}">下载包体</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</script>
+
+<script id="tpl_sc_bt" type="text/html">
+    <div class="nr1 ellipsis" title="{{name}}">{{name}}</div>
+    <div class="nr1">{{fileSize}}</div>
+    <div class="nr1 nr2">{{uploadTime}}</div>
+    <div class="nr1 nr2" style="float:right">
+        <a class="a_btn managebtn" href="javascript:;">变更包体</a>
+        <a class="a_btn" target="_blank" href="{{downloadUrl}}">下载包体</a>
+    </div>
+</script>
+
+<script id="tpl_xz_bt" type="text/html">
+    <div class="nr1 ellipsis" title="{{name}}">{{name}}</div>
+    <div class="nr1">{{jiaguFileSize}}</div>
+    <div class="nr1 nr2">{{jiaguTime}}</div>
+    <div class="nr1 nr2">
+        <a class="a_btn" href="{{downloadUrl}}">下载包体</a>
+    </div>
+</script>
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../dist/js/management.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

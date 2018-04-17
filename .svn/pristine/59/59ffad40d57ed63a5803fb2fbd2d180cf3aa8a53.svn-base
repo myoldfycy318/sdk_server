@@ -1,0 +1,191 @@
+package com.dome.sdkserver.controller.login;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.enumeration.ErrorCodeEnum;
+import com.dome.sdkserver.bq.login.domain.user.IdCardRecord;
+import com.dome.sdkserver.bq.login.domain.user.User;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.BaseController;
+import com.dome.sdkserver.service.login.IdCardService;
+import com.dome.sdkserver.service.login.UserLoginService;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 身份证实名认证
+ *
+ * @author wuxiaoyang
+ */
+@Controller
+@RequestMapping("/idcard/")
+public class IdCardController extends BaseController {
+
+    // 身份证15位正则校验
+    String regIdCard15 = "^[1-9]\\d{7}((0\\d)|(1[0-2]))(([0|1|2]\\d)|3[0-1])\\d{3}$";
+
+    // 身份证18位正则校验
+    String regIdCard18 = "^[1-9]\\d{5}[1-9]\\d{3}((0\\d)|(1[0-2]))(([0|1|2]\\d)|3[0-1])\\d{3}([0-9]|X)$";
+
+    // 手机正则校验
+    private static String regMobile = "^1(3[0-9]|4[0-9]|5[0-9]|8[0-9]|7[0-9])\\d{8}$";
+
+    @Resource
+    private IdCardService idCardService;
+
+    @Autowired
+    private UserLoginService userLoginService;
+
+    /**
+     * 实名认证
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "attestation")
+    @ResponseBody
+    public SdkOauthResult attestation(HttpServletRequest request) {
+        SdkOauthResult result = null;
+        JSONObject response = null;
+        log.info(">>>>>>>>实名认证接口");
+        try {
+            result = validateRequestParams(request);
+            if (!result.isSuccess())
+                return result;
+            IdCardRecord idCardRecord = (IdCardRecord) result.getData();
+            response = idCardService.IdcardAttestation(idCardRecord);
+            return parserUcResponse(response);
+        } catch (Exception e) {
+            log.error("非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+    /**
+     * 检查用户是否实名认证
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "check")
+    @ResponseBody
+    public SdkOauthResult attestationCheck(HttpServletRequest request) {
+        SdkOauthResult result = null;
+        JSONObject response = null;
+        log.info(">>>>>>>>实名认证查询接口");
+        try {
+            String accessToken = request.getParameter("accessToken"); // 登录token
+            if (StringUtils.isEmpty(accessToken)) {
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            String appCode = request.getParameter("appCode"); // 游戏编号
+            result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            String buId = request.getHeader("buId");
+
+            IdCardRecord idCardRecord = new IdCardRecord.Builder().accessToken(accessToken).appCode(appCode).buId(buId).build();
+            response = idCardService.IdcardCheck(idCardRecord);
+            return parserUcResponse(response);
+        } catch (Exception e) {
+            log.error("非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+    /**
+     * 是否开启实名认证
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/isNRealName")
+    @ResponseBody
+    public SdkOauthResult isNAttestation(HttpServletRequest request) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("nRealName", "false");
+        if (idCardService.isNRealName()) {
+            map.put("nRealName", "true");
+        }
+        return SdkOauthResult.success(map);
+    }
+
+    /**
+     * 实名认证
+     * @param request
+     * @param user
+     * @return
+     */
+    @RequestMapping(value = "/realNameAuth")
+    @ResponseBody
+    public SdkOauthResult realNameAuth(HttpServletRequest request, User user) {
+        SdkOauthResult result = null;
+        try {
+            if (StringUtils.isEmpty(request.getParameter("accessToken")) || StringUtils.isEmpty(user.getIdCardName())
+                    || StringUtils.isEmpty(user.getIdCardNo())) {
+                return SdkOauthResult.failed("必填参数为空");
+            }
+            String buId = request.getHeader("buId");
+            if (org.apache.commons.lang.StringUtils.isNotBlank(buId)) {
+                user.setBuId(buId);
+            }
+            result = checkClient(request.getParameter("appCode"));
+            if (!result.isSuccess()) {
+                return result;
+            }
+            Map<String, String> map = new HashMap<>();
+            map.put("accessToken", request.getParameter("accessToken"));
+            map.put("appCode", request.getParameter("appCode"));
+            JSONObject response = userLoginService.realNameAuth(user, map);
+            result = parserUcResponse(response);
+            return result;
+        } catch (Exception e) {
+            log.error(">>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+    private SdkOauthResult validateRequestParams(HttpServletRequest request) {
+        log.info("传来的参数为：{}", JSON.toJSONString(request.getParameterMap()));
+        String accessToken = request.getParameter("accessToken"); // 登录token
+        String card = request.getParameter("card"); // 身份证号码
+        String appCode = request.getParameter("appCode"); // 游戏编号
+        String mobile = request.getParameter("mobile"); // 手机号码
+        String verifyCode = request.getParameter("verifyCode"); // 验证码
+        String name = request.getParameter("name"); // 姓名
+        String countryCode = request.getParameter("countryCode"); // 国别码可不传，默认86
+        String buId = request.getHeader("buId");
+        if (StringUtils.isEmpty(name) || StringUtils.isEmpty(mobile) || StringUtils.isEmpty(verifyCode)
+                || StringUtils.isEmpty(accessToken) || StringUtils.isEmpty(card)) {
+            return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+        }
+        // 验证游戏appCode
+        SdkOauthResult result = checkClient(appCode);
+        if (!result.isSuccess()) {
+            return result;
+        }
+        // 手机正则校验
+        if (!mobile.matches(regMobile)) {
+            log.info("手机格式不正确：{}", mobile);
+            return SdkOauthResult.failed(ErrorCodeEnum.手机号码无效.code, ErrorCodeEnum.手机号码无效.name());
+        }
+        // 身份证号校验
+        if (((card.toUpperCase()).matches(regIdCard15) || (card.toUpperCase()).matches(regIdCard18)) == false) {
+            log.info("身份证号码格式不对：{}", card);
+            return SdkOauthResult.failed(ErrorCodeEnum.身份证格式不对.code, ErrorCodeEnum.身份证格式不对.name());
+        }
+        IdCardRecord idCardRecord = new IdCardRecord.Builder().accessToken(accessToken).card(card).appCode(appCode)
+                .mobile(mobile).verifyCode(verifyCode).name(name).countryCode(countryCode).buId(buId).build();
+        return SdkOauthResult.success(idCardRecord);
+    }
+
+}

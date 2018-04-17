@@ -1,0 +1,1 @@
+webpackJsonp([3,6],[function(o,i){var n="http://www.youpiaole.com/api/open/order/pay",p=window.location.href.split("?")[1];window.location.href=n+"?"+p}]);

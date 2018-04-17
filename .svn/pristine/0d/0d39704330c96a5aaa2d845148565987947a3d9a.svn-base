@@ -1,0 +1,389 @@
+/*!
+ * 基础css
+ *
+ */
+
+/*/////////////////////////////*/
+/*第一部分：公用css工具*/
+/*/////////////////////////////*/
+/*padding*/
+
+.no-padding-left{padding-left: 0}
+.padding-left1{padding-left: 1px;}
+.padding-left2{padding-left: 2px;}
+.padding-left3{padding-left: 3px;}
+.padding-left4{padding-left: 4px;}
+.padding-left5{padding-left: 5px;}
+.padding-left6{padding-left: 6px;}
+.padding-left7{padding-left: 7px;}
+.padding-left8{padding-left: 8px;}
+.padding-left9{padding-left: 9px;}
+.padding-left10{padding-left: 10px;}
+.padding-left11{padding-left: 11px;}
+.padding-left12{padding-left: 12px;}
+.padding-left13{padding-left: 13px;}
+.padding-left14{padding-left: 14px;}
+.padding-left15{padding-left: 15px;}
+.no-padding-right{padding-right: 0}
+.padding-right1{padding-right: 1px;}
+.padding-right2{padding-right: 2px;}
+.padding-right3{padding-right: 3px;}
+.padding-right4{padding-right: 4px;}
+.padding-right5{padding-right: 5px;}
+.padding-right6{padding-right: 6px;}
+.padding-right7{padding-right: 7px;}
+.padding-right8{padding-right: 8px;}
+.padding-right9{padding-right: 9px;}
+.padding-right10{padding-right: 10px;}
+.padding-right11{padding-right: 11px;}
+.padding-right12{padding-right: 12px;}
+.padding-right13{padding-right: 13px;}
+.padding-right14{padding-right: 14px;}
+.padding-right15{padding-right: 15px;}
+.padding-top0{padding-top: 0px;}
+.padding-top5{padding-top: 5px;}
+.padding-top7{padding-top: 7px;}
+.padding-top10{padding-top: 10px;}
+.padding-top15{padding-top: 15px;}
+.padding-top20{padding-top: 20px;}
+.padding-top25{padding-top: 25px;}
+.padding-top40{padding-top: 40px;}
+.padding-bottom-20{padding-bottom:20px;}
+/*margin*/
+.mar-l-1{margin-left:1px;}
+.mar-l-2{margin-left:2px;}
+.mar-l-3{margin-left:3px;}
+.mar-l-4{margin-left:4px;}
+.mar-l-5{margin-left:5px;}
+.mar-l-6{margin-left:6px;}
+.mar-l-7{margin-left:6px;}
+.mar-l-8{margin-left:6px;}
+.mar-l-9{margin-left:6px;}
+.mar-l-10{margin-left:6px;}
+/*background*/
+.bg-white{background-color: #fff;}
+.bg-gray{background-color: #f5f6fc}
+.bg-gray-darker{background-color: #363636}
+/* function */
+.f-cb:after,.f-cbli li:after{display:block;clear:both;visibility:hidden;height:0;overflow:hidden;content:".";}
+.f-cb,.f-cbli li{zoom:1;}
+.f-ib{display:inline-block;*display:inline;*zoom:1;}
+.f-dn{display:none;}
+.f-db{display:block;}
+.f-ilb{display:inline-block;}
+.f-fl{float:left;}
+.f-fr{float:right;}
+.f-pr{position:relative;}
+.f-pa{position:absolute;}
+.f-prz{position:relative;zoom:1;}
+.f-oh{overflow:hidden;}
+.f-ff0{font-family:arial,\5b8b\4f53;}
+.f-ff1{font-family:"Microsoft YaHei",\5fae\8f6f\96c5\9ed1,arial,\5b8b\4f53;}
+.f-fs1{font-size:12px;}
+.f-fs13{font-size:13px;}
+.f-fs2{font-size:14px;}
+.f-fs3{font-size:15px;}
+.f-fs4{font-size:16px;}
+.f-fs5{font-size:18px;}
+.f-fwn{font-weight:normal;}
+.f-fwb{font-weight:bold;}
+.f-tal{text-align:left;}
+.f-tac{text-align:center;}
+.f-tar{text-align:right;}
+.f-taj{text-align:justify;text-justify:inter-ideograph;}
+.f-vam,.f-vama *{vertical-align:middle;}
+.f-wsn{word-wrap:normal;white-space:nowrap;}
+.f-pre{overflow:hidden;text-align:left;white-space:pre-wrap;word-wrap:break-word;word-break:break-all;}
+.f-wwb{white-space:normal;word-wrap:break-word;word-break:break-all;}
+.f-ti{overflow:hidden;text-indent:-30000px;}
+.f-ti2{text-indent:2em;}
+.f-lhn{line-height:normal;}
+.f-tdu,.f-tdu:hover{text-decoration:underline;}
+.f-tdn,.f-tdn:hover{text-decoration:none;}
+.f-toe{overflow:hidden;word-wrap:normal;white-space:nowrap;text-overflow:ellipsis;}
+.f-csp{cursor:pointer;}
+.f-csd{cursor:default;}
+.f-csh{cursor:help;}
+.f-csm{cursor:move;}
+.f-usn{-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-o-user-select:none;user-select:none;}
+.clear{ clear:both}
+.hide{display:none;}
+a.c-m{color:#ec6f1d;}
+a:hover.c-m{color:#999;}
+.bc-m{background-color:#ec6f1d;}
+.c-m{color:#ec6f1d;}
+.c-im{color:#04a9f4;}
+.c-d{color: #888}
+.c-d2{color: #666}
+.c-d3{color: #bbb}
+.c-d4{color: #e7e7e7}
+.c-d5{color: #aaa}
+.c-d6{color: #333}
+.c-d7{color: #888;width:170px;}
+.h-3{height:3px;}
+.h-1{height:1px;}
+.mt-6{margin:6px 0;}
+.g-doc{width:100%;margin:0 auto;}
+.g-w-all{width:100%;margin:0 auto;}
+.g-w-cn{width:1000px;margin:0 auto;}
+.g-w-cn2{width:850px !important;margin:0 auto;}
+.line{border-top:1px solid #eaeaea;width:100%;}
+.dash-line{border-top:1px dashed #eaeaea;width:100%;height: 1px}
+
+/*/////////////////////////////*/
+/*第二部分：常用兼容方案*/
+/*/////////////////////////////*/
+/*垂直居中解决方案(包裹的容器必须长宽定，可为百分比)*/
+.center-container {
+  clear: both;
+  display: table;
+}
+.center-container-content {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  margin: 0 auto;
+}
+
+/* bootstrap非响应式解决方案（重写css去掉响应式效果） */
+body {
+}
+
+body,
+.navbar-fixed-top,
+.navbar-fixed-bottom {
+  min-width: 1096px;
+}
+
+/* Don't let the lead text change font-size. */
+.lead {
+  font-size: 16px;
+}
+
+/* Finesse the page header spacing */
+.page-header {
+  margin-bottom: 30px;
+}
+.page-header .lead {
+  margin-bottom: 10px;
+}
+
+/* Reset the container */
+.container {
+  width: 1096px;
+  max-width: none !important;
+}
+
+/* Demonstrate the grids */
+
+.container .navbar-header,
+.container .navbar-collapse {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+/* Always float the navbar header */
+.navbar-header {
+  float: left;
+}
+.navbar-brand{
+  padding: 15px 15px;
+}
+
+/* Undo the collapsing navbar */
+.navbar-collapse {
+  display: block !important;
+  height: auto !important;
+  padding-bottom: 0;
+  overflow: visible !important;
+  visibility: visible !important;
+}
+
+.navbar-toggle {
+  display: none;
+}
+.navbar-collapse {
+  border-top: 0;
+}
+
+.navbar-brand {
+  margin-left: -15px;
+}
+
+/* Always apply the floated nav */
+.navbar-nav {
+  float: left;
+  margin: 0;
+}
+.navbar-nav > li {
+  float: left;
+}
+
+/* Redeclare since we override the float above */
+.navbar-nav.navbar-right {
+  float: right;
+}
+
+
+/* Undo custom dropdowns */
+.navbar .navbar-nav .open .dropdown-menu {
+  position: absolute;
+  float: left;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-width: 0 1px 1px;
+  border-radius: 0 0 4px 4px;
+  -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+}
+.navbar-default .navbar-nav .open .dropdown-menu > li > a {
+  color: #333;
+}
+.navbar .navbar-nav .open .dropdown-menu > li > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > li > a:focus,
+.navbar .navbar-nav .open .dropdown-menu > .active > a,
+.navbar .navbar-nav .open .dropdown-menu > .active > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > .active > a:focus {
+  color: #03a9f4 !important;
+  background-color: #f5f6fc !important;
+}
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a,
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a:hover,
+.navbar .navbar-nav .open .dropdown-menu > .disabled > a:focus {
+  color: #03a9f4 !important;
+  background-color: #f5f6fc !important;
+}
+
+/* Undo form expansion */
+.navbar-form {
+  float: left;
+  width: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-right: 0;
+  margin-left: 0;
+  border: 0;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+
+/* Copy-pasted from forms.less since we mixin the .form-inline styles. */
+.navbar-form .form-group {
+  display: inline-block;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.navbar-form .form-control {
+  display: inline-block;
+  width: auto;
+  vertical-align: middle;
+}
+
+.navbar-form .form-control-static {
+  display: inline-block;
+}
+
+.navbar-form .input-group {
+  display: inline-table;
+  vertical-align: middle;
+}
+
+.navbar-form .input-group .input-group-addon,
+.navbar-form .input-group .input-group-btn,
+.navbar-form .input-group .form-control {
+  width: auto;
+}
+
+.navbar-form .input-group > .form-control {
+  width: 100%;
+}
+
+.navbar-form .control-label {
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.navbar-form .radio,
+.navbar-form .checkbox {
+  display: inline-block;
+  margin-top: 0;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.navbar-form .radio label,
+.navbar-form .checkbox label {
+  padding-left: 0;
+}
+
+.navbar-form .radio input[type="radio"],
+.navbar-form .checkbox input[type="checkbox"] {
+  position: relative;
+  margin-left: 0;
+}
+
+.navbar-form .has-feedback .form-control-feedback {
+  top: 0;
+}
+
+/* Undo inline form compaction on small screens */
+.form-inline .form-group {
+  display: inline-block;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.form-inline .form-control {
+  display: inline-block;
+  width: auto;
+  vertical-align: middle;
+}
+
+.form-inline .form-control-static {
+  display: inline-block;
+}
+
+.form-inline .input-group {
+  display: inline-table;
+  vertical-align: middle;
+}
+.form-inline .input-group .input-group-addon,
+.form-inline .input-group .input-group-btn,
+.form-inline .input-group .form-control {
+  width: auto;
+}
+
+.form-inline .input-group > .form-control {
+  width: 100%;
+}
+
+.form-inline .control-label {
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+
+.form-inline .radio,
+.form-inline .checkbox {
+  display: inline-block;
+  margin-top: 0;
+  margin-bottom: 0;
+  vertical-align: middle;
+}
+.form-inline .radio label,
+.form-inline .checkbox label {
+  padding-left: 0;
+}
+
+.form-inline .radio input[type="radio"],
+.form-inline .checkbox input[type="checkbox"] {
+  position: relative;
+  margin-left: 0;
+}
+
+.form-inline .has-feedback .form-control-feedback {
+  top: 0;
+}
+.form-horizontal .control-label{text-align:right;}
+

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.login.pay.GlobalVarMapper">
+	
+	<select id="getGlobalVarByType" resultType="java.lang.String">
+		select var_value from sdk_global_var where var_type=${varType}
+	</select>
+
+</mapper>

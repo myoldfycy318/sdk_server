@@ -1,0 +1,138 @@
+package com.dome.sdkserver.controller.pay.record;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.PageDto;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.metadata.entity.bq.pay.PayRecordEntity;
+import com.dome.sdkserver.service.login.ThridRequestService;
+import com.dome.sdkserver.service.pay.PayRecordService;
+import com.dome.sdkserver.service.pay.qbao.bo.UserInfo;
+import com.dome.sdkserver.util.DateUtil;
+import org.apache.commons.lang.time.DateFormatUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+
+/**
+ * Created by xuekuan on 2017/4/11.
+ */
+@Controller
+@RequestMapping("/payRecord")
+public class PayRecordController extends PayBaseController {
+    @Autowired
+    private PayRecordService payRecordService;
+    @Autowired
+    private ThridRequestService thridRequestService;
+
+    @RequestMapping("/stream")
+    @ResponseBody
+    public SdkOauthResult stream(HttpServletRequest request, PayRecordEntity orderEntity) {
+        log.info("充值记录查询用户请求参数：{}", JSONObject.toJSONString(orderEntity));
+        Map<String, Object> resultMap = new HashMap<String, Object>(2);
+        try {
+            String validResult = this.dataValid(orderEntity); // 校验提交数据
+            if (StringUtils.isNotEmpty(validResult)) {
+                return SdkOauthResult.failed(validResult);
+            }
+            if (orderEntity.getCreateTime() != null && orderEntity.getFinishTime() != null && orderEntity.getCreateTime().after(orderEntity.getFinishTime())) {
+                return SdkOauthResult.failed("日期格式错误");
+            }
+            if (orderEntity.getFinishTime().before(DateUtil.getDate("2017-05-31 23:59:59", "yyyy-MM-dd HH:mm:ss"))) {
+                resultMap.put("totalCount", 0);
+                resultMap.put("list", Collections.EMPTY_LIST);
+                return SdkOauthResult.success(resultMap);
+            }
+            if (orderEntity.getCreateTime().before(DateUtil.getDate("2017-05-31 23:59:59", "yyyy-MM-dd HH:mm:ss"))) {
+                orderEntity.setCreateTime(DateUtil.getDate("2017-06-01 00:00:00", "yyyy-MM-dd HH:mm:ss"));
+            }
+            PageDto pageDto = new PageDto();
+            //封装请求参数
+            encapsulatePageParams(request, pageDto);
+            //支付月
+            orderEntity.setOrderMonths(DateUtils.getMonthBetween(DateFormatUtils.format(orderEntity.getCreateTime(), "yyyyMM"), DateFormatUtils.format(orderEntity.getFinishTime(), "yyyyMM")));
+            List<PayRecordEntity> list = payRecordService.queryPayRecordList(orderEntity, pageDto);
+            resultMap.put("totalCount", pageDto.getTotalCount());
+            resultMap.put("list", list);
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            resultMap.put("totalCount", 0);
+            resultMap.put("list", Collections.EMPTY_LIST);
+            log.error("用户:{}充值记录查询异常", orderEntity.getBuyerId(), e);
+            return SdkOauthResult.success(resultMap);
+        }
+    }
+
+    @RequestMapping("/payResult")
+    @ResponseBody
+    public SdkOauthResult payResult(PayRecordEntity orderEntity) {
+        log.info("充值记录查询用户请求参数：{}", JSONObject.toJSONString(orderEntity));
+        try {
+            String validResult = this.dataValid(orderEntity); // 校验提交数据
+            if (StringUtils.isNotEmpty(validResult)) {
+                return SdkOauthResult.failed(validResult);
+            }
+            if (StringUtils.isBlank(orderEntity.getCurMonth())) {
+                orderEntity.setCurMonth(DateUtils.formatToyyyyMM(new Date()));
+            } else {
+                if (!orderEntity.getCurMonth().matches("^20\\d{4}$")) {
+                    return SdkOauthResult.failed("日期格式错误");
+                }
+                if (Long.valueOf(orderEntity.getCurMonth()) < 201606) { //支付宝记录最近只到2016年06月
+                    return SdkOauthResult.success();
+                }
+            }
+            return SdkOauthResult.success(payRecordService.queryPayRecord(orderEntity));
+        } catch (Exception e) {
+            log.error("用户:{}充值记录查询异常", orderEntity.getBuyerId(), e);
+            return SdkOauthResult.success();
+        }
+    }
+
+    /**
+     * 校验用户是否存在
+     *
+     * @param userId
+     * @return
+     */
+    private SdkOauthResult checkUser(String userId) {
+        //判断是否存在该用户
+        UserInfo userInfo = null;
+        for (int i = 0; i < 3; i++) { //尝试3次去获取用户信息，
+            if (null == userInfo) {
+                userInfo = thridRequestService.loadUserInfo(Long.parseLong(userId.trim()));
+            }
+        }
+        if (null == userInfo) {
+            log.error("用户中心返回结果：不存在该用户,用户ID：{}", userId);
+            return SdkOauthResult.failed("userId=" + userId + "：该用户不存在");
+        }
+        return SdkOauthResult.success();
+    }
+
+    @RequestMapping("/youPiaoPayResult")
+    @ResponseBody
+    public SdkOauthResult youPiaoPayResult(String buyerId) {
+        log.info("充值记录查询用户请求参数：{}", JSONObject.toJSONString(buyerId));
+        try {
+            if (StringUtils.isBlank(buyerId)) {
+                log.info("用户ID为空");
+                return SdkOauthResult.failed("用户ID为空!");
+            }
+            PayRecordEntity orderEntity = new PayRecordEntity();
+            orderEntity.setBuyerId(buyerId);
+            orderEntity.setOrderMonths(DateUtils.getMonthBetween(DateUtils.getPreviousMonth(-60), DateUtils.formatToyyyyMM(new Date())));
+            return SdkOauthResult.success(payRecordService.queryYouPiaoPayRecord(orderEntity));
+        }catch (Exception e)
+        {
+            log.error("用户:{}充值记录查询异常",buyerId, e);
+            return SdkOauthResult.success();
+        }
+    }
+}

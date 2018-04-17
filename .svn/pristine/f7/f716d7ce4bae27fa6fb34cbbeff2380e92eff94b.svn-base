@@ -1,0 +1,180 @@
+package com.dome.sdkserver.controller.pay.order;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.biz.enums.PayTypeEnum;
+import com.dome.sdkserver.biz.utils.WechatPayUtil;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.util.PayUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.metadata.entity.bq.ogp.CpPayEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayConfigService;
+import com.dome.sdkserver.service.pay.PayService;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * OrderPayController
+ *
+ * @author Zhang ShanMin
+ * @date 2017/10/31
+ * @time 17:36
+ */
+@Controller
+@RequestMapping("/web/pay")
+public class WebOrderPayController extends PayBaseController {
+
+
+    @Autowired
+    protected OrderService orderService;
+    @Autowired
+    private PayConfigService payConfigService;
+    @Resource(name = "payService")
+    private PayService payService;
+
+    /**
+     * 支付订单
+     *
+     * @param orderReqInfo
+     * @return
+     */
+    @RequestMapping(value = "defray")
+    @ResponseBody
+    public SdkOauthResult defrayOrder(HttpRequestOrderInfo orderReqInfo, HttpServletRequest request) {
+        SdkOauthResult result = null;
+        log.info("订单支付请求参数：{}", JSONObject.toJSONString(orderReqInfo));
+        try {
+            if (StringUtils.isBlank(orderReqInfo.getOrderNo()) || orderReqInfo.getPayType() == 0 || StringUtils.isBlank(orderReqInfo.getReqIp()))
+                return SdkOauthResult.failed("必填参数不能为空");
+            //验证订单是否存在
+            OrderEntity orderEntity = orderService.queryOrderByOrderNo(orderReqInfo.getOrderNo(), PayUtil.getPayMonth(orderReqInfo.getOrderNo()));
+            if (orderEntity == null) {
+                return SdkOauthResult.failed("无效的订单号");
+            }
+            if (orderEntity.getOrderStatus() == OrderStatusEnum.orderstatus_pay_sucess.code) {
+                return SdkOauthResult.failed("该笔订单已支付");
+            }
+            //验证订单是否超时，根据订单创建时间
+            Map<String, String> payData = payConfigService.getAllConfig(orderReqInfo.getPayType());
+            if (payData == null || payData.size() == 0) {
+                return SdkOauthResult.failed("支付方式未知");
+            }
+            orderEntity.setPayType(orderReqInfo.getPayType());
+            orderEntity.setIp(orderReqInfo.getReqIp());
+            //根据支付类型，构建对应三方支付请求数据
+            result = payService.buildPayReqData(orderEntity, payData);
+            if (!result.isSuccess()) return result;
+            //返回支付宝响应报文
+            Map<String, Object> resultMap = null;
+            if (orderEntity.getPayType() == PayTypeEnum.支付宝支付.getCode()) {
+                resultMap = getAliPayDownResp(orderReqInfo, result);
+            } else if (orderEntity.getPayType() == PayTypeEnum.微信支付.getCode()) {
+                resultMap = new HashMap<String, Object>(3);
+                resultMap.put("sdkOrderNo", orderEntity.getOrderNo());
+                resultMap.put("codeUrl", result.getData());
+            }
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error("外部调用sdk支付宝即时到帐支付异常", e);
+            return SdkOauthResult.failed("系统异常，请稍后再试");
+        }
+    }
+
+    /**
+     * 创建页游支付订单
+     *
+     * @param cpPayEntity
+     * @return
+     */
+    @RequestMapping(value = "create")
+    @ResponseBody
+    public SdkOauthResult createPayOrder(CpPayEntity cpPayEntity, HttpServletRequest request) {
+        SdkOauthResult result = null;
+        String lockKey = "";
+        log.info("创建页游支付订单请求参数：{}", JSONObject.toJSONString(cpPayEntity));
+        try {
+            if (!cpPayEntity.validate()) return SdkOauthResult.failed("必填参数不能为空");
+            //获取游戏信息
+            AppInfoEntity appInfoEntity = gameService.getAppInfo(cpPayEntity.getAppCode());
+            if (appInfoEntity == null) {
+                return SdkOauthResult.failed("找不到对应的游戏，请稍后重试");
+            }
+            //sdk生成的签名
+            String sdkCpSign = cpPayEntity.cpSign(appInfoEntity.getPayKey());
+            if (!StringUtils.equals(sdkCpSign, cpPayEntity.getSign())) {
+                return SdkOauthResult.failed("支付签名错误，请重试");
+            }
+            int lockTime = domainConfig.getInt("other.ali.pay.down.lock.time", "30");
+            lockKey = RedisConstants.WEB_PAY_LOCK + cpPayEntity.getAppCode() + ":" + cpPayEntity.getUserId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock")) return SdkOauthResult.failed("操作过于频繁，请稍后重试");
+            if (cpPayEntity.getTotalFee() == 0) {
+                cpPayEntity.setTotalFee(cpPayEntity.getTradeFee());
+            }
+            HttpRequestOrderInfo orderReqData = new HttpRequestOrderInfo();
+            orderReqData.setSysType("WEB");
+            orderReqData.setPayOrigin("pc");
+            orderReqData.setNotifyUrl(appInfoEntity.getPayNotifyUrl());
+            orderReqData.setReqIp(WechatPayUtil.getRemoteHost(request));
+            cpPayEntity2OrderReqInfo(cpPayEntity, orderReqData);
+            //根据支付类型，构建对应三方支付请求数据
+            result = payService.createOrder(orderReqData);
+            redisUtil.del(lockKey);
+            if (!result.isSuccess()) return result;
+            //返回支付宝响应报文
+            Map<String, Object> resultMap = null;
+            if (cpPayEntity.getPayType() == PayTypeEnum.支付宝支付.getCode()) {
+                orderReqData.setResFormat(1);
+                resultMap = getAliPayDownResp(orderReqData, result);
+            } else if (cpPayEntity.getPayType() == PayTypeEnum.微信支付.getCode()) {
+                resultMap = new HashMap<String, Object>(3);
+                resultMap.put("sdkOrderNo", orderReqData.getOrderNo());
+                resultMap.put("codeUrl", result.getData());
+            }
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error("创建页游支付订单异常", e);
+            return SdkOauthResult.failed("系统异常，请稍后再试");
+        }
+    }
+
+
+    /**
+     * 页游支付请求参数转型
+     *
+     * @param cpPayEntity
+     * @param orderReqData
+     * @throws UnsupportedEncodingException
+     */
+    public void cpPayEntity2OrderReqInfo(CpPayEntity cpPayEntity, HttpRequestOrderInfo orderReqData) throws UnsupportedEncodingException {
+        BeanUtils.copyProperties(cpPayEntity, orderReqData);
+        orderReqData.setBuyerId(cpPayEntity.getUserId());
+        String subject = URLDecoder.decode(cpPayEntity.getContent(), "UTF-8");
+        String body = StringUtils.isNotBlank(cpPayEntity.getDetail()) ? URLDecoder.decode(cpPayEntity.getDetail(), "UTF-8") : subject;
+        orderReqData.setSubject(subject);
+        orderReqData.setBody(body);
+        orderReqData.setOutOrderNo(cpPayEntity.getCpTradeNo());
+        orderReqData.setTotalFee(cpPayEntity.getTotalFee());
+        if (StringUtils.isNotBlank(cpPayEntity.getAttach())) {
+            Map<String, Object> map = new HashMap<>(1);
+            map.put("attach", URLDecoder.decode(cpPayEntity.getAttach(), "UTF-8"));
+            orderReqData.setExtraField(JSONObject.toJSONString(map));
+        }
+    }
+
+}

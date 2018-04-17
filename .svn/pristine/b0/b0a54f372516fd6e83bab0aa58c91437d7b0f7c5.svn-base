@@ -1,0 +1,493 @@
+package com.dome.sdkserver.service.impl;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bo.AppPicture;
+import com.dome.sdkserver.bo.AppTypeAttrInfo;
+import com.dome.sdkserver.bo.MerchantAppInfo;
+import com.dome.sdkserver.bo.Paginator;
+import com.dome.sdkserver.bo.ResultBo;
+import com.dome.sdkserver.common.Constants;
+import com.dome.sdkserver.constants.AppAuditMsg;
+import com.dome.sdkserver.constants.AppStatusEnum;
+import com.dome.sdkserver.constants.AppTypeConstant;
+import com.dome.sdkserver.constants.BizResponseEnum;
+import com.dome.sdkserver.constants.SysEnum;
+import com.dome.sdkserver.metadata.dao.mapper.AppCheckintypeRelaMapper;
+import com.dome.sdkserver.metadata.dao.mapper.AppPictureMapper;
+import com.dome.sdkserver.metadata.dao.mapper.AppTypeAttrMapper;
+import com.dome.sdkserver.metadata.dao.mapper.MerchantAppMapper;
+import com.dome.sdkserver.service.MerchantAppService;
+import com.dome.sdkserver.service.RedisService;
+import com.dome.sdkserver.util.DateUtil;
+import com.dome.sdkserver.util.GlobalCodeUtils;
+import com.dome.sdkserver.util.RSACoder;
+import com.dome.sdkserver.util.RedisUtil;
+import com.dome.sdkserver.util.UuidGenerator;
+
+/**
+ * 新增商户应用信息
+ * @author hexiaoyi
+ */
+@Service
+public class MerchantAppServiceImpl implements MerchantAppService {
+	protected final Logger log = LoggerFactory.getLogger(this.getClass());
+	
+	private static final String APPLIST_REDIS_PREFIX = "domesdk:applist:merchantId";
+	private static final String APP_REDIS_PREFIX = "domesdk:app:appcode";
+	
+	@Resource
+	private MerchantAppMapper merchantAppMapper;
+	
+	@Resource
+	private AppTypeAttrMapper appTypeAttrMapper;
+	
+	@Resource
+	private AppCheckintypeRelaMapper appCheckintypeRelaMapper;
+
+	@Resource
+	private AppPictureMapper appPictureMapper;
+	
+	@Resource
+	private RedisUtil redisUtil;
+	
+	@Resource
+	private RedisService redisServiceImpl;
+	
+	@Override
+	@Transactional
+	public String doSaveMerchantApp(MerchantAppInfo merchantAppInfo) {
+		checkAppName(merchantAppInfo);
+		
+		ResultBo result = null;
+		if(!StringUtils.isEmpty(merchantAppInfo.getAppCode())){
+			result = this.editMerchantApp(merchantAppInfo);
+			
+			// 编辑不触发邮件通知
+		}else{
+			result = this.addMerchantApp(merchantAppInfo);
+		}
+		if (!result.isSuccess()) {
+			// 取消记录审核日志
+			throw new RuntimeException(result.getMsg());
+		}
+		return result.getMsg();
+	}
+
+	private void updateAppPictures(MerchantAppInfo app) {
+		List<AppPicture> picList = appPictureMapper.queryPicList(app.getAppId());
+		String picUrls = app.getPicUrls();
+		List<String> picUrlList = new ArrayList<String>();
+		if (StringUtils.isEmpty(picUrls)) return;
+		String[] pUrls = picUrls.split(",");
+		if (pUrls == null || pUrls.length==0) return;
+		picUrlList = Arrays.asList(pUrls);
+		if (CollectionUtils.isEmpty(picUrlList)) return;
+		
+		List<String> pastUrlList = new ArrayList<String>();
+		for (AppPicture pic : picList){
+			pastUrlList.add(pic.getPicUrl());
+		}
+		// 删除游戏截图
+		List<String> delUrlList = new ArrayList<String>(pastUrlList);
+		delUrlList.removeAll(picUrlList);
+		if (!delUrlList.isEmpty()) {
+			appPictureMapper.del(app.getAppId(), delUrlList);
+		}
+		// 添加游戏截图
+		List<String> addUrlList = new ArrayList<String>(picUrlList);
+		addUrlList.removeAll(pastUrlList);
+		List<AppPicture> addPicList = new ArrayList<AppPicture>();
+		AppPicture pic = null;
+		for (String url : addUrlList){
+			pic = new AppPicture();
+			pic.setAppId(app.getAppId());
+			pic.setPicUrl(url);
+			addPicList.add(pic);
+		}
+		if (!addPicList.isEmpty()){
+			appPictureMapper.batchAdd(addPicList);
+		}
+		
+		
+	}
+	
+	// 检查应用名称，一个商户下不能重复
+	private void checkAppName(MerchantAppInfo merchantAppInfo){
+		boolean isRepeat = false;
+		// 游戏不同的游戏类型，允许名称重复
+		String gameType = merchantAppInfo.getGameType();
+		// mysql中null列值保存为空串，game_type=null查询不到记录，而game_type=''能查询到
+		if (StringUtils.isEmpty(gameType)) gameType = "";
+		MerchantAppInfo app = merchantAppMapper.queryAppByName(merchantAppInfo.getAppName(), merchantAppInfo.getMerchantInfoId(), gameType);
+		if (app != null && !app.getAppCode().equals(merchantAppInfo.getAppCode())){
+			isRepeat = true;
+		}
+		if (isRepeat) {
+			log.error("商户{}下游戏类型:{}已有相同名称的应用{}", gameType, merchantAppInfo.getMerchantInfoId(), app.getAppCode());
+			AppTypeAttrInfo appType = redisServiceImpl.getAppTypeAttrByCode(gameType);
+			throw new RuntimeException("游戏类型：" + (appType == null ? "" : appType.getTypeAttrName()) + "下已有相同名称的应用");
+		}
+	}
+	
+	/**
+	 * 新增
+	 * @param merchantAppInfo
+	 * @return
+	 */
+	private ResultBo addMerchantApp(MerchantAppInfo merchantAppInfo){
+		ResultBo resultBo = new ResultBo();
+		
+		// 生成app_key，公钥私钥、测试环境公钥私钥，仅游戏会有
+		try {
+			initAppPublicPrivateKey(merchantAppInfo);
+			
+		} catch (Exception e) {
+			log.error("generate public or private rsa error", e);
+			resultBo.setSuccess(false);
+			resultBo.setMsg("生成密钥出错");
+			return resultBo;
+		}
+		merchantAppMapper.addApp(merchantAppInfo);
+		//根据生成的ID更新编码
+		String appCode = GlobalCodeUtils.genMerchantCode("D", merchantAppInfo.getAppId());
+		merchantAppMapper.updateAppCode(merchantAppInfo.getAppId(), appCode);
+		merchantAppInfo.setAppCode(appCode);
+		// 保存游戏截图url
+		int appId = merchantAppInfo.getAppId();
+		String picUrls = merchantAppInfo.getPicUrls();
+		List<AppPicture> appPicList = new ArrayList<AppPicture>();
+		AppPicture pic = null;
+		if (!StringUtils.isEmpty(picUrls)) {
+			String[] pUrls = picUrls.split(",");
+			for (String picUrl : pUrls) {
+				if (StringUtils.isEmpty(picUrl) || !(picUrl.toLowerCase().startsWith("http://")
+						|| picUrl.toLowerCase().startsWith("https://"))){
+					log.error("非法的游戏截图，URL: {}", picUrl);
+					continue;
+				}
+				pic = new AppPicture();
+				pic.setAppId(appId);
+				pic.setPicUrl(picUrl);
+				appPicList.add(pic);
+			}
+			if (!CollectionUtils.isEmpty(appPicList)){
+				appPictureMapper.batchAdd(appPicList);
+			} else {
+				log.error("应用：{}没有上传一张合法的游戏截图", appId);
+				throw new RuntimeException("没有上传游戏截图");
+			}
+		}
+		if(merchantAppInfo.getMerchantInfoId().equals(Constants.DOME_DEFAULT_MERCHANTID))
+		{
+			resultBo.setSuccess(true);
+			resultBo.setMsg(appCode);
+			return resultBo;
+		}
+		
+		return resultBo;
+	}
+
+	private void initAppPublicPrivateKey(MerchantAppInfo merchantAppInfo)
+			throws Exception {
+		if (AppTypeConstant.APP_TYPE_GAME.equals(merchantAppInfo.getAppType())) {
+			merchantAppInfo.setAppKey(UuidGenerator.getUuid());
+			merchantAppInfo.setTestAppKey(UuidGenerator.getUuid());
+			
+			Map<String, String> m = RSACoder.generateKey();
+			String publicKey = m.get(RSACoder.PUBLIC_KEY);
+			String privateKey = m.get(RSACoder.PRIVATE_KEY);
+			merchantAppInfo.setOutPublicRsakey(publicKey);
+			merchantAppInfo.setOutPrivateRsakey(privateKey);
+			
+			m = RSACoder.generateKey();
+			publicKey = m.get(RSACoder.PUBLIC_KEY);
+			privateKey = m.get(RSACoder.PRIVATE_KEY);
+			merchantAppInfo.setTestPublicRsakey(publicKey);
+			merchantAppInfo.setTestPrivateRsakey(privateKey);
+		}
+	}
+
+	/**
+	 * 编辑
+	 * @param merchantAppInfo
+	 * @return
+	 */
+	private ResultBo editMerchantApp(MerchantAppInfo merchantAppInfo){
+		ResultBo resultBo = new ResultBo();
+		
+		MerchantAppInfo valMerchantAppInfo = merchantAppMapper.queryApp(merchantAppInfo.getAppCode());
+		//应用合法性校验
+		if(valMerchantAppInfo == null){
+			resultBo.setSuccess(false);
+			resultBo.setCode(BizResponseEnum.MERCHANTAPP_NOT_EXIST.getResponeCode());
+			resultBo.setMsg(BizResponseEnum.MERCHANTAPP_NOT_EXIST.getResponeMsg());
+			return resultBo;
+		}
+		//状态是否为未接入或驳回
+		if(!AppStatusEnum.unaccess.getStatus().equals(valMerchantAppInfo.getStatus()) &&
+				!AppStatusEnum.deny_access.getStatus().equals(valMerchantAppInfo.getStatus())){
+			resultBo.setSuccess(false);
+			resultBo.setCode(BizResponseEnum.APP_STATUS_ERROR.getResponeCode());
+			resultBo.setMsg(BizResponseEnum.APP_STATUS_ERROR.getResponeMsg());
+			return resultBo;
+		}
+		try{
+			// 新增应用时应用类型勾选错误，审批驳回后有编辑应用类型为游戏。此时公私钥没有生成
+			// 取编辑后的应用类型
+			if (AppTypeConstant.APP_TYPE_GAME.equals(merchantAppInfo.getAppType())
+					&& (StringUtils.isEmpty(valMerchantAppInfo.getOutPublicRsakey()) || StringUtils.isEmpty(valMerchantAppInfo.getOutPrivateRsakey()))){
+				initAppPublicPrivateKey(merchantAppInfo);
+			}
+			merchantAppInfo.setAppId(valMerchantAppInfo.getAppId());
+			merchantAppMapper.updateApp(merchantAppInfo);
+			updateAppPictures(merchantAppInfo);
+		}catch(Exception e){
+			log.error("修改应用出错", e);
+			resultBo.setSuccess(false);
+			resultBo.setCode(SysEnum.DATABASE_ERROR.getResponeCode());
+			resultBo.setMsg(SysEnum.DATABASE_ERROR.getResponeMsg());
+		}
+		if(merchantAppInfo.getMerchantInfoId().equals(Constants.DOME_DEFAULT_MERCHANTID))
+		{
+			resultBo.setSuccess(true);
+			resultBo.setMsg(merchantAppInfo.getAppCode());
+			return resultBo;
+		}
+		return resultBo;
+	}
+
+	@Override
+	public List<MerchantAppInfo> getAppListByMertId(Integer merchantId,
+			Paginator p) {
+		List<MerchantAppInfo> merchantAppInfoList = merchantAppMapper.getAppListByMerchantId(merchantId, p);
+		for(MerchantAppInfo merchantAppInfo : merchantAppInfoList){
+			merchantAppInfo.setApplyDate(DateUtil.dateToDateString(merchantAppInfo.getCreateTime()));
+			merchantAppInfo.setUpateDate(DateUtil.dateToDateString(merchantAppInfo.getUpdateTime()));
+			
+			// 添加状态描述
+			int status = merchantAppInfo.getStatus();
+			AppStatusEnum em = AppStatusEnum.getFromKey(status);
+			if (em != null) {
+				merchantAppInfo.setStatusDesc(em.getMsg());
+			}
+		}
+		return merchantAppInfoList;
+	}
+
+	@Override
+	public Integer getAppCountByMertId(Integer merchantId) {
+		Integer count = merchantAppMapper.getAppCountByMertId(merchantId);
+		return count;
+	}
+	
+	@Override
+	public MerchantAppInfo getAppInfoByIdAndMertId(Integer appId,Integer merchantId) {
+		MerchantAppInfo merchantAppInfo = merchantAppMapper.getAppByIdAndMertId(appId,merchantId);
+		
+		if(merchantAppInfo != null){
+			merchantAppInfo.setApplyDate(DateUtil.dateToDateString(merchantAppInfo.getCreateTime()));
+			merchantAppInfo.setUpateDate(DateUtil.dateToDateString(merchantAppInfo.getUpdateTime()));
+		}
+		return merchantAppInfo;
+	}
+
+	@Override
+	public ResultBo doDel(MerchantAppInfo app, Integer merchantId) {
+		ResultBo resultBo = new ResultBo();
+		Integer appId = app.getAppId();
+		try{
+			MerchantAppInfo merchantAppInfo = new MerchantAppInfo();
+			merchantAppInfo.setAppId(appId);
+			merchantAppInfo.setDelFlag(1);
+			merchantAppMapper.updateApp(merchantAppInfo);
+		}catch(Exception e){
+			log.error("删除应用异常,原因：{}", e);
+			resultBo.setSuccess(false);
+			resultBo.setCode(SysEnum.DATABASE_ERROR.getResponeCode());
+			resultBo.setMsg(SysEnum.DATABASE_ERROR.getResponeMsg());
+			throw new RuntimeException(resultBo.getMsg());
+		}
+		return resultBo;
+	}
+
+	@Override
+	public List<MerchantAppInfo> getNewAppListByMerchantId(Integer merchantId) {
+		List<MerchantAppInfo> appInfoList = null;
+		// 运行人员的商家编码为000000
+		String appList = redisUtil.get(APPLIST_REDIS_PREFIX + (merchantId == null ? "000000" : merchantId));
+		if (StringUtils.isBlank(appList)) {
+			appInfoList = merchantAppMapper.getNewAppListByMerchantId(merchantId);
+			if (!CollectionUtils.isEmpty(appInfoList)) {
+				// 缓存1个小时
+				redisUtil.setex(APPLIST_REDIS_PREFIX + (merchantId == null ? "000000" : merchantId), 60 * 60, JSON.toJSONString(appInfoList));
+			}
+			
+		} else {
+			appInfoList = JSONObject.parseArray(appList, MerchantAppInfo.class);
+		}
+		
+		return appInfoList;
+	}
+	
+	@Override
+	public MerchantAppInfo getNewAppInfoByIdAndMertId(String appCode,Integer merchantId) {
+		MerchantAppInfo merchant = null;
+		String merchantStr = redisUtil.get(APP_REDIS_PREFIX + appCode);
+		if (StringUtils.isBlank(merchantStr)) {
+			merchant = merchantAppMapper.getNewAppByIdAndMertId(appCode, merchantId);
+			if (merchant != null) {
+				if (StringUtils.isEmpty(merchant.getAppType())) {
+					merchant.setAppType("游戏"); // 若没有找到对应类型，默认展示为“游戏”
+				}
+				// 缓存1个小时
+				redisUtil.setex(APP_REDIS_PREFIX + appCode, 60 * 60, JSON.toJSONString(merchant));
+			}
+			
+		} else {
+			merchant = JSONObject.parseObject(merchantStr, MerchantAppInfo.class);
+		}
+		return merchant;
+	}
+	
+	/**
+	 * 查询应用时没有加status状态过滤
+	 */
+	@Override
+	public MerchantAppInfo queryApp(String appCode) {
+		//合作伙伴查询应用信息，应用状态和基本信息会一直变动，保证信息及时、准确，不存入redis
+//		String key = DomeSdkRedisKey.APP_PREFIX + appCode;
+//		String str = redisUtil.get(key);
+//		App app = null;
+//		if (StringUtils.isEmpty(str) || "null".equals(str)) {
+//			app = appMapper.queryApp(appCode);
+//			redisUtil.setex(key, 24 * 60 * 60, JSON.toJSONString(app));
+//		} else {
+//			app = JSON.parseObject(str, App.class);
+//		}
+//		return app;
+		MerchantAppInfo app = merchantAppMapper.queryApp(appCode);
+		if (app == null) return app;
+		AppTypeAttrInfo appType = null;
+		/**
+		 * domesdk_app_info中app_type 为类型编码
+		 * game_type、game_attr为类型编码
+		 * 应用类型为游戏，才有游戏类型和游戏属性。
+		 */
+//		if (!StringUtils.isEmpty(app.getAppType())) {
+//			appType = appTypeAttrMapper.getAppTypeAttrByCode(app.getAppType());
+//			app.setAppTypeName(appType== null ? "" : appType.getTypeAttrName());
+//		}
+		if (!StringUtils.isEmpty(app.getGameType())){
+			appType = redisServiceImpl.getAppTypeAttrByCode(app.getGameType());
+			app.setGameTypeName(appType== null ? "" : appType.getTypeAttrName());
+		}
+		if (!StringUtils.isEmpty(app.getGameAttr())) {
+			appType = redisServiceImpl.getAppTypeAttrByCode(app.getGameAttr());
+			app.setGameAttrTypeName(appType== null ? "" : appType.getTypeAttrName());
+		}
+		List<AppPicture> picList = appPictureMapper.queryPicList(app.getAppId());
+		if (!CollectionUtils.isEmpty(picList)){
+			
+			app.setPicUrlList(picList);
+		}
+		return app;
+	}
+	
+	private String auditCheck(MerchantAppInfo app, int status){
+		/**
+		 *  合作伙伴更改应用状态，正常流程（除驳回）只能是状态+1
+		 *  可以修改状态的情况：第一个状态是“未接入”（申请接入），最后一个状态是“已测试”（申请上架）
+		 */
+		int pastStatus = app.getStatus();
+		if (pastStatus == AppStatusEnum.unaccess.getStatus() || pastStatus == AppStatusEnum.access_finish.getStatus()
+				|| pastStatus == AppStatusEnum.test_adjust_finish.getStatus()
+				|| pastStatus == AppStatusEnum.online_adjust_finish.getStatus()
+				|| pastStatus == AppStatusEnum.test_finish.getStatus()){
+			if (status != pastStatus + 1){
+				log.error("应用申请的下一个状态错误，原状态：{}，新状态：{}", pastStatus, status);
+				return AppAuditMsg.appstatus_illeagal;
+			}
+		} else if (pastStatus == AppStatusEnum.deny_access.getStatus()
+				|| pastStatus == AppStatusEnum.deny_test.getStatus()){
+			if (status != pastStatus - 30){
+				log.error("驳回重新提交的下一个状态错误，原状态：{}，新状态：{}", pastStatus, status);
+				return AppAuditMsg.appstatus_illeagal;
+			}
+		} else if (pastStatus == AppStatusEnum.charge_changed.getStatus()  // 申请联调
+				|| pastStatus == AppStatusEnum.pkg_changed.getStatus()){
+			if (status != AppStatusEnum.test_adjust.getStatus()){
+				log.error("申请联调提交的下一个状态错误，原状态：{}，新状态：{}", pastStatus, status);
+				return AppAuditMsg.appstatus_illeagal;
+			}
+		} else {
+			log.error("应用提交的状态错误，原状态：{}，新状态：{}", pastStatus, status);
+			return AppAuditMsg.appstatus_illeagal;
+		}
+		return null;
+	}
+	/**
+	 * 仅限处理合作伙伴发来的更新状态请求
+	 * aop注入记录业务日志、邮件通知
+	 * @param app pastApp对象，根据appCode查出来的应用，status为旧状态
+	 * @param status 新状态
+	 */
+	@Override
+	@Transactional
+	public String doUpdateAppStatus(MerchantAppInfo app, int status) {
+		int pastStatus = app.getStatus();
+		String errorMsg = auditCheck(app, status);
+		if (errorMsg != null) throw new RuntimeException(errorMsg);
+		log.info("合作伙伴申请应用状态变更，原状态：{}，新状态：{}", pastStatus, status);
+		merchantAppMapper.updateAppStatus(app.getAppId(), status);
+		
+		// 申请接入时，需要保存登陆和支付回调地址  保存注册回调地址
+		if (status == AppStatusEnum.wait_access.getStatus()){
+			// 申请接入时登陆和支付回调地址可以勾选，也可以都不勾选。对回调地址填写不做要求
+			MerchantAppInfo a = new MerchantAppInfo();
+			a.setAppCode(app.getAppCode());
+			if (app.getAppId() != null) a.setAppId(app.getAppId());
+			initAppCallBackUrl(a, app);
+			merchantAppMapper.updateApp(a);
+		}
+		return StringUtils.EMPTY;
+	}
+
+	private void initAppCallBackUrl(MerchantAppInfo newApp, MerchantAppInfo app) {
+		if (!StringUtils.isEmpty(app.getLoginCallBackUrl())) {
+			newApp.setLoginCallBackUrl(app.getLoginCallBackUrl());
+		}
+		if (!StringUtils.isEmpty(app.getTestLoginCallBackUrl())) {
+			newApp.setTestLoginCallBackUrl(app.getTestLoginCallBackUrl());
+		}
+		if (!StringUtils.isEmpty(app.getPayCallBackUrl())) {
+			newApp.setPayCallBackUrl(app.getPayCallBackUrl());
+		}
+		if (!StringUtils.isEmpty(app.getTestPayCallBackUrl())) {
+			newApp.setTestPayCallBackUrl(app.getTestPayCallBackUrl());
+		}
+        // 注册回调地址
+        if(!StringUtils.isEmpty(app.getRegistCallBackUrl())){
+            newApp.setRegistCallBackUrl(app.getRegistCallBackUrl());
+        }
+        if(!StringUtils.isEmpty(app.getTestRegistCallBackUrl())){
+            newApp.setTestRegistCallBackUrl(app.getTestRegistCallBackUrl());
+        }
+	}
+
+    
+}

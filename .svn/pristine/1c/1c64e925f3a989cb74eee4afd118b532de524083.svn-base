@@ -1,0 +1,8 @@
+package com.dome.sdkserver.metadata.entity.yeyou;
+
+import com.dome.sdkserver.metadata.entity.AbstractGame;
+
+public class YeyouGame extends AbstractGame{
+
+	
+}

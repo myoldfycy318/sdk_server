@@ -1,0 +1,6 @@
+# default true
+request.logger=true
+# default true
+mybatis.printsql.logger=true
+# timeunit ms, if execute time is greater than it, print
+mybatis.printsql.executetime=0

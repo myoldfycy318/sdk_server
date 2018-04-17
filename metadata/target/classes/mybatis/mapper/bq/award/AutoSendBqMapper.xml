@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.bq.award.AutoSendBqMapper">
+
+    <resultMap type="com.dome.sdkserver.metadata.entity.bq.award.BqAutoSendEntity" id="baseResultMap">
+        <id column="trade_no" property="tradeNo" jdbcType="VARCHAR" />
+        <result column="pay_user_id" property="payUserId" jdbcType="VARCHAR" />
+        <result column="status" property="status" jdbcType="VARCHAR" />
+        <result column="bq_award" property="bqAward" jdbcType="DECIMAL" />
+        <result column="fee_amount" property="feeAmount" jdbcType="DECIMAL" />
+    </resultMap>
+
+    <!-- 新增 流水记录汇总数据 -->
+    <insert id="insertSumTrans">
+        insert into sdk_bq_auto_send(
+        id,
+        app_code,
+        pay_user_id,
+        login_id,
+        trans_date,
+        account_amount,
+        bq_account_amount,
+        biz_type,
+        biz_desc,
+        status,
+        return_code,
+        return_msg,
+        bq_award,
+        create_time
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            ,pay_trade_no
+        </if>
+        <if test="entity.activityConfId != null ">
+            ,activity_conf_id
+        </if>
+        ) values(
+        #{entity.id},
+        #{entity.appCode},
+        #{entity.payUserId},
+        #{entity.loginId},
+        #{entity.transDate},
+        #{entity.accountAmount},
+        #{entity.bqAccountAmount},
+        #{entity.bizType},
+        #{entity.bizDesc},
+        #{entity.status},
+        #{entity.returnCode},
+        #{entity.returnMsg},
+        #{entity.bqAward},
+        now()
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            , #{entity.payTradeNo}
+        </if>
+        <if test="entity.activityConfId != null ">
+            ,#{entity.activityConfId}
+        </if>
+        )
+    </insert>
+
+    <insert id="insertAliPayReturnTickets">
+        insert into domesdk_ali_bq_auto_send(
+        id,
+        app_code,
+        pay_user_id,
+        trans_date,
+        account_amount,
+        biz_type,
+        biz_desc,
+        status,
+        return_code,
+        return_msg,
+        bq_award,
+        create_time
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            ,pay_trade_no
+        </if>
+        <if test="entity.activityConfId != null ">
+            ,activity_conf_id
+        </if>
+        ) values(
+        #{entity.id},
+        #{entity.appCode},
+        #{entity.payUserId},
+        #{entity.transDate},
+        #{entity.accountAmount},
+        #{entity.bizType},
+        #{entity.bizDesc},
+        #{entity.status},
+        #{entity.returnCode},
+        #{entity.returnMsg},
+        #{entity.bqAward},
+        now()
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            , #{entity.payTradeNo}
+        </if>
+        <if test="entity.activityConfId != null ">
+            ,#{entity.activityConfId}
+        </if>
+        )
+    </insert>
+
+    <!-- 根据id查询数据总量 -->
+    <select id="getTransConsumeById" resultType="java.lang.Integer">
+		SELECT count(1) from sdk_bq_auto_send where id=#{id}
+	</select>
+
+
+    <!-- 查询指定天的每个游戏下每个用户宝币消费总数 -->
+    <select id="sumTransConsumeV2" resultType="com.dome.sdkserver.metadata.entity.bq.award.BqAutoSendEntity">
+		select pt.app_code as appCode,
+			pt.pay_user_id as payUserId,
+			pt.login_name as loginId,
+			pt.trans_date as transDate,
+			sum(pt.account_amount) as accountAmount,
+			sum(pt.bq_account_amount) as bqAccountAmount,
+			om.app_name as appName
+		from sdk_qbaopay_trans_${seq} pt
+		LEFT JOIN domesdk_app_info om on(pt.app_code = om.app_code)
+		where pt.status=30 and pt.trans_date=#{transDate}
+		group by pt.app_code,pt.pay_user_id
+	</select>
+
+    <select id="sumBwChannelAliPay" resultType="com.dome.sdkserver.metadata.entity.bq.award.BqAutoSendEntity">
+    SELECT
+    a.app_code as appCode,
+    sum(a.charge_point_amount) as accountAmount,
+    a.bw_user_id as payUserId,
+    b.app_name  as appName
+    FROM
+    domesdk_order${seq} a
+    join domesdk_app_info b on a.app_code = b.app_code
+    WHERE
+     <![CDATA[
+    finish_time >= concat(
+    DATE_FORMAT(#{transDate}, '%Y-%m-%d'),
+    ' 00:00:00'
+    )
+    AND finish_time <= concat(
+    DATE_FORMAT(#{transDate}, '%Y-%m-%d'),
+    ' 23:59:59'
+    )
+    ]]>
+    AND a.order_status = 1
+    and a.channel_code ='CHA000001'
+    GROUP BY
+    a.app_code,
+    a.buyer_Id,
+    a.bw_user_id,
+    b.app_name
+    </select>
+
+    <insert id="insertThridPartyBqTrans">
+        insert into sdk_third_party_bq_send(
+        trade_no,
+        pay_user_id,
+        bq_award,
+        status,
+        <if test="entity.feeAmount != null ">
+            fee_amount,
+        </if>
+        <if test="entity.bizDesc != null and entity.bizDesc != ''">
+            biz_desc,
+        </if>
+        <if test="entity.bizType != null and entity.bizType != ''">
+            biz_type,
+        </if>
+        <if test="entity.merchantType != null and entity.merchantType != ''">
+            merchant_type,
+        </if>
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            pay_trade_no,
+        </if>
+        <if test="entity.returnCode != null and entity.returnCode != ''">
+            return_code,
+        </if>
+        <if test="entity.returnMsg != null and entity.returnMsg != ''">
+            return_msg,
+        </if>
+        <if test="entity.outTradeNo != null and entity.outTradeNo != ''">
+            out_trade_no,
+        </if>
+        <if test="entity.bqSource != null and entity.bqSource != '' ">
+            bq_source,
+        </if>
+        create_time
+        ) values(
+        #{entity.tradeNo},
+        #{entity.payUserId},
+        #{entity.bqAward},
+        #{entity.status},
+        <if test="entity.feeAmount != null ">
+            #{entity.feeAmount},
+        </if>
+        <if test="entity.bizDesc != null and entity.bizDesc != ''">
+            #{entity.bizDesc},
+        </if>
+        <if test="entity.bizType != null and entity.bizType != ''">
+            #{entity.bizType},
+        </if>
+        <if test="entity.merchantType != null and entity.merchantType != ''">
+            #{entity.merchantType},
+        </if>
+        <if test="entity.payTradeNo != null and entity.payTradeNo != ''">
+            #{entity.payTradeNo},
+        </if>
+        <if test="entity.returnCode != null and entity.returnCode != ''">
+            #{entity.returnCode},
+        </if>
+        <if test="entity.returnMsg != null and entity.returnMsg != ''">
+            #{entity.returnMsg},
+        </if>
+        <if test="entity.outTradeNo != null and entity.outTradeNo != ''">
+            #{entity.outTradeNo},
+        </if>
+        <if test="entity.bqSource != null and entity.bqSource != '' ">
+            #{entity.bqSource},
+        </if>
+        now()
+        )
+    </insert>
+
+    <select id="queryTpBqTransByOutTradeNo" parameterType="com.dome.sdkserver.metadata.entity.bq.award.BqAutoSendEntity"
+            resultMap="baseResultMap">
+        SELECT trade_no,pay_user_id,status,bq_award,fee_amount
+        from sdk_third_party_bq_send
+        where out_trade_no = #{outTradeNo} and bq_source = #{bqSource}
+    </select>
+
+    <update id="updateTpBqTransByTradeNo" parameterType="com.dome.sdkserver.metadata.entity.bq.award.BqAutoSendEntity">
+        update sdk_third_party_bq_send
+        <set>
+            <if test="status != null and status != ''">
+                status = #{status},
+            </if>
+            <if test="payTradeNo != null and payTradeNo != '' ">
+                pay_trade_no = #{payTradeNo},
+            </if>
+            <if test="returnCode != null and returnCode != '' ">
+                return_code = #{returnCode},
+            </if>
+            <if test="returnMsg != null and returnMsg != '' ">
+                return_msg = #{returnMsg},
+            </if>
+            update_time = now()
+        </set>
+        where trade_no = #{tradeNo}
+    </update>
+
+</mapper>

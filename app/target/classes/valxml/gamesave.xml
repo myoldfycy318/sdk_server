@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- h5和yeyou -->
+<fields>
+	<field attr="appName">
+		<text>游戏名称</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>60001</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>60002</code>
+		</check-length>
+	</field>
+	
+	<field attr="appIcon">
+		<text>游戏Icon</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>60003</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>60004</code>
+		</check-length>
+	</field>
+	<!-- h5 url必填校验在代码中做 -->
+	<field attr="appUrl">
+		<text>游戏URL</text>
+<!-- 		<check-null>
+			<allow-null>0</allow-null>
+			<code>60005</code>
+		</check-null> -->
+		<check-length>
+			<max-length>250</max-length>
+			<code>60006</code>
+		</check-length>
+	</field>
+	<field attr="appDesc">
+		<text>游戏介绍</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>60007</code>
+		</check-null>
+		<check-length>
+			<max-length>1024</max-length>
+			<code>60008</code>
+		</check-length>
+	</field>
+</fields>

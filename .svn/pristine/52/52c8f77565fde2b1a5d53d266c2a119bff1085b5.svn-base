@@ -1,0 +1,56 @@
+
+
+
+
+query.approval.menu.partner=http\://storeauth.domestore.cn/roleExternal/selectByMenuName
+
+domesdk.appinfo.synbaowan=http\://appba.domestore.cn/appInfo/synchAppInfoFromSdk
+
+sdk.version.upload.domain=http://ld.domestore.cn/domesdk/sdk
+sdk.version.upload.path=/opt/download/uploadsdk
+
+
+domesdk.merchant.synbaowan=http\://appba.domestore.cn/merchantInfo/addMerchantInfoFromSdk
+
+domesdk.appinfo.synqb=http\://storeba.domestore.cn/app/application/synchApp
+
+domesdk.sendermail.passwdsecretkey=MuNf59IdsgcpYzjqNeAI3mOYvTIA4jiQ
+# first channel add second channel, help to register openplat user
+channel.registeruser=http\://uc.domestore.cn/open/autoRegister
+# synchronize channel data to sdkserver
+channel.synsdk=
+buid=DOME001
+bq.usercenter.captcha.merge.url=http://uc.domestore.cn/manage/addOrUpdate
+bq.usercenter.captcha.query.url=http://uc.domestore.cn/manage/query
+
+usercenter.aes.publickey=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQhIvT60RAT0FJ8tqlV9wN1i8hE37h3IXOxxBwAxkqonFgHw8ucGKT3w8ApGhEgvdRegkHM8/y8MB3l/Q1YOdQMq5DNV5/nHSuYZOTyPE7YlgRj6Xve9KgsRdQT76JIPfCyJd2qCZzsVxsUENZppYPZHAITiOvd8zK9M4cagtkJwIDAQAB
+#pay callback pulbic key
+async.public.key=public_key
+#yeyou game syn to yeyou platform
+domesdk.yeyougame.synapp=http\://qbaowebgameba.domestore.cn/gameManager/insert
+#h5 game syn to h5 platform
+domesdk.h5game.synapp=http\://qbaoh5gameba.domestore.cn/game/insert
+domesdk.h5game.synapp_bq=http\://h5gameba.domestore.cn/game/insert
+
+domesdk.payswitch=http://sdkserver.domestore.cn/syncPayOptions/megerPayOptions
+
+domesdk.game.synsdkserver=http\://sdkserver.domestore.cn:8080/syncGame/megerGame
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

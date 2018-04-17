@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.ChannelManagerMapper">
+
+    <resultMap id="BaseResultMap" type="com.dome.sdkserver.bo.ChannelManager">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="channel_code" jdbcType="VARCHAR" property="channelCode"/>
+        <result column="channel_name" jdbcType="VARCHAR" property="channelName"/>
+        <result column="note" jdbcType="VARCHAR" property="note"/>
+        <result column="status" jdbcType="INTEGER" property="status"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,channel_code,channel_name,note,status,create_time,update_time
+    </sql>
+
+    <select id="queryList" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from domesdk_channel_manager
+        <where>
+            status = 1
+            <if test="channelCode != null and channelCode != ''">
+                and channel_code = #{channelCode}
+            </if>
+            <if test="channelName != null and channelName != ''">
+                and channel_name like concat('%',#{channelName},'%')
+            </if>
+        </where>
+        order by channel_code DESC
+    </select>
+
+    <insert id="addChannel">
+        INSERT INTO domesdk_channel_manager
+            (
+             channel_code,
+             channel_name,
+             note,
+             status,
+             create_time,
+             update_time)
+        VALUES (
+        #{channelCode},
+        #{channelName},
+        #{note},
+        1,
+        NOW(),
+        NOW())
+    </insert>
+
+    <update id="deleteById">
+        update domesdk_channel_manager set status=0 , update_time=now() where id=#{id} and status=1
+    </update>
+
+
+
+</mapper>

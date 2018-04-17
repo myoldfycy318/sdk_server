@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="应用列表">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../../dist/css/h5AddApp.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+  <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus @@channelnav">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+<div class="contentBox">
+  <div class="menuCrumbs">
+    <span class="m_wz">你当前的位置：</span>
+<a href="/merchant/addservice.html?t=h5game" class="m_pre">管理控制台  > </a>
+<a href="javascript:void(0);" class="m_pre">H5游戏 > </a>
+    <a href="#" class="m_new">添加应用</a>
+  </div>
+  <div id="formPanel" class="conBox">
+  </div>
+</div>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+
+  <script id="tpl_con_box" type="text/html">
+    <div class="fromBox">
+      {{if !isShow}}
+        
+        {{if appCode}}
+          <input type="hidden" value="{{appCode}}" class="appCode" />
+        {{/if}}
+      {{/if}}
+
+      <div class="boxInput clear">
+        <label class="f_lab">
+          {{if !isShow}}
+            <span class="red">*</span>
+            应用渠道
+          {{else}}
+            应用编号
+          {{/if}}
+          
+        </label>
+        {{if isShow}}
+          <span class="con_box">{{appCode}}</span>
+        {{else}}
+        <select data-name="appType" class="sel_box t required">
+          <option value="h5game-d" {{if channle === "h5game-d"}}selected{{/if}}>冰趣</option>
+          <option value="h5game" {{if channle === "h5game"}}selected{{/if}}>钱宝</option>
+        </select>
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          应用名称
+        </label>
+
+        {{if isShow}}
+        <span class="con_box">{{appName}}</span>
+        {{else}}
+        <input class="text_con required appName" type="text" value="{{appName}}" placeholder="请输入应用名称" />
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab f-left">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          应用Icon
+        </label>
+
+        <div class="fileBox">
+          {{if !isShow}}
+            <input type="hidden" class="required imgUrl appIcon" value="{{appIcon}}"/>
+          {{/if}}
+          <img style="display: {{if appIcon}}inherit{{else}}none{{/if}}" class="file_btn" src="{{appIcon}}" alt=""/>
+          {{if !isShow}}
+          <div class="file_btn btn_file btn_file_box">
+            <div class="bg"></div>
+          </div>
+          {{/if}}
+        </div>
+        {{if !isShow}}
+          <div class="file_ms">分辨率为150*150px（添加角标），支持支持jpg、png、gif 格式图片</div>
+        {{/if}}
+      </div>
+
+      {{if isShow}}
+        {{if appKey}}
+        <div class="boxInput clear">
+          <label class="f_lab">
+            应用 AppKey
+          </label>
+          <span class="con_box">{{appKey}}</span>
+        </div>
+        {{/if}}
+
+        {{if loginKey}}
+        <div class="boxInput clear">
+          <label class="f_lab">
+            登录 LoginKey
+          </label>
+          <span class="con_box">{{loginKey}}</span>
+        </div>
+        {{/if}}
+
+        {{if payKey}}
+        <div class="boxInput clear">
+          <label class="f_lab">
+            付款 PayKey
+          </label>
+          <span class="con_box">{{payKey}}</span>
+        </div>
+        {{/if}}
+
+      {{/if}}
+
+      <div class="boxInput clear">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          应用描述
+        </label>
+        {{if isShow}}
+          <span class="con_box">{{appDesc}}</span>
+        {{else}}
+          <div class="textarea">
+            <textarea class="required appDesc" cols="30" rows="10">{{appDesc}}</textarea>
+          </div>
+        {{/if}}
+      </div>
+
+      <div class="boxInput clear">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          游戏url
+        </label>
+        {{if isShow}}
+          <span class="con_box">{{appUrl}}</span>
+        {{else}}
+        <input data-valid="http" class="text_con appUrl required" type="text" value="{{appUrl}}" placeholder="请输入游戏url，必须以http/https开头" />
+        {{/if}}
+      </div>
+
+     {{if isShow}}
+     <div class="boxInput clear">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          支付回调url
+        </label>
+          <span class="con_box">{{payCallBackUrl}}</span>
+      </div>
+      {{/if}}
+
+
+      <div class="boxInput clear">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          游戏类型
+        </label>
+        {{if isShow}}
+          <span class="con_box">{{gameType}}</span>
+        {{else}}
+        <input class="text_con gameType required" type="text" value="{{gameType}}" placeholder="请输入游戏类型" />
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          {{if !isShow}}
+            <span class="red">*</span>
+          {{/if}}
+          开发商
+        </label>
+        {{if isShow}}
+          <span class="con_box">{{developers}}</span>
+        {{else}}
+        <input class="text_con developers required" type="text" value="{{developers}}" placeholder="请输入开发商" />
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab {{if !isShow}}s_lab{{/if}}">
+          游戏版权标识
+        </label>
+        {{if isShow}}
+          <span class="con_box">
+            {{if copyRightFlag === 0}}
+            无
+            {{/if}}
+            {{if copyRightFlag === 1}}
+            自研
+            {{/if}}
+            {{if copyRightFlag === 2}}
+            代理
+            {{/if}}
+         </span>
+        {{else}}
+        <select data-name="appType" class="sel_box copyRightFlag">
+          <option value="">无</option>
+          <option value="1" {{if copyRightFlag === 1}}selected{{/if}}>自研</option>
+          <option value="2" {{if copyRightFlag === 2}}selected{{/if}}>代理</option>
+        </select>
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab f-left">
+          软件著作权登记证书图片
+        </label>
+        
+        <div class="fileBox">
+          {{if !isShow}}
+            <input type="hidden" class="imgUrl compareSoftwareUrl" />
+          {{/if}}
+          <img style="display: {{if compareSoftwareUrl}}inherit{{else}}none{{/if}}" class="file_btn" src="{{compareSoftwareUrl}}" alt=""/>
+          {{if !isShow}}
+          <div class="file_btn btn_file btn_file_box">
+            <div class="bg"></div>
+          </div>
+          {{/if}}
+        </div>
+        {{if !isShow}}
+        <div class="file_ms">支持支持jpg，大小350k以内</div>
+        {{/if}}
+      </div>
+
+      <div class="boxInput">
+        <label class="f_lab"></label>
+        {{if !isShow}}
+          <div class="btn_sub sub_cur">{{if appCode}}修改{{else}}提交申请{{/if}}</div>
+        {{/if}}
+        <a href="appList.html" class="btn_cencal">取消</a>
+      </div>
+      
+    </div>
+  </script>
+
+<script id="requirejs"
+  src="../../lib/require.js"
+  data-main="../../dist/js/h5AddApp.js"
+  data-url="../../lib/">
+</script>
+
+</body>
+</html>

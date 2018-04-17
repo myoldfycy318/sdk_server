@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="1 minutes" debug="false">
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.out</Target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%-5level] [%logger.%M:%L] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="async_rolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/sdkserver/dome_sdk_ba.log</file>
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/var/log/sdkserver/dome_sdk_ba_%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%logger.%M:%L] |%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <root level="INFO">
+        <!--<appender-ref ref="stdout"/>-->
+        <appender-ref ref="async_rolling"/>
+    </root>
+
+    <!--<logger name="dao" level="DEBUG"/>-->
+    <logger name="com.dome.sdkserver" level="INFO"/>
+    <logger name="com.ibatis" level="INFO"/>
+    <logger name="org.springframework" level="ERROR"/>
+    <logger name="com.ibatis.sqlmap.engine.impl.SqlMapClientDelegate" level="INFO"/>
+    <logger name="org.apache.commons" level="ERROR"/>
+    <logger name="catalia" level="ERROR"/>
+    <logger name="org.apache" level="ERROR"/>
+    <logger name="com.ibatis.common.jdbc.SimpleDataSource" level="INFO"/>
+    <logger name="java.sql.ResultSet" level="INFO"/>
+    <logger name="com.ibatis.common.jdbc.ScriptRunner" level="INFO"/>
+    <logger name="java.sql.Connection" level="INFO"/>
+    <logger name="java.sql.PreparedStatement" level="INFO"/>
+
+</configuration>

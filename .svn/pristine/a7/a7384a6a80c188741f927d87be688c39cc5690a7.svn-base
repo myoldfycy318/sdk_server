@@ -1,0 +1,202 @@
+package com.dome.sdkserver.service.impl.pay.bq;
+
+import com.alibaba.fastjson.JSON;
+import com.dome.sdkserver.biz.enums.CBStatusEnum;
+import com.dome.sdkserver.biz.enums.OrderStatusEnum;
+import com.dome.sdkserver.biz.utils.WechatPayUtil;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.util.DateUtils;
+import com.dome.sdkserver.bq.util.GenOrderCode;
+import com.dome.sdkserver.bq.util.PriceUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.metadata.entity.bq.h5game.H5GameEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.OrderEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.WeChatEntity;
+import com.dome.sdkserver.service.login.UserLoginService;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayConfigService;
+import com.dome.sdkserver.service.pay.bq.ForwardPayService;
+import com.dome.sdkserver.util.PropertiesUtil;
+import com.dome.sdkserver.util.RedisUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 微信公众号支付跳转处理
+ * WxPublicPayForwardPayService
+ *
+ * @author Zhang ShanMin
+ * @date 2017/11/13
+ * @time 15:57
+ */
+
+@Service("wxJsApiPayForwardPayService")
+public class WxJsApiPayForwardPayService implements ForwardPayService {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    @Autowired
+    private PayConfigService payConfigService;
+    @Autowired
+    protected OrderService orderService;
+    @Autowired
+    protected PropertiesUtil payConfig;
+    @Autowired
+    private UserLoginService userloginService;
+    @Autowired
+    protected RedisUtil redisUtil;
+
+    /**
+     * 跳转微信公众号支付页
+     *
+     * @param h5GameEntity
+     * @param appInfoEntity
+     * @return
+     */
+    @Override
+    public SdkOauthResult toPayPage(H5GameEntity h5GameEntity, AppInfoEntity appInfoEntity) throws Exception {
+        try {
+            String openId = getWxOpenIdByUserId(h5GameEntity);
+            if (StringUtils.isBlank(openId)) {
+                return SdkOauthResult.failed("获取用户公众号openId异常，请稍后重试！");
+            }
+            int lockTime = payConfig.getInt("other.ali.pay.down.lock.time", "30");
+            String lockKey = RedisConstants.WX_JS_PAY_LOCK + h5GameEntity.getAppCode() + ":" + h5GameEntity.getUserId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock"))
+                return SdkOauthResult.failed("操作过于频繁，请稍后重试");
+            h5GameEntity.setOpenId(openId);
+            Double price = Double.valueOf(h5GameEntity.getPrice());
+            OrderEntity orderEntity = getOrderEntity(h5GameEntity, appInfoEntity, price);
+            String wxJsApiParams = bulidWxJsPayPage(h5GameEntity, appInfoEntity, orderEntity);
+            String domain = payConfig.getString("wx.public.pay.page.sdk.url");
+            if (StringUtils.isBlank(domain)) {
+                return SdkOauthResult.failed("微信公众号支付页域名配置为空");
+            }
+            wxJsApiParams =wxJsApiParams+"&sdkdomain="+domain;
+            StringBuilder sb = new StringBuilder(domain).append("/").append("h5GameWxJsJSAPI.jsp").append("?").append(wxJsApiParams);
+            logger.info("跳微信公众号支付页面，url:{}", sb.toString());
+            redisUtil.del(lockKey);
+            return SdkOauthResult.success(sb.toString());
+        } catch (Exception ex) {
+            logger.error("微信公众号支付异常", ex);
+            return SdkOauthResult.failed("微信公众号支付异常，请稍后重试！");
+        }
+    }
+
+    /**
+     * 构建微信公众号支付JsApi
+     *
+     * @param h5GameEntity
+     * @param appInfoEntity
+     * @param orderEntity
+     * @return
+     * @throws Exception
+     */
+    private String bulidWxJsPayPage(H5GameEntity h5GameEntity, AppInfoEntity appInfoEntity, OrderEntity orderEntity) throws Exception {
+        Double totalFee = (Double) orderEntity.getChargePointAmount();
+        Map<String, String> payData = payConfigService.getAllConfig(4);
+        String wxPublicAppId = payConfig.getString("wx.public.pay.appid");
+        String wxPublicMchApiKey = payConfig.getString("wx.public.mch.api.key");
+        WeChatEntity weChatEntity = new WeChatEntity.Builder().openId(h5GameEntity.getOpenId()).
+                nonceStr(WechatPayUtil.generateNonceStr()).spBillCreateIp(h5GameEntity.getIp()).
+                outTradeNo(orderEntity.getOrderNo()).tradeType("JSAPI").body("公众号测试支付").
+                totalFee(PriceUtil.convertToFen(totalFee.toString())).
+                appId(wxPublicAppId).mchId(payConfig.getString("wx.public.mch_id")).signKey(wxPublicMchApiKey).build();
+        String prepay_id = WechatPayUtil.weixinPayUnifiedorder(weChatEntity, payData);
+        String nonceStr = WechatPayUtil.generateNonceStr();
+        String timestamp = WechatPayUtil.getTimeStamp();
+        Map<String, String> map = new HashMap<>();
+        map.put("appId", wxPublicAppId);
+        map.put("timeStamp", timestamp);
+        map.put("nonceStr", nonceStr);
+        map.put("package", "prepay_id=" + prepay_id);
+        map.put("signType", "MD5");
+        String paySign = WechatPayUtil.createSign(map, wxPublicMchApiKey);
+        map.put("paySign", paySign);
+        map.put("userId", h5GameEntity.getUserId());
+        map.put("appCode", appInfoEntity.getAppCode());
+        map.put("platformCode", h5GameEntity.getPlatformCode());
+        StringBuilder sb = new StringBuilder("&");
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            sb.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+        }
+        return sb.toString().substring(1);
+    }
+
+    /**
+     * 创建微信公众号支付号流水
+     *
+     * @param h5GameEntity
+     * @param appInfoEntity
+     * @param price
+     * @return
+     */
+    private OrderEntity getOrderEntity(H5GameEntity h5GameEntity, AppInfoEntity appInfoEntity, Double price) {
+        OrderEntity orderEntity = new OrderEntity();
+        String channelCode = h5GameEntity.getPlatformCode().split("_")[0];
+        BeanUtils.copyProperties(h5GameEntity, orderEntity);
+        //处理H5支付拓展字段
+        handleExtraField(h5GameEntity, orderEntity);
+        orderEntity.setOrderNo(GenOrderCode.next());
+        orderEntity.setPayNotifyUrl(appInfoEntity.getPayNotifyUrl());
+        orderEntity.setCurMonth(DateUtils.getCurDateFormatStr(DateUtils.DEFAULT_CUR_MONTH_FORMAT));
+        orderEntity.setAppCode(appInfoEntity.getAppCode());
+        orderEntity.setAppName(appInfoEntity.getAppName());
+        orderEntity.setChargePointAmount(price);
+        orderEntity.setChargePointName(h5GameEntity.getItem());
+        orderEntity.setChargePointCode(h5GameEntity.getItemCode());
+        orderEntity.setOrderStatus(OrderStatusEnum.orderstatus_no_pay.code);
+        orderEntity.setCallbackStatus(CBStatusEnum.NO_NOTIFY.getCode());
+        orderEntity.setChannelCode(channelCode);
+        String gameOrderNo = StringUtils.isBlank(h5GameEntity.getOutOrderNo()) ? "0000" : h5GameEntity.getOutOrderNo();
+        orderEntity.setGameOrderNo(gameOrderNo);
+        orderEntity.setBuyerId(h5GameEntity.getUserId());
+        orderEntity.setPayOrigin("wap");
+        orderEntity.setPayType(4);
+        orderService.createOrder(orderEntity);
+        return orderEntity;
+    }
+
+    /**
+     * 根据用户userId获取微信公众号对应用户openid
+     *
+     * @param h5GameEntity
+     * @return
+     */
+    public String getWxOpenIdByUserId(H5GameEntity h5GameEntity) {
+        String openId = null;
+        String wxAppId = null;
+        try {
+            wxAppId = h5GameEntity.getPlatformCode().split("_")[1];
+            openId = userloginService.getWXOpenId(h5GameEntity.getUserId(), wxAppId);
+        } catch (Exception ex) {
+            logger.error("根据用户userId：{}，公众号appid:{} 获取用户公众号openId异常", h5GameEntity.getUserId(), wxAppId);
+        }
+        return openId;
+    }
+
+
+    /**
+     * 处理H5支付拓展字段
+     */
+    private void handleExtraField(H5GameEntity h5GameEntity, OrderEntity orderEntity) {
+        Map<String, String> extraFieldMap = new HashMap<>(4);
+        extraFieldMap.put("zoneId", h5GameEntity.getZoneId());
+        if (StringUtils.isNotBlank(h5GameEntity.getP1())) {
+            extraFieldMap.put("p1", h5GameEntity.getP1());
+        }
+        if (StringUtils.isNotBlank(h5GameEntity.getP2())) {
+            extraFieldMap.put("p2", h5GameEntity.getP2());
+        }
+        if (StringUtils.isNotBlank(h5GameEntity.getPlatformCode())) {
+            extraFieldMap.put("platformCode", h5GameEntity.getPlatformCode());
+        }
+        orderEntity.setExtraField(JSON.toJSONString(extraFieldMap));
+    }
+}

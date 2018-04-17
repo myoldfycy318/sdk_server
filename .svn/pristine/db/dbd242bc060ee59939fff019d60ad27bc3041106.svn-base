@@ -1,0 +1,17 @@
+package com.dome.sdkserver.metadata.dao.mapper.yeyou;
+
+import com.dome.sdkserver.bo.CallbackAudit;
+import org.apache.ibatis.annotations.Param;
+
+import com.dome.sdkserver.metadata.dao.mapper.GameMapper;
+import com.dome.sdkserver.metadata.entity.AbstractGame;
+import com.dome.sdkserver.metadata.entity.yeyou.YeyouGame;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface YeyouGameMapper<T extends YeyouGame> extends GameMapper<AbstractGame> {
+
+//	int updatePayCallBackUrl(@Param("code")String code, @Param("url")String payCallBackUrl);
+
+	int updatePayCallBackUrl(@Param("callbackAudit")CallbackAudit callbackAudit);
+}

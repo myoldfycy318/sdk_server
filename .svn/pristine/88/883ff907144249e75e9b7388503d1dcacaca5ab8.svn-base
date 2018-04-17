@@ -1,0 +1,234 @@
+package com.dome.sdkserver.service.impl.game;
+
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.enumeration.GameTypeEunm;
+import com.dome.sdkserver.bq.enumeration.OpenSelectEnum;
+import com.dome.sdkserver.constants.RedisKeyEnum;
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.AppInfoMapper;
+import com.dome.sdkserver.metadata.dao.mapper.bq.pay.NewOpenGameInfoMapper;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.service.game.GameService;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+
+/**
+ * GameServiceImpl
+ *
+ * @author Zhang ShanMin
+ * @date 2016/10/17
+ * @time 17:01
+ */
+
+@Service("gameService")
+public class GameServiceImpl extends GameSyncManager implements GameService {
+
+    private static Logger logger = LoggerFactory.getLogger(GameServiceImpl.class);
+
+    @Resource(name = "appInfoMapper")
+    private AppInfoMapper appInfoMapper;
+
+
+    //新开放平台
+    @Autowired
+    private NewOpenGameInfoMapper newOpenGameInfoMapper;
+
+    /**
+     * meger页游信息
+     *
+     * @param appInfoEntity
+     * @return
+     */
+    private boolean megerWebGameAppInfo(AppInfoEntity appInfoEntity) {
+        Integer flag = appInfoMapper.isExistWebGame(appInfoEntity);
+        boolean result = false;
+        if (flag >= 1) {
+            result = appInfoMapper.updatewebgame(appInfoEntity);
+        } else {
+            result = appInfoMapper.insertwebgame(appInfoEntity);
+        }
+        return result ? handleCache(appInfoEntity) : false;
+    }
+
+
+    /**
+     * meger宝玩H5信息
+     *
+     * @param appInfoEntity
+     * @return
+     */
+    private boolean megerBwH5GameAppInfo(AppInfoEntity appInfoEntity) {
+        Integer flag = appInfoMapper.isExistBwH5Game(appInfoEntity);
+        boolean result = false;
+        if (flag >= 1) {
+            result = appInfoMapper.updateBwH5game(appInfoEntity);
+        } else {
+            result = appInfoMapper.insertBwH5game(appInfoEntity);
+        }
+        return result ? handleCache(appInfoEntity) : false;
+    }
+
+    /**
+     * meger冰趣H5信息
+     *
+     * @param appInfoEntity
+     * @return
+     */
+    private boolean megerBqH5GameAppInfo(AppInfoEntity appInfoEntity) {
+        Integer flag = appInfoMapper.isExistBQH5Game(appInfoEntity);
+        boolean result = false;
+        if (flag >= 1) {
+            result = appInfoMapper.updateBq5game(appInfoEntity);
+        } else {
+            result = appInfoMapper.insertBqH5game(appInfoEntity);
+        }
+        return result ? handleCache(appInfoEntity) : false;
+    }
+
+
+    /**
+     * meger冰趣手游信息
+     *
+     * @param appInfoEntity
+     * @return
+     */
+    private boolean megerAppGameInfo(AppInfoEntity appInfoEntity) {
+        Integer flag = appInfoMapper.isExistAppGame(appInfoEntity);
+        boolean result = false;
+        if (flag >= 1) {
+            result = appInfoMapper.updateAppGame(appInfoEntity);
+        } else {
+            result = appInfoMapper.insertAppGame(appInfoEntity);
+        }
+        // TODO 开放平台手游同步数据暂时不放缓存，直接从开发平台数据库中取
+        // return result ? handleCache(appInfoEntity) : false;
+
+        //开放平台手游信息刷入redis
+        RedisKeyEnum redisKeyEnum = RedisKeyEnum.getGameType(appInfoEntity.getAppCode());
+        String key = redisKeyEnum.getKey() + appInfoEntity.getAppCode();
+        if (redisKeyEnum == null) {
+            return false;
+        }
+        appInfoEntity = queryDBGameInfo(appInfoEntity.getAppCode());//获取游戏应用信息
+        if (appInfoEntity != null) {
+            redisUtil.setex(key, redisKeyEnum.getExpireTime(), JSONObject.toJSONString(appInfoEntity));
+        }
+        return result;
+    }
+
+    /**
+     * meger游戏信息
+     *
+     * @param appInfoEntity
+     * @return
+     */
+    @Override
+    public boolean megerGameAppInfo(AppInfoEntity appInfoEntity) {
+        switch (GameTypeEunm.getGameType(appInfoEntity.getAppCode())) {
+            case WEB_GAME:
+                return megerWebGameAppInfo(appInfoEntity);
+            case BW_H5:
+                return megerBwH5GameAppInfo(appInfoEntity);
+            case BQ_H5:
+                return megerBqH5GameAppInfo(appInfoEntity);
+            case APP_GAME:
+                return megerAppGameInfo(appInfoEntity);
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * 获取数据库游戏信息
+     *
+     * @param appCode
+     * @return
+     */
+    public AppInfoEntity queryDBGameInfo(String appCode) {
+        GameTypeEunm gameTypeEunm = GameTypeEunm.getGameType(appCode);
+        if (gameTypeEunm == null) return null;
+        switch (gameTypeEunm) {
+            case WEB_GAME:
+                return appInfoMapper.queryWebGame(appCode);
+            case BW_H5:
+                return appInfoMapper.queryBwH5Game(appCode);
+            case BQ_H5:
+                return appInfoMapper.queryBH5Game(appCode);
+            case APP_GAME:
+                // return appInfoMapper.queryAppGame(appCode); todo 获取手游游戏暂从开放平台获取，后期待改
+                return appInfoMapper.getAppInfoByAppCode(appCode);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * 获取
+     *
+     * @param appCode
+     * @return
+     */
+    @Override
+    public AppInfoEntity getAppInfo(String appCode) {
+        AppInfoEntity appInfoEntity = null;
+        RedisKeyEnum redisKeyEnum = RedisKeyEnum.getGameType(appCode);
+        if (redisKeyEnum == null) {
+            return null;
+        }
+        String appKey = redisKeyEnum.getKey() + appCode;
+        String json = redisUtil.get(appKey);
+        if (StringUtils.isBlank(json)) {
+            // 查老开放平台应用
+            appInfoEntity = queryDBGameInfo(appCode);//获取游戏应用信息
+            // 老开放平台未查询到数据时再查询新开放平台
+            if(appInfoEntity == null){
+                appInfoEntity = queryNewOpenDBGameInfo(appCode);
+            }
+            if (appInfoEntity != null) {
+                redisUtil.setex(appKey, redisKeyEnum.getExpireTime(), JSONObject.toJSONString(appInfoEntity));
+            }
+        } else {
+            appInfoEntity = JSONObject.parseObject(json, AppInfoEntity.class);
+        }
+        return appInfoEntity;
+    }
+
+    /**
+     * 刷新缓存
+     *
+     * @param appCode
+     * @return
+     */
+    @Override
+    public boolean refreshAppInfo(String appCode) {
+        RedisKeyEnum redisKeyEnum = RedisKeyEnum.getGameType(appCode);
+        if (redisKeyEnum == null) {
+            logger.info("刷新游戏:{} 缓存失败,{}", appCode, "获取不到对应的游戏缓存key");
+            return false;
+        }
+        boolean result = false;
+        //获取数据库中的商户信息
+        AppInfoEntity appInfoEntity = queryDBGameInfo(appCode);
+        if (appInfoEntity != null) {
+            redisUtil.setex(redisKeyEnum.getKey() + appInfoEntity.getAppCode(), redisKeyEnum.getExpireTime(), JSONObject.toJSONString(appInfoEntity));
+            result = true;
+        }
+        return result;
+    }
+
+
+
+
+    private AppInfoEntity queryNewOpenDBGameInfo(String appCode) {
+        //查询新开放平台同步的数据,并将查询到的数据标记数据来源为新开放平台
+        AppInfoEntity appInfoEntity = newOpenGameInfoMapper.selectByAppCode(appCode);
+        if (appInfoEntity != null) {
+            appInfoEntity.setOpenSelect(OpenSelectEnum.新开放平台.getOpenSelect());
+        }
+        return appInfoEntity;
+    }
+}

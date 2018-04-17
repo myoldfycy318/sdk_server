@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.yeyou.YeYouCpMapper">
+	<resultMap type="com.dome.sdkserver.metadata.entity.yeyou.YeYouCp" id="cpMap">
+		<id property="chargePointId" jdbcType="INTEGER" column="id"/>
+		<result property="appCode" jdbcType="VARCHAR" column="game_code"/>
+		<result property="appName" jdbcType="VARCHAR" column="game_name"/>
+		<result property="chargePointCode" jdbcType="VARCHAR" column="cp_code"/>
+		<result property="chargePointName" jdbcType="VARCHAR" column="cp_name"/>
+		<result property="desc" jdbcType="VARCHAR" column="cp_desc"/>
+		<result property="chargePointAmount" jdbcType="INTEGER" column="cp_amount"/>
+		<result property="remark" jdbcType="VARCHAR" column="remark"/>
+		<result property="status" jdbcType="TINYINT" column="status"/>
+		<result property="delFlag" jdbcType="TINYINT" column="del_flag"/>
+		<result property="createTime" jdbcType="TIMESTAMP" column="create_time"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+	</resultMap>
+	
+	<insert id="insert">
+		insert into domesdk_yeyou_chargepoint (game_code, cp_name, cp_desc, cp_amount, status, del_flag, create_time, update_time
+			<!-- 变更计费点时添加记录时会有计费点编码 -->
+			<if test="t.chargePointCode!=null and t.chargePointCode!=''">
+				,cp_code
+			</if>
+		)
+		
+		values (#{t.appCode}, #{t.chargePointName}, #{t.desc}, #{t.chargePointAmount}, #{t.status}, 0, now(), now()
+			<if test="t.chargePointCode!=null and t.chargePointCode!=''">
+				,#{t.chargePointCode}
+			</if>
+		);
+		<selectKey resultType="int" keyProperty="t.chargePointId" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+	  	</selectKey>
+	</insert>
+	
+	<update id="update">
+		update domesdk_yeyou_chargepoint set update_time=now()
+			<if test="t.chargePointName !=null and t.chargePointName!=''">
+				, cp_name=#{t.chargePointName}
+			</if>
+			<if test="t.desc!=null and t.desc!=''">
+				,cp_desc=#{t.desc}
+			</if>
+			<if test="t.chargePointAmount!=null and t.chargePointAmount!=''">
+				,cp_amount=#{t.chargePointAmount}
+			</if>
+			
+			<choose>
+				<when test="t.remark !=null and t.remark!=''">  <!-- 游戏审批驳回 -->
+					,remark=#{t.remark}, status=#{t.status} <!-- 驳回 -->
+				</when>
+				<when test="t.status!=null and t.status!=0">
+					,status=#{t.status} <!-- 驳回编辑操作 -->
+				</when>
+			</choose>
+			
+		where del_flag=0 
+			<if test="t.chargePointCode !=null and t.chargePointCode!=''">
+				and status != 70 and cp_code=#{t.chargePointCode}
+			</if>
+			<if test="t.chargePointId!=null and t.chargePointId!=0">
+				and id=#{t.chargePointId}
+			</if>
+	</update>
+	
+	<update id="updateStatus">
+		update domesdk_yeyou_chargepoint set update_time=now(), status=#{status}, remark=null <!-- 重置驳回理由字段 -->
+			where del_flag=0 and id=#{id};
+	</update>
+	
+	<update id="updateCode">
+		update domesdk_yeyou_chargepoint set cp_code=#{code}
+			where del_flag=0 and id=#{id};
+	</update>
+	
+	<update id="delele">
+		update domesdk_yeyou_chargepoint set update_time=now(), del_flag=1
+			where del_flag=0 and id=#{id};
+	</update>
+	
+	<select id="select" resultMap="cpMap">
+		select * from domesdk_yeyou_chargepoint where del_flag=0 and status != 70 and cp_code=#{code};
+	</select>
+	
+	<select id="selectByName" resultMap="cpMap">
+		select * from domesdk_yeyou_chargepoint where del_flag=0 and status != 70 and cp_name=#{name}
+		and game_code=#{appCode};
+	</select>
+	
+	<select id="selectCount" resultType="int">
+		select count(*) from domesdk_yeyou_chargepoint
+		WHERE 
+		    del_flag = 0
+		 	 <!-- 变更后已失效的不展示 -->
+	    	 and status != 70
+		<if test="entity.appCode != null and entity.appCode != '' ">
+			and game_code = #{entity.appCode}
+		</if>
+		<if test="entity.chargePointName != null and entity.chargePointName != '' ">
+			and cp_name like concat('%',#{entity.chargePointName},'%')
+		</if>
+		<if test="entity.amountStart != null and entity.amountStart != 0">
+			and cp_amount &gt;= #{entity.amountStart}
+		</if>
+		<if test="entity.amountEnd != null and entity.amountEnd != 0">
+			and cp_amount &lt;= #{entity.amountEnd}
+		</if>
+		<if test="entity.status != null and entity.status != 0">
+			and status = #{entity.status}
+		</if>
+		<if test="entity.startTime != null and entity.startTime != ''">
+			and create_time &gt;= concat(#{entity.startTime}, ' 00:00:00')
+		</if>
+		<if test="entity.endTime != null and entity.endTime != ''">
+			and create_time &lt;= concat(#{entity.endTime}, ' 23:59:59')
+		</if>	
+	</select>
+	<select id="selectList" resultMap="cpMap">
+		select * from domesdk_yeyou_chargepoint where del_flag=0
+			<!-- 变更后已失效的不展示 -->
+	    	 and status != 70
+		<if test="entity.appCode != null and entity.appCode != '' ">
+			and game_code = #{entity.appCode}
+		</if>
+		<if test="entity.chargePointName != null and entity.chargePointName != '' ">
+			and cp_name like concat('%',#{entity.chargePointName},'%')
+		</if>
+		<if test="entity.amountStart != null and entity.amountStart != 0">
+			and cp_amount &gt;= #{entity.amountStart}
+		</if>
+		<if test="entity.amountEnd != null and entity.amountEnd != 0">
+			and cp_amount &lt;= #{entity.amountEnd}
+		</if>
+		<if test="entity.status != null and entity.status != 0">
+			and status = #{entity.status}
+		</if>
+		<if test="entity.startTime != null and entity.startTime != ''">
+			and create_time &gt;= concat(#{entity.startTime}, ' 00:00:00')
+		</if>
+		<if test="entity.endTime != null and entity.endTime != ''">
+			and create_time &lt;= concat(#{entity.endTime}, ' 23:59:59')
+		</if>
+		order by update_time desc
+		<if test="p.start!=null and p.start!=-1">
+		   	limit #{p.start}, #{p.pageSize}
+		</if>;
+	</select>
+	
+	<select id="selectNeedHandleCpCount" resultType="int">
+		select count(*) from domesdk_yeyou_chargepoint where del_flag=0 and status in (10, 30)
+			and game_code=#{appCode};
+	</select>
+</mapper>

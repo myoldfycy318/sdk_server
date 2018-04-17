@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.SnyAppInfoToBiMapper">
+    <resultMap type="com.dome.sdkserver.bo.SnyAppInfoToBi" id="resultMap">
+        <id property="appCode" jdbcType="VARCHAR" column="app_code"/>
+        <result property="appName" jdbcType="VARCHAR" column="app_name"/>
+        <result property="cpCode" jdbcType="VARCHAR" column="cp_code"/>
+        <result property="cpName" jdbcType="VARCHAR" column="cp_name"/>
+        <result property="status" jdbcType="INTEGER" column="status"/>
+        <result property="beginMonth" jdbcType="VARCHAR" column="begin_month"/>
+        <result property="endMonth" jdbcType="VARCHAR" column="end_month"/>
+    </resultMap>
+
+
+    <!--查询所有已经审核通过没有被删除已经审通过的商家并且应用上架没有被删除的应用-->
+    <select id="selectAllMobileYeYouH5Info" resultMap="resultMap">
+        SELECT
+          m.merchant_full_name AS cp_name,
+          m.merchant_code AS cp_code,
+          a.app_code,
+          a.app_name,
+          a.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_app_info a
+        ON m.merchant_info_id=a.merchant_info_id
+        WHERE m.status=2 AND a.status in(1,0) AND a.del_flag=0 AND m.del_flag=0
+
+        UNION
+
+        SELECT
+          m.merchant_full_name AS cp_name,
+          m.merchant_code AS cp_code,
+          g.game_code AS app_code,
+          g.game_name AS app_name,
+          g.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_yeyou_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status in(1,0) AND g.del_flag=0 AND m.del_flag=0
+
+        UNION
+
+        SELECT
+          m.merchant_full_name AS cp_name,
+          m.merchant_code AS cp_code,
+          g.game_code AS app_code,
+          g.game_name AS app_name,
+          g.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_h5_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status in(1,0) AND g.del_flag=0 AND m.del_flag=0
+
+    </select>
+
+
+    <select id="selectMobileYeYouH5InfoByAppCode" resultMap="resultMap">
+        SELECT
+        m.merchant_full_name AS cp_name,
+        m.merchant_code AS cp_code,
+        a.app_code,
+        a.app_name,
+        a.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_app_info a
+        ON m.merchant_info_id=a.merchant_info_id
+        WHERE m.status=2 AND a.status in(19,1) AND a.del_flag=0 AND m.del_flag=0 AND a.app_code = #{appCode}
+
+        UNION
+
+        SELECT
+        m.merchant_full_name AS cp_name,
+        m.merchant_code AS cp_code,
+        g.game_code AS app_code,
+        g.game_name AS app_name,
+        g.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_yeyou_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status in(19,1) AND g.del_flag=0 AND m.del_flag=0 AND g.game_code = #{appCode}
+
+        UNION
+
+        SELECT
+        m.merchant_full_name AS cp_name,
+        m.merchant_code AS cp_code,
+        g.game_code AS app_code,
+        g.game_name AS app_name,
+        g.status
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_h5_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status in(19,1) AND g.del_flag=0 AND m.del_flag=0 AND g.game_code = #{appCode}
+    </select>
+
+
+    <sql id="biColumns">
+        app_code,app_name,cp_code,cp_name,create_time,update_time,begin_month,end_month
+    </sql>
+
+    <select id="selectAllAppInfoFromBi" resultMap="resultMap">
+        SELECT
+        <include refid="biColumns"/>
+        FROM report_bi.sdk_app_config
+    </select>
+
+    <select id="selectAppInfoFromBiByAppCode" resultMap="resultMap">
+        SELECT
+        <include refid="biColumns"/>
+        FROM report_bi.sdk_app_config
+        WHERE app_code = #{appCode}
+    </select>
+
+    <insert id="addAppInfoToBi">
+        INSERT INTO report_bi.sdk_app_config
+                    (app_code,
+                     app_name,
+                     cp_code,
+                     cp_name,
+                     create_time,
+                     begin_month,
+                     end_month)
+        VALUES (#{bi.appCode},
+                #{bi.appName},
+                #{bi.cpCode},
+                #{bi.cpName},
+                now(),
+                '2015-01',
+                '2999-12');
+                <!--已经与数据及产品确认起止月份固定-->
+    </insert>
+
+</mapper>

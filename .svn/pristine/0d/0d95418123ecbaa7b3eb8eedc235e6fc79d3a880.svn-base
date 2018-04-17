@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.PassportGameManagerMapper">
+    <resultMap type="com.dome.sdkserver.bo.PassportGame" id="ResultMap">
+        <result column="app_code" jdbcType="VARCHAR" property="appCode"/>
+        <result column="app_name" jdbcType="VARCHAR" property="appName"/>
+    </resultMap>
+
+    <sql id="Base_Column">
+        id,app_code,app_name,game_pic_url,status,create_time,update_time
+    </sql>
+
+    <select id="selectAllApp" resultMap="ResultMap">
+        SELECT
+          a.app_code,
+          a.app_name
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_app_info a
+        ON m.merchant_info_id=a.merchant_info_id
+        WHERE m.status=2 AND a.status=1 AND a.del_flag=0 AND m.del_flag=0
+        <if test="appCode != null and appCode != ''">
+            AND a.app_code=#{appCode}
+        </if>
+        <if test="appName != null and appName != ''">
+            AND a.app_name LIKE CONCAT('%',#{appName},'%')
+        </if>
+
+        UNION
+
+        SELECT
+          g.game_code AS app_code,
+          g.game_name AS app_name
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_yeyou_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status=1 AND g.del_flag=0 AND m.del_flag=0
+        <if test="appCode != null and appCode != ''">
+            AND g.game_code=#{appCode}
+        </if>
+        <if test="appName != null and appName != ''">
+            AND g.game_name LIKE CONCAT('%',#{appName},'%')
+        </if>
+
+        UNION
+
+        SELECT
+          g.game_code AS app_code,
+          g.game_name AS app_name
+        FROM dome_sdkserver.domesdk_merchant_info m
+        LEFT JOIN dome_sdkserver.domesdk_h5_game g
+        ON m.merchant_user_id=g.user_id
+        WHERE m.status=2 AND g.status=1 AND g.del_flag=0 AND m.del_flag=0
+        <if test="appCode != null and appCode != ''">
+            AND g.game_code=#{appCode}
+        </if>
+        <if test="appName != null and appName != ''">
+            AND g.game_name LIKE CONCAT('%',#{appName},'%')
+        </if>
+    </select>
+
+
+</mapper>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fields>
+	<field attr="appName">
+		<text>应用名称</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30001</code>
+		</check-null>
+		<check-length>
+			<max-length>16</max-length>
+			<code>30002</code>
+		</check-length>
+	</field>
+	
+	<field attr="appIcon">
+		<text>应用Icon</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30003</code>
+		</check-null>
+		<check-length>
+			<max-length>120</max-length>
+			<code>30004</code>
+		</check-length>
+	</field>
+	
+	<field attr="appUrl">
+		<text>回调网址</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30005</code>
+		</check-null>
+		<check-length>
+			<max-length>250</max-length>
+			<code>30006</code>
+		</check-length>
+	</field>
+	
+	<field attr="appDesc">
+		<text>应用描述</text>
+		<check-null>
+			<allow-null>1</allow-null>
+			<code>30007</code>
+		</check-null>
+		<check-length>
+			<max-length>200</max-length>
+			<code>30008</code>
+		</check-length>
+	</field>
+</fields>

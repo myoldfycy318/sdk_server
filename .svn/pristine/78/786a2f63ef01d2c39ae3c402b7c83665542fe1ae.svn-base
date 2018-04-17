@@ -1,0 +1,5 @@
+var app = app || { }
+
+app.api = {
+  api: '//sdkserver.domestore.cn'
+}

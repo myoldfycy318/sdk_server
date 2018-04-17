@@ -1,0 +1,865 @@
+package com.dome.sdkserver.controller.pay;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.enumeration.PayTypeEnum;
+import com.dome.sdkserver.biz.utils.H5GameUtil;
+import com.dome.sdkserver.bq.constants.ThirdPartyEnum;
+import com.dome.sdkserver.bq.constants.redis.RedisConstants;
+import com.dome.sdkserver.bq.enumeration.ErrorCodeEnum;
+import com.dome.sdkserver.bq.util.GenOrderCode;
+import com.dome.sdkserver.bq.util.MapUtil;
+import com.dome.sdkserver.bq.util.PayUtil;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.constants.RedisKeyEnum;
+import com.dome.sdkserver.controller.pay.basic.PayBaseController;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.metadata.entity.bq.pay.BqChargePointInfo;
+import com.dome.sdkserver.metadata.entity.bq.pay.PayType;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.chargePoint.ChargePointService;
+import com.dome.sdkserver.service.login.ThridRequestService;
+import com.dome.sdkserver.service.login.UserLoginService;
+import com.dome.sdkserver.service.order.OrderService;
+import com.dome.sdkserver.service.pay.PayConfigService;
+import com.dome.sdkserver.service.pay.PayOptionsService;
+import com.dome.sdkserver.service.pay.qbao.bo.UserInfo;
+import com.dome.sdkserver.service.web.requestEntity.HttpRequestOrderInfo;
+import com.dome.sdkserver.util.*;
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/bqpay")
+public class PayController extends PayBaseController {
+
+    @Autowired
+    protected PropertiesUtil switchConfig;
+
+    @Autowired
+    private PayConfigService payConfigService;
+    @Autowired
+    private OrderService orderService;
+    @Autowired
+    private ChargePointService chargePointService;
+    @Autowired
+    private UserLoginService userloginService;
+    @Autowired
+    private RedisUtil redisUtil;
+    @Autowired
+    private ThridRequestService thridRequestService;
+
+    @Resource(name = "payOptionsService")
+    private PayOptionsService payOptionsService;
+
+    @Resource(name = "userLoginService")
+    private UserLoginService userLoginService;
+
+    @Value("${buid}")
+    private String bqsdkBuId;//冰趣sdk的ui，uc分配
+
+    private static String redisKey = "domesdk_order";
+
+    /**
+     * 获得计费点信息
+     *
+     * @param request
+     * @param appCode
+     * @return
+     */
+    @RequestMapping(value = "getChargePoint")
+    @ResponseBody
+    public SdkOauthResult getChargePoint(HttpServletRequest request, String appCode, String chargePointCode) {
+        SdkOauthResult result;
+        try {
+            String authToken = request.getParameter("authToken");
+            if (StringUtils.isBlank(authToken)) {
+                log.error(">>>>>>>>>auToken不能为空");
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            if (StringUtils.isBlank(chargePointCode)) {
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            String qdCode = request.getParameter("channelCode");
+            if (StringUtils.isBlank(qdCode)) {
+                log.error(">>>>>>>>>渠道号不能为空 appCode = " + appCode);
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+
+            }
+            result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            }
+
+            JSONObject response = userloginService.getUserByToken(authToken, appCode, bqsdkBuId, null);
+            result = parserUcResponse(response);
+            if (!result.isSuccess()) {
+                return result;
+            }
+
+            BqChargePointInfo chargePointInfo = chargePointService.getChargePointInfoByCode(chargePointCode, appCode);
+            if (chargePointInfo == null) {
+                log.error(">>>>>>>>>没有该计费点信息chargePointId = " + chargePointCode + "appCode = " + appCode);
+                return SdkOauthResult.failed(ErrorCodeEnum.无效的计费点.code, ErrorCodeEnum.无效的计费点.name());
+            }
+
+            List<PayType> payTypes = payOptionsService.queryPayTypeList(appCode, qdCode);
+            if (payTypes == null || payTypes.size() == 0) {
+                log.error(">>>>>>>>>没有该app的支付方式appCode = " + appCode);
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            chargePointInfo.setPayTypes(payTypes);
+            return SdkOauthResult.success(chargePointInfo);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+
+    @RequestMapping(value = "getPayTypes")
+    @ResponseBody
+    public SdkOauthResult getPayTypes(HttpServletRequest request) {
+        try {
+            String appCode = request.getParameter("appCode");
+            String channelCode = request.getParameter("channelCode");
+            if (StringUtils.isBlank(appCode) || StringUtils.isBlank(channelCode))
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            List<PayType> payTypes = payOptionsService.queryPayTypeList(appCode, channelCode);
+            if (payTypes == null || payTypes.size() == 0) {
+                log.error(">>>>>>>>>没有该app的支付方式appCode = " + appCode);
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("payTypes", payTypes);
+            return SdkOauthResult.success(map);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+
+    /**
+     * 支付宝|微信 App端支付
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping(value = "createOrderInfo")
+    @ResponseBody
+    public SdkOauthResult createOrderInfo(HttpServletRequest request, HttpRequestOrderInfo order) {
+        SdkOauthResult result;
+        String lockKey ="";
+        try {
+            result = checkOrderRequest(order, request);
+            if (!result.isSuccess())
+                return result;
+            //验证支付宝支付签名
+            result = validateAliPaySign(request, order);
+            if (!result.isSuccess())
+                return result;
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess())
+                return result;
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            String appName = clientDetails.getAppName();
+
+            String authToken = request.getParameter("authToken");
+            JSONObject response = userloginService.getUserByToken(authToken, order.getAppCode(), bqsdkBuId, null);
+            result = parserUcResponse(response);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            Map<String, Object> user = (Map<String, Object>) result.getData();
+            String buyerId = user.get(BqSdkConstants.domeUserId).toString();
+            String qwUserId = user.get(BqSdkConstants.qbaoUid) == null ? "" : user.get(BqSdkConstants.qbaoUid).toString();
+            int lockTime = domainConfig.getInt("pay.ali.wap.user.lock.time", "5");
+            lockKey = RedisConstants.ALI_PAY_LOCK_WAP + order.getAppCode() + ":" + order.getBuyerId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock"))
+                return SdkOauthResult.failed("操作频繁，请稍后重试");
+
+            BqChargePointInfo chargePointInfo = chargePointService.getChargePointInfoByCode(order.getChargePointCode(), order.getAppCode());
+            if (chargePointInfo == null) {
+                return SdkOauthResult.failed(ErrorCodeEnum.无效的计费点.code, ErrorCodeEnum.无效的计费点.name());
+            }
+            order.setOrderNo(GenOrderCode.next());
+            order.setBuyerId(buyerId);
+            order.setBwUserId(qwUserId);
+            //计费点金额，单位：元
+            order.setChargePointAmount(chargePointInfo.getChargePointAmount());
+            order.setChargePointName(chargePointInfo.getChargePointName());
+            order.setAppName(appName);
+            order.setChannelCode(request.getParameter("channelCode"));
+            Map<String, String> payData = payConfigService.getAllConfig(order.getPayType());
+            if (payData == null || payData.size() == 0) {
+                log.error(" 不支持该支付方式  appCode = " + order.getAppCode());
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            ////添加支付宝支付描述信息，财务用户辨识支付来源
+            chargePointInfo.setDesc("MGame_" + appName + "_" + order.getAppCode() + "_" + request.getParameter("channelCode"));
+            Object payInfo = getPayInfoByPayType(order, payData, chargePointInfo, request);
+            log.info("payStr = " + payInfo);
+            Map<String, Object> resultMap = new HashMap<String, Object>();
+            resultMap.put("payInfo", payInfo);
+
+            orderService.createAndSaveOrder(order);
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+//            redisUtil.del(lockKey);
+            log.info(">>>>>>>>>>>>>>>>>>订单请求参数:" + JSONObject.toJSONString(order));
+        }
+    }
+
+    /**
+     * 支付宝即时到帐支付(PC端)
+     *
+     * @param request
+     * @param order
+     * @param chargePointInfo
+     * @return
+     */
+    @RequestMapping(value = "createPcOrder", method = RequestMethod.POST)
+    @ResponseBody
+    public SdkOauthResult createPcOrderInfo(final HttpServletRequest request, HttpRequestOrderInfo order, BqChargePointInfo chargePointInfo) {
+        SdkOauthResult result;
+        try {
+            String userId = PayUtil.orderDesDecrypt(order.getBuyerId(), domainConfig.getString("ali.pay.webpagegame.des.secretkey"));
+            int lockTime = domainConfig.getInt("pay.ali.user.lock.time", "5");
+            if (redisUtil.tryLock(RedisConstants.ALI_PAY_LOCK + userId, lockTime, "lock"))
+                return SdkOauthResult.failed("操作频繁，请稍后重试");
+            result = checkOrderRequest(order, request);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            String appName = clientDetails.getAppName();
+            order.setChargePointCode("0000");
+            order.setGameOrderNo("0000");
+            order.setOrderNo(GenOrderCode.next());
+            order.setBuyerId(userId);
+            order.setBwUserId(userId);//阿里即时到帐支付页游接入，目前只支持宝玩渠道支付(2016-08-18)
+            //计费点金额，单位：元
+            order.setChargePointAmount(chargePointInfo.getChargePointAmount());
+            order.setChargePointName(chargePointInfo.getChargePointName());
+            order.setAppName(appName);
+            order.setChannelCode(request.getParameter("channelCode"));
+            final String zoneId = request.getParameter("zoneId");
+            order.setExtraField(JSON.toJSONString(new HashMap<String, String>() {{
+                put("zoneId", zoneId);
+            }}));
+            Map<String, String> payData = payConfigService.getAllConfig(order.getPayType());
+            if (payData == null || payData.size() == 0) {
+                log.error(" 不支持该支付方式  appCode = " + order.getAppCode());
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            //添加支付宝支付描述信息，财务用户辨识支付来源
+            chargePointInfo.setDesc("WebGame_" + appName + "_" + order.getAppCode() + "_" + request.getParameter("channelCode"));
+            Object payInfo = getPayInfoByPayType(order, payData, chargePointInfo, request);
+            log.info("payStr = " + payInfo);
+            Map<String, Object> resultMap = new HashMap<String, Object>();
+            resultMap.put("payInfo", payInfo);
+            resultMap.put("orderNo", order.getOrderNo());
+            orderService.createAndSaveOrder(order);
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+            log.info(">>>>>>>>>>>>>>>>>>页游订单请求参数:" + JSONObject.toJSONString(order));
+        }
+    }
+
+
+    /**
+     * 支付宝|微信 wap页面支付
+     *
+     * @param request
+     * @param order
+     * @param chargePointInfo
+     * @return
+     */
+    @RequestMapping(value = "createWapOrder")
+    @ResponseBody
+    public SdkOauthResult createWapOrderInfo(HttpServletRequest request, final HttpRequestOrderInfo order, BqChargePointInfo chargePointInfo) {
+        SdkOauthResult result;
+        String lockKey = "";
+        try {
+            result = checkOrderRequest(order, request);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            //验证支付宝wap支付参数
+            result = verifyAliWapPayParams(order, clientDetails, chargePointInfo);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            int lockTime = domainConfig.getInt("pay.ali.wap.user.lock.time", "1");
+            lockKey = RedisConstants.ALI_PAY_LOCK_WAP + order.getAppCode() + ":" + order.getBuyerId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock"))
+                return SdkOauthResult.failed("操作频繁，请稍后重试");
+//            order.setPayType(1);//支付宝支付
+            Map<String, String> payData = payConfigService.getAllConfig(order.getPayType(),order.getAppCode());
+            if (payData == null || payData.size() == 0) {
+                log.error(" 不支持该支付方式  appCode = " + order.getAppCode());
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            if (BqSdkConstants.channelCodeQbao.equals(order.getChannelCode())) {
+                String qbaoUserId = order.getBuyerId();
+                order.setBwUserId(qbaoUserId);//宝玩渠道支付宝wap支付记录宝玩userId
+                //钱宝支付设置冰穹userId
+                JSONObject jsonObject = userLoginService.getUserInfoByOpenId(ThirdPartyEnum.QBAO.getThirdId(), String.valueOf(qbaoUserId));
+                if (jsonObject != null && StringUtils.isNotBlank(jsonObject.getString("userId"))) {
+                    order.setBuyerId(jsonObject.getString("userId"));
+                }
+            }
+            order.setOrderNo(GenOrderCode.next());
+            order.setAppName(clientDetails.getAppName());
+            //添加支付宝支付描述信息，财务用户辨识支付来源
+            chargePointInfo.setDesc(clientDetails.getAppName() + "_" + order.getAppCode() + "_" + request.getParameter("channelCode"));
+            Object payInfo = getPayInfoByPayType(order, payData, chargePointInfo, request);
+            Map<String, Object> resultMap = new HashMap<String, Object>();
+            resultMap.put("payInfo", payInfo);
+            resultMap.put("orderNo", order.getOrderNo());
+            if(order.getPayType() == PayTypeEnum.支付宝支付.getCode()){
+                resultMap.put("aliWapPage", getAliWapPayInfo((Object[]) payInfo));
+            }
+            orderService.createAndSaveOrder(order);
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+    /**
+     * 验证支付宝wap支付参数
+     *
+     * @param order
+     * @param clientDetails
+     * @param chargePointInfo
+     * @return
+     * @throws Exception
+     */
+    private SdkOauthResult verifyAliWapPayParams(final HttpRequestOrderInfo order, AppInfoEntity clientDetails, BqChargePointInfo chargePointInfo) throws Exception {
+        RedisKeyEnum redisKeyEnum = RedisKeyEnum.getGameType(order.getAppCode());
+        if (redisKeyEnum == null) {
+            return SdkOauthResult.failed(ErrorCodeEnum.appCode为空.code, ErrorCodeEnum.appCode为空.name());
+        }
+        switch (redisKeyEnum) {
+            case GAME_BW_H5:
+            case GAME_BQ_H5: {
+                order.setBuyerId(PayUtil.orderDesDecrypt(order.getBuyerId(), domainConfig.getString("ali.pay.webpagegame.des.secretkey")));
+                String zoneId = PayUtil.orderDesDecrypt(order.getZoneId(), domainConfig.getString("ali.pay.webpagegame.des.secretkey"));
+                //验证创建订单签名
+                if (!H5GameUtil.validateSign(new HashMap<String, String>() {
+                    {
+                        put("appCode", order.getAppCode());
+                        put("price", ((Double) order.getChargePointAmount()).intValue() + "");
+                    }
+                }, clientDetails.getPayKey(), order.getSign()))
+                    return SdkOauthResult.failed("支付签名错误，请稍后重试");
+                order.setZoneId(zoneId);
+                String gameOrderNo = StringUtils.isBlank(order.getOutOrderNo()) ? "0000" : order.getOutOrderNo();
+                order.setGameOrderNo(gameOrderNo);
+                handleExtraField(order);  //处理游戏扩展字段
+                break;
+            }
+            case GAME_BQ_APP: {
+                //验证签名
+                Map<String, String> signMap = new HashMap<String, String>();
+                signMap.put("channelCode", order.getChannelCode());
+                signMap.put("gameOrderNo", order.getGameOrderNo());
+                signMap.put("appCode", order.getAppCode());
+                signMap.put("userId", order.getBuyerId());
+                signMap.put("payOrigin", order.getPayOrigin());
+                signMap.put("chargePointCode", order.getChargePointCode());
+                if (!order.getSign().equals(MD5.md5Encode(MapUtil.createLinkString(signMap) + "&WapPay=" + domainConfig.getString("pay.ios.switch.sign.key")))) {
+                    return SdkOauthResult.failed("支付签名错误，请稍后重试");
+                }
+                BqChargePointInfo chargePointInfo2 = chargePointService.getChargePointInfoByCode(order.getChargePointCode(), order.getAppCode());
+                if (chargePointInfo2 == null) {
+                    return SdkOauthResult.failed(ErrorCodeEnum.无效的计费点.code, ErrorCodeEnum.无效的计费点.name());
+                }
+                BeanUtils.copyProperties(chargePointInfo, chargePointInfo2);
+                order.setChargePointCode(chargePointInfo.getChargePointCode());
+                //手游wap支付同步通知
+                order.setReturnUrl(domainConfig.getString("appgame.wap.return.url"));
+                break;
+            }
+        }
+        order.setChargePointAmount(chargePointInfo.getChargePointAmount()); //计费点金额，单位：元
+        order.setChargePointName(chargePointInfo.getChargePointName());
+        return SdkOauthResult.success();
+    }
+
+    /**
+     * 拼接唤起支付wap支付页面
+     *
+     * @param payInfo
+     * @return
+     * @throws Exception
+     */
+    private String getAliWapPayInfo(Object[] payInfo) throws Exception {
+
+        String ALIPAY_GATEWAY_NEW = "https://mapi.alipay.com/gateway.do?";
+        StringBuffer sbHtml = new StringBuffer();
+
+        sbHtml.append("<form id=\"alipaysubmit\" name=\"alipaysubmit\" action=\"" + ALIPAY_GATEWAY_NEW
+                + "_input_charset=utf-8" + "\"method=\"" + "get"
+                + "\">");
+
+        Object name = null;
+        Object value = null;
+        for (Object obj : (Object[]) payInfo) {
+            for (Field field : obj.getClass().getDeclaredFields()) {
+                field.setAccessible(true);
+                if (field.getName().equals("name")) {
+                    name = field.get(obj);
+                }
+                if (field.getName().equals("value")) {
+                    value = field.get(obj);
+                }
+            }
+            sbHtml.append("<input type=\"hidden\" name=\"" + name + "\" value=\"" + value + "\"/>");
+        }
+        //submit按钮控件请不要含有name属性
+        sbHtml.append("<input type=\"submit\" value=\"" + "确认" + "\" style=\"display:none;\"></form>");
+        sbHtml.append("<script>document.forms['alipaysubmit'].submit();</script>");
+        return sbHtml.toString();
+    }
+
+    /**
+     * 处理H5支付拓展字段
+     *
+     * @param requestOrderInfo
+     */
+    private void handleExtraField(HttpRequestOrderInfo requestOrderInfo) {
+        Map<String, String> extraFieldMap = new HashMap<>(3);
+        extraFieldMap.put("zoneId", requestOrderInfo.getZoneId());
+        if (StringUtils.isNotBlank(requestOrderInfo.getP1())) {
+            extraFieldMap.put("p1", requestOrderInfo.getP1());
+        }
+        if (StringUtils.isNotBlank(requestOrderInfo.getP2())) {
+            extraFieldMap.put("p2", requestOrderInfo.getP2());
+        }
+        if (StringUtils.isNotBlank(requestOrderInfo.getPlatformCode())) {
+            extraFieldMap.put("platformCode", requestOrderInfo.getPlatformCode());
+        }
+        requestOrderInfo.setExtraField(JSON.toJSONString(extraFieldMap));
+    }
+
+    /**
+     * 验证支付宝订单是否已支付
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping("/isOrderPay")
+    @ResponseBody
+    public SdkOauthResult isOrderPay(HttpServletRequest request) throws Exception {
+        String orderNo = request.getParameter("orderNo");
+        if (StringUtils.isBlank(orderNo))
+            return SdkOauthResult.failed("订单号不能为空");
+        return SdkOauthResult.success(orderService.isOrderPaid(orderNo));
+    }
+
+    /**
+     * @param request
+     * @return
+     */
+    @RequestMapping("/payResult")
+    @ResponseBody
+    public SdkOauthResult payResult(HttpServletRequest request) throws Exception {
+        String orderNo = request.getParameter("orderNo");
+        if (StringUtils.isBlank(orderNo))
+            return SdkOauthResult.failed("订单号不能为空");
+        return SdkOauthResult.success(orderService.isOrderPaid(orderNo));
+    }
+
+    /**
+     * 验证支付宝订单是否已支付
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping("/toPay")
+    public void toAliPay(HttpServletRequest request, HttpServletResponse response) {
+        String failPage = "/msg.html?msg=";
+        try {
+            String userId = request.getParameter("userId");
+            String appcode = request.getParameter("appCode");
+            String zoneId = request.getParameter("zoneId");
+            String directUrl = null;
+            log.info("页游跳转请求信息:userId:{},appcode:{},zoneId:{}", userId, appcode, zoneId);
+            if (StringUtils.isNotBlank(zoneId) && StringUtils.isBlank(appcode)) {
+                response.sendRedirect(failPage + URLEncoder.encode("找不到对应的游戏区服", "utf-8"));
+                return;
+            }
+            if (StringUtils.isBlank(userId) || !userId.matches("\\d+")) {
+                response.sendRedirect(failPage + URLEncoder.encode("找不到对应的用户信息", "utf-8"));
+                return;
+            }
+            UserInfo qbaoUser = thridRequestService.loadUserInfo(Long.valueOf(userId));
+            if (qbaoUser == null) {
+                response.sendRedirect(failPage + URLEncoder.encode("找不到对应的用户信息", "utf-8"));
+                return;
+            }
+            userId = PayUtil.orderDesEncrypt(userId, domainConfig.getString("ali.pay.webpagegame.des.secretkey"));
+            directUrl = "/paysdk.html?buyerid=" + userId + "&username=" + qbaoUser.getUsername();
+            directUrl = StringUtils.isNotBlank(appcode) ? directUrl + "&appcode=" + appcode : directUrl;
+            directUrl = StringUtils.isNotBlank(zoneId) ? directUrl + "&zoneId=" + zoneId : directUrl;
+            response.sendRedirect(directUrl);
+        } catch (Exception e) {
+            log.error("页游跳转请求异常", e);
+            try {
+                response.sendRedirect(failPage + URLEncoder.encode("系统异常，请稍后重试", "utf-8"));
+            } catch (Exception e1) {
+                log.error("页游跳转请求异常", e1);
+            }
+        }
+    }
+
+
+    /**
+     * 获取页游支付选项
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping("/queryPayOption")
+    @ResponseBody
+    public SdkOauthResult queryPayOption(HttpServletRequest request) {
+        String response = null;
+        try {
+            String appCode = request.getParameter("appCode");
+            List<NameValuePair> pairs = null;
+            response = null;
+            String url = domainConfig.getString("newwebgame.query.bq.payoption.url");
+            log.info("获取页游支付选项,url:{},appCode:{}", url, appCode);
+            if (StringUtils.isBlank(appCode)) {
+                response = ApiConnector.post(url, null);
+            } else {
+                pairs = new ArrayList<NameValuePair>(1);
+                pairs.add(new BasicNameValuePair("appCode", appCode));
+                response = ApiConnector.post(url, pairs);
+            }
+            if (StringUtils.isBlank(response))
+                return SdkOauthResult.failed("系统异常，请稍后重试");
+            JSONObject jsonObject = JSONObject.parseObject(response);
+            if (jsonObject == null || !"1000".equals(jsonObject.getString("responseCode")))
+                return SdkOauthResult.failed("系统异常，请稍后重试");
+            return SdkOauthResult.success(jsonObject.get("data"));
+        } catch (Exception e) {
+            log.error("获取页游支付选项异常", e);
+            return SdkOauthResult.failed("系统异常，请稍后重试");
+        }
+    }
+
+
+    /**
+     * 获取域名
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping("/queryPayDomain")
+    @ResponseBody
+    public SdkOauthResult queryPayDomain(HttpServletRequest request) {
+        String val = domainConfig.getString("bq.sdkserver.domain", "http://sdkserver.domestore.cn");
+        log.info("获取冰趣sdkserver域名val:{}", val);
+        Map<String, Object> map = new HashMap<>(1);
+        map.put("domain", val);
+        return SdkOauthResult.success(map);
+    }
+
+
+    /**
+     * 验证支付宝支付签名
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    private SdkOauthResult validateAliPaySign(HttpServletRequest request, HttpRequestOrderInfo order) {
+        Map<String, String> signMap = new HashMap<>();
+        String sign = "";
+        if (request.getRequestURI().indexOf("createOrderInfo") > -1 || request.getRequestURI().indexOf("createWxOrderInfo") > -1) {
+            signMap.put("appCode", order.getAppCode());
+            signMap.put("chargePointCode", order.getChargePointCode());
+            signMap.put("payType", String.valueOf(order.getPayType()));
+            signMap.put("gameOrderNo", order.getGameOrderNo());
+            signMap.put("channelCode", order.getChannelCode());
+            sign = MapUtil.createLinkString(signMap);
+            sign = sign + "&" + MD5.md5Encode(domainConfig.getString("alipay.md5.sign.key", "domesdk"));
+
+        }
+        if (request.getRequestURI().indexOf("recharge") > -1) {
+            signMap.put("appCode", order.getAppCode());
+            signMap.put("payType", String.valueOf(order.getPayType()));
+            signMap.put("channelCode", order.getChannelCode());
+            signMap.put("payOrigin", order.getPayOrigin());
+            signMap.put("passport", order.getPassport());
+            signMap.put("chargePointCode", order.getChargePointCode());
+            signMap.put("chargePointAmount", Double.valueOf(order.getChargePointAmount()).longValue() + "");
+            signMap.put("zoneId", order.getZoneId());
+            signMap.put("serverId", order.getServerId());
+            sign = MapUtil.createLinkString(signMap);
+            sign = sign + "&" + domainConfig.getString("alipay.md5.sign.key", "domesdk");
+        }
+        sign = MD5.md5Encode(sign);
+        return sign.equals(order.getSign()) ? SdkOauthResult.success() : SdkOauthResult.failed("支付签名失败");
+    }
+
+    /**
+     * 粉丝和分享页开关
+     *
+     * @param request
+     * @param version  当前版本号
+     * @param platform 平台：android、ios
+     * @return
+     */
+    @RequestMapping("/paySwitch")
+    @ResponseBody
+    public SdkOauthResult paySwitch(HttpServletRequest request, String version, String platform) {
+        log.info("传入的版本号：{}，平台：{}", version, platform);
+        if (StringUtils.isBlank(version) || StringUtils.isBlank(platform)) {
+            return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code);
+        }
+        if (!"IOS".equals(platform) && !"AD".equals(platform)) {
+            return SdkOauthResult.failed("不存在该平台");
+        }
+        Map<String, String> map = new HashMap<>();
+        String verSwitch = null;
+        if ("IOS".equals(platform)) {
+            verSwitch = switchConfig.getString(platform + version);
+            if (StringUtils.isBlank(verSwitch)) {
+                return SdkOauthResult.failed("没有该平台和对应的版本配置：" + platform + version);
+            }
+
+        } else if ("AD".equals(platform)) {
+            verSwitch = switchConfig.getString(platform + version);
+            if (StringUtils.isBlank(verSwitch)) {
+                return SdkOauthResult.failed("没有该平台和对应的版本配置：" + platform + version);
+            }
+        }
+        String share = verSwitch.split(",")[0];
+        String fans = verSwitch.split(",")[1];
+        //ios
+        map.put("share", share);
+        map.put("fans", fans);
+        log.info("解析得到的开关信息：{}", map);
+        return SdkOauthResult.success(map);
+    }
+
+
+    /**
+     * 充值中心游戏支付宝充值
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping(value = "/recharge", method = RequestMethod.POST)
+    @ResponseBody
+    public SdkOauthResult recharge(final HttpServletRequest request, HttpRequestOrderInfo order) {
+        String lockKey = "";
+        try {
+            String validResult = this.dataValid(order); // 校验提交数据
+            if (StringUtils.isNotEmpty(validResult)) {
+                return SdkOauthResult.failed(validResult);
+            }
+            //验证支付宝支付签名
+            SdkOauthResult result = validateAliPaySign(request, order);
+            if (!result.isSuccess())
+                return result;
+            UserInfo userInfo = userloginService.getUserByPassport(order.getPassport());
+            if (userInfo == null && StringUtils.isEmpty(userInfo.getUserId())) {
+                return SdkOauthResult.failed("充值账户不存在");
+            }
+            int lockTime = domainConfig.getInt("pay.ali.user.lock.time", "5");
+            lockKey = RedisConstants.ALI_PASSPORT_PAY_LOCK + order.getBuyerId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock"))
+                return SdkOauthResult.failed("操作频繁，请稍后重试");
+            //获取游戏信息
+            JSONObject jsonObject = payOptionsService.queryGameInfo(request.getParameter("appCode"));
+            if (jsonObject == null)
+                return SdkOauthResult.failed("获取不到应用信息");
+            order.setGameOrderNo("0000");
+            order.setGameNotifyUrl(jsonObject.getString("redirectUrl"));//支付通知地址
+            order.setOrderNo(GenOrderCode.next());
+            order.setBuyerId(order.getBuyerId());
+            order.setAppName(jsonObject.getString("appName"));
+            handleExtraField(request, order, userInfo);//处理扩展字段
+            Map<String, String> payData = payConfigService.getAllConfig(order.getPayType());
+            if (payData == null || payData.size() == 0) {
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            payData.put(BqSdkConstants.PC_SYNC_NOTIFY_URL, domainConfig.getString("passport.recharge.pay.syncnotify.url"));//支付宝及时到账同步通知地址
+            BqChargePointInfo chargePointInfo = new BqChargePointInfo();
+            chargePointInfo.setChargePointName(order.getChargePointName());
+            order.setChargePointAmount(PriceUtil.convert2YuanD(new BigDecimal(order.getChargePointAmount())).doubleValue());
+            chargePointInfo.setChargePointAmount(order.getChargePointAmount());
+            //添加支付宝支付描述信息，财务用户辨识支付来源
+            chargePointInfo.setDesc("手游充值中心_" + jsonObject.getString("appName") + "_" + order.getAppCode() + "_" + request.getParameter("channelCode"));
+            Object payInfo = getPayInfoByPayType(order, payData, chargePointInfo, request);
+            Map<String, Object> resultMap = new HashMap<String, Object>();
+            resultMap.put("payInfo", payInfo);
+            resultMap.put("orderNo", order.getOrderNo());
+            //resultMap.put("form", getAliWapPayInfo((Object[]) payInfo));
+            orderService.createAndSaveOrder(order);
+            return SdkOauthResult.success(resultMap);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>充值中心游戏支付宝充值异常", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+            redisUtil.del(lockKey);
+        }
+    }
+
+    /**
+     * 处理扩展字段
+     *
+     * @param request
+     * @param order
+     */
+    private void handleExtraField(HttpServletRequest request, HttpRequestOrderInfo order, UserInfo userInfo) {
+        String zoneId = request.getParameter("zoneId");
+        String serverId = request.getParameter("serverId");
+        Map<String, Object> map = new HashMap<>();
+        if (StringUtils.isNotBlank(zoneId)) {
+            map.put("zooCode", zoneId);
+        }
+        if (StringUtils.isNotBlank(serverId)) {
+            map.put("serverCode", serverId);
+        }
+        if (userInfo != null && StringUtils.isNotBlank(userInfo.getUserId())) {
+            map.put("rechargeUserId", userInfo.getUserId());//充值账户冰穹userid
+        }
+        order.setExtraField(JSON.toJSONString(map));
+    }
+
+    /**
+     * 根据商户订单号查询信息
+     * out_trade_no 商户订单号
+     *
+     * @return
+     */
+    @RequestMapping(value = "/checkWeiXinIsPay")
+    @ResponseBody
+    public SdkOauthResult checkWeiXinIsPayByOutTradeNo(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        if (StringUtils.isBlank(request.getParameter("out_trade_no"))) {
+            return SdkOauthResult.failed("订单号为空!");
+        }
+        Map<String, String> payConfig = payConfigService.getAllConfig(PayTypeEnum.微信支付.getCode());
+        return SdkOauthResult.success(weiXinOrderQuery(request.getParameter("out_trade_no"), payConfig));
+    }
+
+    /**
+     * 微信 通用/app支付
+     *
+     * @param request
+     * @param order
+     * @return
+     */
+    @RequestMapping(value = "createWxOrderInfo")
+    @ResponseBody
+    public SdkOauthResult createWxOrderInfo(HttpServletRequest request, HttpRequestOrderInfo order) {
+        SdkOauthResult result;
+        String lockKey = "";
+        Map<String, Object> resultMap = new HashMap<String, Object>();
+        try {
+            result = checkOrderRequest(order, request);
+            if (!result.isSuccess())
+                return result;
+            //验证支付宝支付签名
+            result = validateAliPaySign(request, order);
+            if (!result.isSuccess())
+                return result;
+            result = getAppInfoEntity(request, order);
+            if (!result.isSuccess())
+                return result;
+            AppInfoEntity clientDetails = (AppInfoEntity) result.getData();
+            String appName = clientDetails.getAppName();
+            String authToken = request.getParameter("authToken");
+            JSONObject response = userloginService.getUserByToken(authToken, order.getAppCode(), bqsdkBuId, null);
+            result = parserUcResponse(response);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            Map<String, Object> user = (Map<String, Object>) result.getData();
+            String buyerId = user.get(BqSdkConstants.domeUserId).toString();
+            String qwUserId = user.get(BqSdkConstants.qbaoUid) == null ? "" : user.get(BqSdkConstants.qbaoUid).toString();
+            int lockTime = domainConfig.getInt("pay.ali.wap.user.lock.time", "5");
+            lockKey = RedisConstants.ALI_PAY_LOCK_WAP + order.getAppCode() + ":" + order.getBuyerId();
+            if (redisUtil.tryLock(lockKey, lockTime, "lock"))
+                return SdkOauthResult.failed("操作频繁，请稍后重试");
+
+            BqChargePointInfo chargePointInfo = chargePointService.getChargePointInfoByCode(order.getChargePointCode(), order.getAppCode());
+            if (chargePointInfo == null) {
+                return SdkOauthResult.failed(ErrorCodeEnum.无效的计费点.code, ErrorCodeEnum.无效的计费点.name());
+            }
+
+            order.setOrderNo(GenOrderCode.next());
+            order.setBuyerId(buyerId);
+            order.setBwUserId(qwUserId);
+            //计费点金额，单位：元
+            order.setChargePointAmount(chargePointInfo.getChargePointAmount());
+            order.setChargePointName(chargePointInfo.getChargePointName());
+            order.setAppName(appName);
+            order.setChannelCode(request.getParameter("channelCode"));
+            Map<String, String> payData = payConfigService.getAllConfig(order.getPayType(), order.getAppCode());
+            if (payData == null || payData.size() == 0) {
+                log.error(" 不支持该支付方式  appCode = " + order.getAppCode());
+                return SdkOauthResult.failed(ErrorCodeEnum.不支持该支付方式.code, ErrorCodeEnum.不支持该支付方式.name());
+            }
+            ////添加支付描述信息，财务用户辨识支付来源
+            chargePointInfo.setDesc("MGame_" + appName + "_" + order.getAppCode() + "_" + request.getParameter("channelCode"));
+            Object payInfo = getPayInfoByPayType(order, payData, chargePointInfo, request);
+            resultMap.put("payType", payData.get(BqSdkConstants.weixinPayType));//微信支付方式 0是wap(通用方式) 1是app支付(部落崛起游戏定制使用)
+            resultMap.put("payInfo", payInfo);
+            orderService.createAndSaveOrder(order);
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+//            redisUtil.del(lockKey);
+            log.info(">>>>>>>>>>>>>>>>>>订单请求参数:" + JSONObject.toJSONString(order));
+        }
+        return SdkOauthResult.success(resultMap);
+    }
+
+
+}

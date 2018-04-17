@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>开放平台</title>
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta name="description" content="计费点管理">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="../../dist/images/bitbug_favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="../../dist/css/webgamePoint.css">
+</head>
+<body>
+<!--公用头部-->
+<div class="util_head_box">
+    <html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<div class="headBox">
+    <div class="conBox">
+        <a href="/app/index.html">
+            <div class="logo"></div>
+            <div class="title">冰穹开放平台</div>
+        </a>
+        <div class="menuBox">
+            <a href="/app/index.html" class="menus">冰穹服务</a>
+            <div style="float: left;">
+            <a href="javascript:void(0);" id="manageDropdwon" class="menus" 
+                style="float: none; position: relative; top: -2px;">管理控制台</a>
+                <ul class="manageBox" style="display: none">
+                    <li>
+                        <a href="/merchant/addservice.html">手游</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=yeyougame">网页游戏</a>
+                    </li>
+                    <li>
+                        <a href="/merchant/addservice.html?t=h5game">H5游戏</a>
+                    </li>
+                </ul>
+            </div>
+            <a id="channel-manage-menu" href="javascript:void(0);" class="menus @@channelnav">渠道管理</a>
+            <a href="/app/contactus.html" class="menus">联系我们</a>
+        </div>
+        <div  class="login login_dl">
+            <a href="/merchant/login.html" class="go">登录</a>
+            <span class="line"></span>
+            <a href="/merchant/registered.html" class="go">注册</a>
+        </div>
+        <div style="display: none" class="login_user login">
+            <span id="userName" class="userName"></span>
+            <ul class="menusBox" style="display: none">
+                <li class="user_menu">
+                    <a href="/usercenter/main.html">用户中心</a>
+                </li>
+                <li class="user_menu">
+                    <a href="/merchant/resetPassword.html">修改密码</a>
+                </li>
+                <li class="user_menu user_exit">退出</li>
+            </ul>
+        </div>
+    </div>
+</div>
+<div class="templateHide" id="templateHide" style="display: none"></div>
+<!-- <script src="../dist/js/head.js" type="text/javascript"></script>
+<script type="text/javascript">
+    headLoding.init('/dist/css/head.css','/dist/js/head.js');
+</script> -->
+</body>
+
+</html>
+</div>
+<!--公用头部-->
+
+<div class="contentBox point">
+    <div class="menuCrumbs">
+        <span class="m_wz">你当前的位置：</span>
+<a href="/merchant/addservice.html?t=yeyougame" class="m_pre">管理控制台  > </a>
+<a href="javascript:void(0);" class="m_pre">网页游戏 > </a>
+        <a href="#" class="m_new">计费点管理</a>
+    </div>
+    <div class="conBox">
+        <div class="content_con">
+            <div class="nr_ms">
+                <div class="ms_box" id="detail_box">
+                    <span class="lab">AppID：</span>
+                    <span class="lab_con"></span>
+                </div>
+                <div class="ms_box ms_left" id="detail_name">
+                    <span class="lab">应用名称：</span>
+                    <span class="lab_con"></span>
+                </div>
+            </div>
+            <div class="form_box">
+                <div class="input_box">
+                    <span class="lab">计费点名称</span>
+                    <input data-name="chargePointName" class="text" type="text"/>
+                </div>
+                <div class="input_box input_left">
+                    <span class="lab">计费点金额</span>
+                    <input data-name="amountStart" class="jf_je util-digVail" type="text"/>
+                    <span>-</span>
+                    <input data-name="amountEnd" class="jf_je util-digVail" type="text"/>
+                </div>
+                <div class="input_box input_left selectBox">
+                    <span class="lab">状态</span>
+                    <select data-name="status" class="sel_box">
+                        <option value=""></option>
+                        <option value="10">待审核</option>
+                        <option value="20">已生效</option>
+                        <option value="30">已驳回</option>
+                        <option value="40">草稿箱</option>
+                        <option value="70">已失效</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form_box">
+                <div class="input_box">
+                    <span class="lab">创建时间</span>
+                    <input data-name="startTime" class="m_left jf_je datetimepicker2" type="text"/>
+                    <span>-</span>
+                    <input data-name="endTime" class="jf_je datetimepicker2" type="text"/>
+                </div>
+                <div id="search_btn" class="search_btn text-c">查询</div>
+            </div>
+            <div class="batch">
+                <div class="add_point btns">添加计费点</div>
+                <div id="batchSub" class="add_submit btns">批量提交</div>
+            </div>
+
+
+            <div class="tableCon">
+                <table id="itemContainer" class="tableBox">
+                    <thead>
+                        <th class="t1">选择</th>
+                        <!--<th class="t1">序列号</th>-->
+                        <th class="t2">计费点ID</th>
+                        <th class="t2">计费点名称</th>
+                        <th class="t2">计费点金额 (元)</th>
+                        <th class="t3">创建时间</th>
+                        <th class="t3">更新时间</th>
+                        <th class="t1" style="width: 70px">状态</th>
+                        <th class="">操作</th>
+                    </thead>
+                    <tbody id="tbody">
+
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 公用分页-->
+            <div id="pageCon" class="pageCon">
+
+            </div>
+            <div id="util_pages" class="util_pages"></div>
+            <!-- 公用分页-->
+
+            <div class="clear"></div>
+        </div>
+    </div>
+</div>
+
+<script id="tpl_edit_point" type="text/html">
+    <div  class="alert_box {{if show}}ck_point_box{{else}}edit_point{{/if}}">
+        <div class="overHide"></div>
+        <div class="alert-Box">
+            {{if !show}}
+                {{if !chargePointCode}}
+                <div class="title">添加计费点</div>
+                {{else}}
+                    {{if status === 40 || status === 30}}
+                        <div class="title">修改计费点</div>
+                    {{else}}
+                        <div class="title">变更计费点</div>
+                    {{/if}}
+                {{/if}}
+            {{else}}
+                <div class="title">查看计费点</div>
+            {{/if}}
+            <div class="clone"></div>
+
+            <div class="alertContent form-point">
+                <input type="hidden" value={{appCode}} class="appCode" />
+                <input type="hidden" value={{chargePointCode}} class="chargePointCode" />
+
+                <div class="a_box {{if show}}clearfix{{else}}boxInput{{/if}}">
+                    {{if !show}}
+                    <i class="red">*</i>
+                    {{/if}}
+                    <span class="lab {{if show}}f-left{{/if}}">计费点名称</span>
+                    {{if !show}}
+                    <input type="text" class="con_nr chargePointName required" placeholder="计费点名称" value="{{chargePointName}}" />
+                    {{else}}
+                    <div class="con_nr nr_text">{{chargePointName}}</div>
+                    {{/if}}
+                </div>
+
+                <div class="a_box {{if show}}clearfix{{else}}boxInput{{/if}}">
+                    {{if !show}}
+                    <i class="red">*</i>
+                    {{/if}}
+                    <span class="lab {{if show}}f-left{{/if}}">计费点金额</span>
+                    {{if !show}}
+                    <input data-valid="digit" type="text" class="con_nr digit chargePointAmount required" placeholder="计费点金额，必须是整数" value="{{chargePointAmount}}" />
+                    <span>元</span>
+                    {{else}}
+                    <div class="con_nr nr_text">{{chargePointAmount}}</div>
+                    {{/if}}
+                </div>
+
+                <div class="a_box textarea {{if show}}clearfix{{else}}boxInput{{/if}}">
+                    {{if !show}}
+                    <i class="red">*</i>
+                    {{/if}}
+                    <span class="lab {{if show}}f-left{{/if}}">计费点说明</span>
+                    {{if !show}}
+                    <textarea data-name="desc" cols="20" rows="6" class="nr_text desc required" placeholder="计费点说明">{{desc}}</textarea>
+                    {{else}}
+                    <div class="textarea nr_text">{{desc}}</div>
+                    {{/if}}
+                    <div class="clear"></div>
+                </div>
+            </div>
+            <div class="alert_btn">
+                {{if !show}}
+                {{if !chargePointCode}}
+                <div id="submitBtn" class="sub_btn btns">提交申请</div>
+                <div id="saveBtn" class="save_btn btns m_left">保存</div>
+                {{else}}
+                    {{if status === 40 || status === 30}}
+                    <div class=" sub_btn btns">修改</div>
+                    {{else}}
+                    <div class=" sub_btn btns">变更计费点</div>
+                    {{/if}}
+                {{/if}}
+                {{/if}}
+            </div>
+        </div>
+    </div>
+</script>
+
+<script id="tpl_table" type="text/html">
+    {{each chargeList as tr i}}
+    <tr>
+        <td>
+            {{if tr.status==40}} <input class="icheckbox_square" type="checkbox" data-chargePointCode="{{tr.chargePointCode}}"/>{{/if}}
+        </td>
+        <td style="display: none">{{i+1}}</td>
+        <td>{{tr.chargePointCode}}</td>
+        <td title="{{tr.chargePointName}}" style="width: 100px;display: inline-block" class="ellipsis">{{tr.chargePointName}}</td>
+        <td>{{tr.chargePointAmount}}</td>
+        <td>{{tr.createTime}}</td>
+        <td>{{tr.updateTime}}</td>
+        <td>
+            {{if tr.status==10}}
+            待审核
+            {{else if tr.status==20}}
+            已生效
+            {{else if tr.status==30}}
+            <div class="an_click">
+                <span>已驳回</span>
+                <i class="down_btn"></i>
+            </div>
+            {{else if tr.status==40}}
+            草稿
+            {{else if tr.status==70}}
+            已失效
+            {{else}}
+            {{/if}}
+        </td>
+        <td class="edit_btn">
+            {{if tr.status==40 || tr.status==30}}
+            <span class="edit_point_btn" data-chargePointCode="{{tr.chargePointCode}}">编辑</span>
+            {{/if}}
+
+            {{if tr.status==40 || tr.status==30}}
+            <span class="del_point_btn" data-chargePointCode="{{tr.chargePointCode}}">删除</span>
+            {{/if}}
+
+            {{if tr.status==40}}
+            <span class="sub_point_btn" data-chargePointCode="{{tr.chargePointCode}}">提交</span>
+            {{/if}}
+
+            {{if tr.status==20 || tr.status==10}}
+            <span class="view_point_btn" data-chargePointCode="{{tr.chargePointCode}}">查看</span>
+            {{/if}}
+
+            {{if tr.status==20}}
+            <span class="edit_point_btn" data-chargePointCode="{{tr.chargePointCode}}">变更</span>
+            {{/if}}
+        </td>
+    </tr>
+    <tr class="an_xx">
+        <td colspan="6"></td>
+        <td colspan="2">
+            {{tr.remark}}
+        </td>
+    </tr>
+    {{/each}}
+</script>
+
+<script id="tpl_table_page" type="text/html">
+    当前显示 <span class="newPage">{{pageStart}}</span> 到 <span class="endPage">{{pageEnd}}</span> 条记录,总共 <span class="page_total">{{totalCount}}</span> 条
+</script>
+
+<!--公用尾部-->
+
+<!--公用尾部-->
+
+<script id="requirejs"
+        src="../../lib/require.js"
+        data-main="../../dist/js/webgamePoint.js"
+        data-url="../../lib/">
+</script>
+
+</body>
+</html>

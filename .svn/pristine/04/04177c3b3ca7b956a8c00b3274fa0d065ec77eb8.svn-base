@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="1 minutes" debug="false">
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.out</Target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%-5level] [%logger.%M:%L] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="qbaoLoginLogger" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/hadoop/dome-sdkserver/sdkQbaoLogin/qbaoLogin.log</file>
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/var/log/hadoop/dome-sdkserver/sdkQbaoLogin/qbaoLogin_%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="async_rolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/sdkserver/sdk_app.log</file>
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/var/log/sdkserver/sdk_app_%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%logger.%M:%L] |%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="alipayLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/hadoop/dome-sdkserver/alipay/alipay.log</file>
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/var/log/hadoop/dome-sdkserver/alipay/alipay_%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="qbPayLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/hadoop/dome-sdkserver/qbpaylog/qbpaylog.log</file>
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <FileNamePattern>/var/log/hadoop/dome-sdkserver/qbpaylog/qbpaylog_%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+    <appender name="h5HandGameLoginLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <!--<FileNamePattern>/var/log/hadoop/domestore-uc/bireport/bi_report_%d{yyyy-MM-dd}.log</FileNamePattern>-->
+            <FileNamePattern>/var/log/datacollect/h5HandGame/login/%d{yyyy-MM-dd}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <appender name="h5HandGameActivateLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <Encoding>UTF-8</Encoding>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--日志文件输出的文件名-->
+            <!--<FileNamePattern>/var/log/hadoop/domestore-uc/bireport/bi_report_%d{yyyy-MM-dd}.log</FileNamePattern>-->
+            <FileNamePattern>/var/log/datacollect/h5HandGame/activate/%d{yyyy-MM-dd,aux}/%d{yyyy-MM-dd-HH}.log</FileNamePattern>
+            <MaxHistory>30</MaxHistory>
+        </rollingPolicy>
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%msg%n</pattern>
+        </layout>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="stdout" />
+        <appender-ref ref="async_rolling"/>
+    </root>
+
+    <logger name="h5HandGameActivate" level="INFO" additivity="false">
+        <appender-ref ref="h5HandGameActivateLog"/>
+    </logger>
+
+    <logger name="h5HandGameLogin" level="INFO" additivity="false">
+        <appender-ref ref="h5HandGameLoginLog"/>
+    </logger>
+    <logger name="qbaoLogin" level="INFO" addtivity="false">
+        <appender-ref ref="qbaoLoginLogger"/>
+    </logger>
+
+    <logger name="aLiPay" level="INFO" additivity="false">
+        <appender-ref ref="alipayLog"/>
+    </logger>
+
+    <logger name="qbPay" level="INFO" additivity="false">
+        <appender-ref ref="qbPayLog"/>
+    </logger>
+
+    <logger name="dao" level="DEBUG"/>
+    <logger name="com.dome.sdkserver" level="INFO"/>
+    <logger name="com.qianwang.pay" level="INFO"/>
+    <logger name="com.ibatis" level="INFO"/>
+    <logger name="org.springframework" level="ERROR"/>
+    <logger name="com.ibatis.sqlmap.engine.impl.SqlMapClientDelegate" level="INFO"/>
+    <logger name="org.apache.commons" level="ERROR"/>
+    <logger name="catalia" level="ERROR"/>
+    <logger name="org.apache" level="ERROR"/>
+    <logger name="com.ibatis.common.jdbc.SimpleDataSource" level="INFO"/>
+    <logger name="java.sql.ResultSet" level="INFO"/>
+    <logger name="com.ibatis.common.jdbc.ScriptRunner" level="INFO"/>
+    <logger name="java.sql.Connection" level="INFO"/>
+    <logger name="java.sql.PreparedStatement" level="INFO"/>
+
+</configuration>

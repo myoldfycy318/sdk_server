@@ -1,0 +1,508 @@
+package com.dome.sdkserver.controller.login;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.dome.sdkserver.bq.enumeration.ErrorCodeEnum;
+import com.dome.sdkserver.bq.login.domain.user.User;
+import com.dome.sdkserver.bq.util.RandomValueStringGenerator;
+import com.dome.sdkserver.bq.view.SdkOauthResult;
+import com.dome.sdkserver.constants.RedisKeyEnum;
+import com.dome.sdkserver.controller.BaseController;
+import com.dome.sdkserver.metadata.entity.bq.pay.AppInfoEntity;
+import com.dome.sdkserver.service.BqSdkConstants;
+import com.dome.sdkserver.service.game.GameService;
+import com.dome.sdkserver.service.login.LoginResultNotifyService;
+import com.dome.sdkserver.service.login.SdkAuthorizationService;
+import com.dome.sdkserver.service.login.ThridRequestService;
+import com.dome.sdkserver.service.login.UserLoginService;
+import com.dome.sdkserver.service.pay.qbao.bo.UserInfo;
+import com.dome.sdkserver.util.LogUtil;
+import com.dome.sdkserver.util.PropertiesUtil;
+import com.dome.sdkserver.util.RSACoder;
+import com.dome.sdkserver.util.RedisUtil;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.encoding.Md5PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
+@Controller
+@RequestMapping("/bqsdklogin/")
+public class SdkAuthorizeController extends BaseController {
+
+    private static RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+    @Autowired
+    private SdkAuthorizationService sdkAuthorizationService;
+
+    @Autowired
+    private LoginResultNotifyService loginResultNotifyService;
+
+    @Autowired
+    private UserLoginService userloginService;
+
+    @Autowired
+    private ThridRequestService thridRequestService;
+
+    @Autowired
+    private RedisUtil redisUtil;
+
+    @Autowired
+    private PropertiesUtil domainConfig;
+
+    @Resource(name = "gameService")
+    private GameService gameService;
+    @Value("${buid}")
+    private String bqsdkBuId;// 冰趣sdk的ui，uc分配
+
+    /**
+     * 获取授权code接口
+     *
+     * @param appCode
+     * @return
+     */
+    @RequestMapping(value = "getAuthCode")
+    @ResponseBody
+    public SdkOauthResult getAuthCode(String appCode) {
+        String code = null;
+        try {
+            SdkOauthResult result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            code = generator.generate();
+            String redisKey = BqSdkConstants.redis_key_authCode_prefix + appCode + code;
+            redisUtil.set(redisKey, JSON.toJSONString(code));
+            redisUtil.expire(redisKey, 10 * 60);
+        } catch (Exception e) {
+            log.error(">>>>>>>>获取授权code失败:", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.获取授权code失败.code, ErrorCodeEnum.获取授权code失败.name());
+        }
+        Map<String, String> resultMap = new HashMap<String, String>();
+        resultMap.put("authCode", code);
+        return SdkOauthResult.success(resultMap);
+    }
+
+    /**
+     * 获取登录token
+     *
+     * @param appCode
+     * @param user
+     * @param loginType
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "getLoginToken")
+    @ResponseBody
+    public SdkOauthResult getLoginToken(String appCode, User user, String loginType, HttpServletRequest request) {
+        SdkOauthResult result = null;
+        String authCode = "";
+        try {
+            if (StringUtils.isNotBlank(request.getHeader("buId"))) {
+                user.setBuId(request.getHeader("buId"));
+            }
+            result = validateReqParams(request);
+            if (!result.isSuccess())
+                return result;
+            result = checkClient(appCode);
+            if (!result.isSuccess())
+                return result;
+            // 校验其他相关请求参数并获取密码
+            result = sdkAuthorizationService.checkAuthorizeRequest(appCode, user.getLoginName(), user.getPassword());
+            String srcPassword = "";
+            if (!result.isSuccess()) {
+                return result;
+            } else {
+                srcPassword = ((Map<String, String>) result.getData()).get("srcPassword");
+                authCode = ((Map<String, String>) result.getData()).get("authCode");
+                user.setPassword(srcPassword);
+            }
+            if (LoginTypeEnum.qbao.name().equals(LoginTypeEnum.getLoginType(Integer.parseInt(loginType)))) {
+                result = getQbLoginToken(user, appCode); // 宝玩
+            } else {
+                result = getBQLoginToken(user, appCode, request); // 冰趣
+            }
+            if (!result.isSuccess()) {
+                request.setAttribute("authUserFail", "1");
+            } else {
+                request.setAttribute("authUserOk", "1");
+                // 创建接入实体
+                createAccessRecordEntity(request, 1, user.getUserId(), user.getLoginName(),
+                        LoginTypeEnum.getLoginType(Integer.parseInt(loginType)));
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        } finally {
+            if (StringUtils.isNotBlank(authCode)) {
+                String redisKey = BqSdkConstants.redis_key_authCode_prefix + appCode + authCode;
+                redisUtil.del(redisKey);
+            }
+        }
+    }
+
+    /**
+     * 第三方隐式绑定
+     */
+    @RequestMapping(value = "implicitBind")
+    @ResponseBody
+    public SdkOauthResult implicitBind(HttpServletRequest request) {
+        AppInfoEntity clientDetails = null;
+        try {
+            // 第三方标识id
+            String thirdId = request.getParameter("thirdId");
+            if (StringUtils.isBlank(thirdId)) {
+                log.error(">>>>>>>>thirdId不能为空");
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            // 用户openId
+            String openId = request.getParameter("openId");
+            if (StringUtils.isBlank(openId)) {
+                log.error(">>>>>>>openId不能为空");
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            String appCode = request.getParameter("appCode");
+            SdkOauthResult result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            } else {
+                clientDetails = (AppInfoEntity) result.getData();
+            }
+            JSONObject response = null;
+            String buId = request.getHeader("buId");
+            User user = new User();
+            if (StringUtils.isNotBlank(buId)) {
+                log.info(">>>>>>>>>>>buId:" + buId);
+                user.setBuId(buId);
+            }
+            response = userloginService.thirdImplicitBind(thirdId, openId, user, appCode);
+            log.info("-->第三方隐式绑定请求参数:{},相应结果:{}", JSON.toJSONString(request.getParameterMap()), response.toJSONString());
+            // 获取用户信息
+            String key = request.getParameter("key"); // 游戏传来登录校验的token
+            if (key.length() > 64) {
+                return SdkOauthResult.failed(ErrorCodeEnum.key的长度超过64位.code, ErrorCodeEnum.key的长度超过64位.name());
+            }
+            String domeUserId = response.getJSONObject("data").getString(BqSdkConstants.domeUserId);
+            log.info("用户中心返回的domeUserId：{}", domeUserId);
+            String loginNotifyUrl = null;
+            // sdk线上环境,默认是线上环境
+            if ("1".equals(domainConfig.getString("sdk.notify.environment", "1"))) {
+                loginNotifyUrl = clientDetails.getLoginCallBackUrl();
+            } else {
+                loginNotifyUrl = clientDetails.getTestLoginCallBackUrl();
+            }
+            log.info("登录回调通知loginNotifyUrl：{}", loginNotifyUrl);
+            if (StringUtils.isNotBlank(loginNotifyUrl)) {
+                loginResultNotifyService.startNotify(domeUserId, key, appCode, loginNotifyUrl);
+            }
+            return parserUcResponse(response);
+        } catch (Exception e) {
+            log.error(">>>>>>>>隐式绑定失败", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+
+    }
+
+    /**
+     * 第三方登录查询绑定关系接口
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "isBind")
+    @ResponseBody
+    public SdkOauthResult isBind(HttpServletRequest request) {
+        JSONObject response = null;
+        User user = new User();
+        try {
+            String thirdId = request.getParameter("thirdId");
+            String openId = request.getParameter("openId");
+            String appCode = request.getParameter("appCode");
+            String userId = request.getParameter("userId");
+            user.setUserId(userId);
+            if (StringUtils.isBlank(thirdId) || StringUtils.isBlank(openId) || StringUtils.isBlank(userId)) {
+                log.error(">>>>>>>>必填参数不能为空", JSON.toJSONString(request.getParameterMap()));
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            SdkOauthResult result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            String buId = request.getHeader("buId");
+            if (StringUtils.isNotBlank(buId)) {
+                log.info(">>>>>>>>>>>buId:" + buId);
+                user.setBuId(buId);
+            }
+            response = userloginService.isBind(thirdId, openId, user, appCode);
+            return parserUcResponse(response);
+        } catch (Exception e) {
+            log.error(">>>>>>>>查询绑定接口失败", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+
+    }
+
+    /**
+     * 验证请求参数
+     *
+     * @param request
+     * @return
+     */
+    private SdkOauthResult validateReqParams(HttpServletRequest request) {
+        String channelCode = request.getParameter("channelCode");
+        if (StringUtils.isBlank(channelCode) || !BqSdkConstants.channelCodeSet.contains(channelCode))
+            return SdkOauthResult.failed(ErrorCodeEnum.渠道号错误.code, ErrorCodeEnum.渠道号错误.name());
+        String loginType = request.getParameter("loginType");
+        if (StringUtils.isBlank(loginType) || !loginType.matches("\\d"))
+            return SdkOauthResult.failed(ErrorCodeEnum.登录类型错误.code, ErrorCodeEnum.登录类型错误.name());
+        if (request.getRequestURI().indexOf("getUserInfoByToken") > -1) {
+            String authToken = request.getParameter("authToken");
+            String key = request.getParameter("key");
+            String loginName = request.getParameter("loginName");
+            if (StringUtils.isBlank(authToken) || StringUtils.isBlank(key) || StringUtils.isBlank(loginName)) {
+                return SdkOauthResult.failed(ErrorCodeEnum.有必填参数为空.code, ErrorCodeEnum.有必填参数为空.name());
+            }
+            if (key.length() > 64) {
+                return SdkOauthResult.failed(ErrorCodeEnum.key的长度超过64位.code, ErrorCodeEnum.key的长度超过64位.name());
+            }
+        }
+        return SdkOauthResult.success();
+    }
+
+    /**
+     * 获取宝玩登录令牌
+     *
+     * @param user
+     * @param appCode
+     * @return
+     */
+    private SdkOauthResult getQbLoginToken(User user, String appCode) {
+        // 校验用户名密码
+        UserInfo qbUserInfo = null;
+        qbUserInfo = thridRequestService.qurUameNameByAccount(user.getLoginName());
+        if (qbUserInfo == null || StringUtils.isBlank(qbUserInfo.getUsername()))
+            return SdkOauthResult.failed(ErrorCodeEnum.无效的用户名.code, ErrorCodeEnum.无效的用户名.name());
+        String qbaoUserId = thridRequestService.queryQBUserName(qbUserInfo.getUsername());
+        if (StringUtils.isBlank(qbaoUserId))
+            return SdkOauthResult.failed(ErrorCodeEnum.无效的用户名.code, ErrorCodeEnum.无效的用户名.name());
+        qbUserInfo = thridRequestService.loadUserInfo(Long.valueOf(qbaoUserId));
+        SdkOauthResult result = checkUserInfo(user.getPassword(), qbUserInfo);
+        if (!result.isSuccess()) {
+            return result;
+        }
+        user.setUserId(qbaoUserId);
+        // 将钱宝ID和冰穹ID绑定,返回一个授权token
+        JSONObject json = userloginService.boundDomeUserId(qbUserInfo, appCode, user);
+        return parserUcResponse(json);
+    }
+
+    /**
+     * 获取冰趣登录令牌
+     *
+     * @param user
+     * @param appCode
+     * @return
+     */
+    private SdkOauthResult getBQLoginToken(User user, String appCode, HttpServletRequest request) {
+        // 国别码
+        String countryCode = request.getParameter("countryCode");
+        JSONObject response = userloginService.getToken(user, appCode, request.getParameter("captcha"),
+                request.getParameter("captchaKey"), countryCode);
+        return parserUcResponse(response);
+    }
+
+    /**
+     * 根据token获取登录授权的用户信息
+     *
+     * @param appCode   应用编码
+     * @param authToken accesstoken
+     * @param request
+     * @return 登录授权的用户信息
+     */
+    @RequestMapping(value = "getUserInfoByToken")
+    @ResponseBody
+    public SdkOauthResult getUserInfo(String appCode, String authToken, String loginType,
+                                      HttpServletRequest request) {
+        SdkOauthResult result = null;
+        AppInfoEntity clientDetails = null;
+        User user = null;
+        try {
+            result = validateReqParams(request);
+            if (!result.isSuccess()) {
+                return result;
+            }
+            result = checkClient(appCode);
+            if (!result.isSuccess()) {
+                return result;
+            } else {
+                clientDetails = (AppInfoEntity) result.getData();
+            }
+            String buId = request.getHeader("buId");
+            JSONObject response = userloginService.getUserByToken(authToken, appCode, buId);
+            result = parserUcResponse(response);
+            if (!result.isSuccess())
+                return result;
+            user = new User();
+            if (LoginTypeEnum.qbao.name().equals(LoginTypeEnum.getLoginType(Integer.parseInt(loginType)))) {
+                // qbSdkLoginAuthorize.getUserInfo(authToken, request);
+                getQbUserInfo(response, request, clientDetails, user); // 宝玩
+                // 记录第三方钱宝用户登录信息
+                recordQbaoUserLogin(request, response);
+            } else {
+                getBqUserInfo(response, request, clientDetails, user); // 冰趣
+            }
+            createAccessRecordEntity(request, 2, user.getUserId(), user.getLoginName(),
+                    LoginTypeEnum.getLoginType(Integer.parseInt(loginType)));
+            return result;
+
+        } catch (Exception e) {
+            log.error(">>>>>>>>>非预期错误", e);
+            return SdkOauthResult.failed(ErrorCodeEnum.非预期错误.code, ErrorCodeEnum.非预期错误.name());
+        }
+    }
+
+    /**
+     * 记录第三方钱宝用户登录访问日志
+     *
+     * @param request
+     * @param jsonObject
+     */
+    private void recordQbaoUserLogin(HttpServletRequest request, JSONObject jsonObject) {
+        JSONObject data = jsonObject.getJSONObject("data");
+        Map<String, Object> paramsMap = new HashMap<>();
+        paramsMap.put("responseCode", 0);
+        paramsMap.put("buId", "DOME001");
+        paramsMap.put("loginName", request.getParameter("loginName"));
+        paramsMap.put("qbUserId", data.getString(BqSdkConstants.qbaoUid));
+        paramsMap.put("domeUserId", data.getString(BqSdkConstants.domeUserId));
+        paramsMap.put("clientId", request.getParameter("appCode"));
+        paramsMap.put("thirdId", 1);
+        qbaoLoginLogger.info(LogUtil.map2String(paramsMap));
+    }
+
+    /**
+     * 获取钱宝用户信息
+     *
+     * @param jsonObject
+     */
+    private void getQbUserInfo(JSONObject jsonObject, HttpServletRequest request, AppInfoEntity clientDetails,
+                               User user) {
+        JSONObject data = jsonObject.getJSONObject("data");
+        String loginName = request.getParameter("loginName");
+        String channelCode = request.getParameter("channelCode");
+        String key = request.getParameter("key");
+        String appCode = request.getParameter("appCode");
+        user.setLoginName(loginName);
+        String userKey = RedisKeyEnum.BQ_USER_INFO.getKey() + data.getString(BqSdkConstants.qbaoUid);
+        // 将登陆用户信息加入缓存
+        redisUtil.setex(userKey, RedisKeyEnum.BQ_USER_INFO.getExpireTime(), data.toJSONString());
+        String userId = "";
+        if (channelCode.equals(BqSdkConstants.channelCodeQbao)) {
+            userId = data.getString(BqSdkConstants.qbaoUid);
+        } else if (BqSdkConstants.bqChannelCodes.contains(channelCode)) {// 冰穹渠道
+            userId = data.getString(BqSdkConstants.domeUserId);
+        }
+        user.setUserId(userId);
+        String loginNotifyUrl = null;
+        // sdk线上环境,默认是线上环境
+        if ("1".equals(domainConfig.getString("sdk.notify.environment", "1"))) {
+            loginNotifyUrl = clientDetails.getLoginCallBackUrl();
+        } else {
+            loginNotifyUrl = clientDetails.getTestLoginCallBackUrl();
+        }
+        if (StringUtils.isNotBlank(loginNotifyUrl)) {
+            if (StringUtils.isNotBlank(userId)) {
+                loginResultNotifyService.startNotify(userId, key, appCode, loginNotifyUrl);
+            } else {
+                log.error(">>>>>>异步回调登录接口失败 ，userId is null ");
+            }
+        }
+    }
+
+    /**
+     * 获取冰穹用户信息
+     *
+     * @param jsonObject
+     */
+    private void getBqUserInfo(JSONObject jsonObject, HttpServletRequest request, AppInfoEntity clientDetails,
+                               User user) {
+        JSONObject data = jsonObject.getJSONObject("data");
+        String key = request.getParameter("key");
+        String appCode = request.getParameter("appCode");
+        user.setUserId(data.getString(BqSdkConstants.domeUserId));
+        user.setLoginName(request.getParameter("loginName"));
+        String loginNotifyUrl = null;
+        // sdk线上环境,默认是线上环境
+        if ("1".equals(domainConfig.getString("sdk.notify.environment", "1"))) {
+            loginNotifyUrl = clientDetails.getLoginCallBackUrl();
+        } else {
+            loginNotifyUrl = clientDetails.getTestLoginCallBackUrl();
+        }
+        if (StringUtils.isNotBlank(loginNotifyUrl)) {
+            loginResultNotifyService.startNotify(data.getString(BqSdkConstants.domeUserId), key, appCode,
+                    loginNotifyUrl);
+        }
+    }
+
+    /**
+     * 验证宝玩用户与密码
+     *
+     * @param password
+     * @param userInfo
+     * @return
+     */
+    private SdkOauthResult checkUserInfo(String password, UserInfo userInfo) {
+
+        Md5PasswordEncoder md5PasswordEncoder = new Md5PasswordEncoder();
+        String signPwd = md5PasswordEncoder.encodePassword(password, userInfo.getUsername()).toLowerCase();
+        JSONObject jsonObject = thridRequestService.getCasUser(userInfo.getUserId(), signPwd);
+        if (jsonObject == null || !jsonObject.getBoolean("data")) {
+            return SdkOauthResult.failed(ErrorCodeEnum.用户名或密码不正确.code, ErrorCodeEnum.用户名或密码不正确.name());
+        }
+        return SdkOauthResult.success();
+    }
+
+    /**
+     * SDK支付
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/refreshAppCode")
+    @ResponseBody
+    public boolean refreshAppCode(HttpServletRequest request) {
+        boolean result = false;
+        String appCode = request.getParameter("appCode");
+        try {
+            log.info("refreshAppCode请求参数,appCode:{}", appCode);
+            String sign = request.getParameter("sign");
+            sign = new String(Base64.decodeBase64((sign)));
+            String rsaPublic = request.getParameter("rsaPublic");
+            rsaPublic = new String(Base64.decodeBase64((rsaPublic)));
+            // RSA公钥验签
+            if (RSACoder.verify(appCode.getBytes(), rsaPublic, sign)) {
+                result = gameService.refreshAppInfo(appCode);
+            }
+        } catch (Exception e) {
+            log.error("刷新appCode:{}异常:{}", appCode, e);
+        }
+        return result;
+    }
+
+    @RequestMapping(value = "/getValidateCode")
+    @ResponseBody
+    public SdkOauthResult getValidateCode(HttpServletRequest request) {
+        String buId = request.getHeader("buId");
+        JSONObject json = userloginService.getValidateCode(request.getParameter("captchaKey"), buId);
+        return parserUcResponse(json);
+    }
+}

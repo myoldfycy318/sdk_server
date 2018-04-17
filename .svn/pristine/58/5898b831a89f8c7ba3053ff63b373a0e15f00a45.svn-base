@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dome.sdkserver.metadata.dao.mapper.PkgMapper">
+	<resultMap type="Pkg" id="pkgMap">
+		<id property="id" jdbcType="INTEGER" column="id"/>
+		<result property="appCode" jdbcType="VARCHAR" column="app_code"/>
+		<result property="name" jdbcType="VARCHAR" column="name"/>
+		<result property="fileName" jdbcType="VARCHAR" column="file_name"/>
+		<result property="fileSize" jdbcType="VARCHAR" column="file_size"/>
+		<result property="uploadStatus" jdbcType="TINYINT" column="upload_status"/>
+		<result property="uploadPath" jdbcType="VARCHAR" column="upload_path"/>
+		<result property="uploadTime" jdbcType="TIMESTAMP" column="upload_time"/>
+		<result property="jiaguPath" jdbcType="VARCHAR" column="jiagu_path"/>
+		<result property="jiaguTime" jdbcType="TIMESTAMP" column="jiagu_time"/>
+		<result property="jiaguStatus" jdbcType="TINYINT" column="jiagu_status"/>
+		<result property="updateTime" jdbcType="TIMESTAMP" column="update_time"/>
+		<result property="sdkVersion" jdbcType="VARCHAR" column="sdk_version"/>
+		<result property="jiaguFileSize" jdbcType="VARCHAR" column="jiagu_filesize"/>
+		<result property="packageName" jdbcType="VARCHAR" column="package_name"/>
+		<result property="version" jdbcType="VARCHAR" column="version"/>
+	</resultMap>
+	
+	<insert id="upload" parameterType="Pkg">
+		insert into domesdk_pkg (app_code, name, file_name, file_size, upload_path, upload_time, upload_status, update_time
+			<if test="p.jiaguPath !=null">
+				,jiagu_path
+			</if>
+			<if test="p.jiaguTime !=null">
+				,jiagu_time
+			</if>
+			<if test="p.jiaguFileSize !=null">
+				,jiagu_filesize
+			</if>
+			<if test="p.jiaguStatus !=null and p.jiaguStatus != 0">
+				,jiagu_status
+			</if>
+			<if test="p.sdkVersion !=null">
+				,sdk_version
+			</if>
+			<if test="p.packageName !=null">
+				,package_name
+			</if>
+			<if test="p.version !=null">
+				,version
+			</if>
+		)
+			values (#{p.appCode}, #{p.name}, #{p.fileName}, #{p.fileSize}, #{p.uploadPath}, #{p.uploadTime}, #{p.uploadStatus}, now()
+			<if test="p.jiaguPath !=null">
+				,#{p.jiaguPath, jdbcType=VARCHAR}
+			</if>
+			<if test="p.jiaguTime !=null">
+				,#{p.jiaguTime, jdbcType=TIMESTAMP}
+			</if>
+			<if test="p.jiaguFileSize !=null">
+				,#{p.jiaguFileSize, jdbcType=VARCHAR}
+			</if>
+			<if test="p.jiaguStatus !=null and p.jiaguStatus != 0">
+				,#{p.jiaguStatus, jdbcType=TINYINT}
+			</if>
+			<if test="p.sdkVersion !=null">
+				,#{p.sdkVersion, jdbcType=VARCHAR}
+			</if>
+			<if test="p.packageName !=null">
+				,#{p.packageName, jdbcType=VARCHAR}
+			</if>
+			<if test="p.version !=null">
+				,#{p.version, jdbcType=VARCHAR}
+			</if>
+			);
+		<selectKey resultType="long" keyProperty="p.id" order="AFTER">
+			SELECT
+				LAST_INSERT_ID()
+		 </selectKey>
+	</insert>
+	
+	<update id="jiagu" parameterType="Pkg">
+		update domesdk_pkg set jiagu_time=now(), jiagu_status=#{p.jiaguStatus}, jiagu_path=#{p.jiaguPath},
+			sdk_version=#{p.sdkVersion}
+			<if test="p.jiaguFileSize != null">
+				,jiagu_filesize=#{p.jiaguFileSize}
+			</if>
+			
+		where id=#{p.id};
+	</update>
+	
+	<select id="query" resultMap="pkgMap">
+		select * from domesdk_pkg where app_code=#{appCode} order by id desc limit 0, 2;
+	</select>
+	
+	<select id="queryById" resultMap="pkgMap">
+		select * from domesdk_pkg where id=#{id};
+	</select>
+	
+	<select id="queryHistory" resultMap="pkgMap">
+		select * from domesdk_pkg where app_code=#{appCode};
+	</select>
+	
+	<select id="queryNew" resultMap="pkgMap">
+		select * from domesdk_pkg where app_code=#{appCode} order by id desc limit 0, 1;
+	</select>
+
+	<select id="getAppListByCondition" resultType="com.dome.sdkserver.bo.MerchantAppInfo">
+		SELECT
+			mert.merchant_code as merchantCode, mert.merchant_full_name as merchantFullName, app.app_code as appCode, app.app_name as appName, app.update_time as updateTime,
+			app.status as status, app.out_public_rsakey outPublicRsakey, app.out_private_rsakey outPrivateRsakey, app.test_out_public_rsakey testPublicRsakey, app.test_out_private_rsakey testPrivateRsakey
+		FROM 
+			domesdk_app_info app, 
+			domesdk_merchant_info mert, (select app_code, max(upload_time) upload_time from domesdk_pkg where upload_status=1 and jiagu_status=1 group by app_code) pkg
+		where
+			app.merchant_info_id = mert.merchant_info_id and app.app_code=pkg.app_code
+		
+		and
+			app.del_flag = 0 and mert.del_flag=0
+		<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+			and app.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.appCode != null and entity.appCode != ''">
+			and app.app_code = #{entity.appCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mert.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.merchantCode != null and entity.merchantCode != ''">
+			and mert.merchant_code = #{entity.merchantCode, jdbcType=TINYINT}
+		</if>
+		order by pkg.upload_time desc
+		<if test="entity.start != null and entity.size != null">
+			limit #{entity.start, jdbcType=INTEGER},#{entity.size, jdbcType=INTEGER}
+		</if>
+	</select>
+	
+	<select id="getAppInfoCountByCondition" resultType="int">
+		SELECT
+			count(1)
+		FROM 
+			domesdk_app_info app,
+			domesdk_merchant_info mert, (select app_code, max(upload_time) upload_time from domesdk_pkg where upload_status=1 and jiagu_status=1 group by app_code) pkg
+		where
+			app.merchant_info_id = mert.merchant_info_id and app.app_code=pkg.app_code
+		
+		and
+			app.del_flag = 0 and mert.del_flag=0
+		<if test="entity.merchantAppName != null and entity.merchantAppName != ''">
+			and app.app_name like concat('%',#{entity.merchantAppName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.appCode != null and entity.appCode != ''">
+			and app.app_code = #{entity.appCode, jdbcType=VARCHAR}
+		</if>
+		<if test="entity.merchantFullName != null and entity.merchantFullName != ''">
+			and mert.merchant_full_name like concat('%',#{entity.merchantFullName, jdbcType=VARCHAR},'%')
+		</if>
+		<if test="entity.merchantCode != null and entity.merchantCode != ''">
+			and mert.merchant_code = #{entity.merchantCode, jdbcType=TINYINT}
+		</if>
+	</select>
+</mapper>

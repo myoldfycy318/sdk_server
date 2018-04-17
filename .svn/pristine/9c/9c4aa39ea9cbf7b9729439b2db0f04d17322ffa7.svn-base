@@ -1,0 +1,9 @@
+<script type="text/html" id="util_openImg">
+    <div id="box_openImg">
+        <div class="overHide"></div>
+        <div class="open_img">
+            <img src={{src}} alt=""/>
+            <i class="clone"></i>
+        </div>
+    </div>
+</script>
